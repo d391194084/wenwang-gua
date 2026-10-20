@@ -646,6 +646,16 @@
     }
     .ana-verdict.ana-good { background: #dcebd9; border-color: #1f5a3a; color: #1f5a3a; }
     .ana-verdict.ana-bad { background: #f3d9d3; border-color: var(--red); color: var(--red); }
+    .ana-plain {
+      font-size: 0.9em;
+      color: var(--blue);
+      background: #eef3f2;
+      border-left: 3px solid var(--blue);
+      border-radius: 4px;
+      padding: 2px 8px;
+      margin: 2px 0 4px;
+    }
+    .ana-plain::before { content: "白話："; font-weight: bold; }
     .ana-table-wrap { overflow-x: auto; margin: 4px 0 6px; }
     .ana-table {
       border-collapse: collapse;
@@ -2280,6 +2290,178 @@
     }
     push(dt, "評分為月建、日辰、動爻、變爻逐項加減的參考值：3 以上旺、1 以上偏旺、−1.5 至 1 不旺不衰、−3 至 −1.5 偏衰、−3 以下衰。", "note");
 
+    // ----- 白話解讀（放在最前面）、各段白話說明、名詞白話 -----
+    var LEVEL_PLAIN = {
+      "旺": "力量很強，條件很好",
+      "偏旺": "力量不錯，條件偏好",
+      "不旺不衰": "力量普通，好壞要看其他因素",
+      "偏衰": "力量偏弱，做起來比較吃力",
+      "衰": "力量很弱，目前條件不足"
+    };
+    var plain = { title: "白話解讀", items: [], plain: "用一般說法整理這一卦在說什麼；專有名詞的意思見最後的「名詞白話」。" };
+    function say(t, tone) { plain.items.push({ text: t, tone: tone || "" }); }
+    var qText = document.getElementById("question").value.trim();
+    if (qText) say("你問的是「" + qText + "」。");
+    if (!roles) {
+      say("你還沒選用神，所以先看代表你自己的「世爻」，當作整體運勢參考。想看某件事，請在所問旁選擇用神。");
+    } else {
+      var who = roles.sel === "世" ? "代表你自己的「世爻」" : roles.sel === "應" ? "代表對方的「應爻」" : "「" + roles.sel + "」";
+      say("卦裡用" + who + "來代表這件事" + (REL_MEANING[roles.sel] ? "（" + (roles.sel === "世" || roles.sel === "應" ? "它" : roles.sel) + "可以代表：" + REL_MEANING[roles.sel] + "）" : "") + "。");
+    }
+    if (focus) {
+      var fname = roles ? "這件事" : "你自己";
+      if (focusIsFu) {
+        say("代表這件事的爻沒有直接出現在卦上，而是藏在別的爻底下，表示事情還沒浮上檯面。" +
+          (fuInfo.fu.verdict.useless ? "而且目前很難冒出來，成事機會偏低。" : "等條件到了就會出現。"), fuInfo.fu.verdict.useless ? "bad" : "");
+      }
+      say(fname + "目前的狀態：" + LEVEL_PLAIN[focus.level] + "。", isStrongLv(focus.level) ? "good" : isWeakLv(focus.level) ? "bad" : "");
+      if (focus.kongType) {
+        var trueKong = focus.kongType.indexOf("真空") === 0;
+        say(trueKong ? "有「落空」的跡象：看起來有，實際上很難落實。" : "暫時「落空」：現在還沒到位、有點虛，但不是沒有，時間到了就會實現。", trueKong ? "bad" : "");
+      }
+      if (focus.poType) {
+        var truePo = focus.poType.indexOf("真破") === 0;
+        say(truePo ? "這個月受到很大的衝擊，事情容易破局，難以挽回。" : "這個月受到衝擊、比較不順，但還有救，過了這個月或到特定日子就能補回來。", truePo ? "bad" : "");
+      }
+      if (focus.muType) {
+        say(focus.score >= 1 ? "事情暫時被「收起來」、卡住了，但本身有力，等被打開的那天就能出來。" : "事情被「困住」了，自己又沒什麼力氣，很難發揮。", focus.score >= 1 ? "" : "bad");
+      }
+      if (focus.heBan) say("事情被別的事情「綁住」了，想動也動不了，要等鬆開的時候。");
+      if (focus.moving) {
+        var ct = focus.chgTags;
+        if (ct.indexOf("回頭生") >= 0) say("這件事本身正在變化，而且越變越有利。", "good");
+        if (ct.indexOf("回頭剋") >= 0) say("這件事變化之後反而傷到自己，要特別小心。", "bad");
+        if (ct.indexOf("化進神") >= 0) say("事情會越來越好、越來越大，有往前推進的力量。", "good");
+        if (ct.indexOf("化退神") >= 0) say(cat === "尋" ? "事情有「退回來」的跡象，找人找物反而是好消息。" : "事情會慢慢減弱、往後退。", cat === "尋" ? "good" : "bad");
+        if (focus.fuYin) say("事情容易原地打轉、停滯不前。");
+        else if (ct.indexOf("化沖") >= 0) say("事情會反反覆覆、來回變化。");
+      }
+    }
+    if (roles) {
+      if (tanSheng) {
+        say("原本扯後腿的力量，反而轉去幫助你的助力，壞事變好事（貪生忘剋）。", "good");
+      } else {
+        if (jiActive.length) say("有一股阻力正在主動妨礙這件事（忌神發動），要留意人事或環境的干擾。", "bad");
+        yuanActive.forEach(function(y) {
+          if (damagedYuan(y).length) say("本來有人或條件可以幫忙，但這股助力本身出了問題，幫不太上。", "bad");
+          else say("有人或條件正在幫你推動這件事（原神發動）。", "good");
+        });
+      }
+      if (!yuan.length && !focusIsFu) say("卦中看不到明顯的助力，這件事比較要靠自己。");
+    }
+    var shiPlain = { "旺": "狀態很好、很有信心", "偏旺": "狀態不錯", "不旺不衰": "狀態普通", "偏衰": "狀態偏弱、比較沒把握", "衰": "狀態很差、力不從心" }[shiA.level];
+    say("你自己目前" + shiPlain + (shiA.kong ? "，但心裡還有些猶豫、還沒完全定下來" : "") + "。");
+    var relPlain = [];
+    if (ZHI_HE[shiA.branch] === yingA.branch) relPlain.push("你和對方關係融洽、容易談得來");
+    if (isClash(shiA.branch, yingA.branch)) relPlain.push("你和對方容易意見不合");
+    if (ELEM_GEN[yingA.el] === shiA.el) relPlain.push("對方願意幫你、對你有好感");
+    else if (ELEM_GEN[shiA.el] === yingA.el) relPlain.push("你付出比較多，要遷就對方");
+    else if (ELEM_KE[yingA.el] === shiA.el) relPlain.push("壓力主要來自對方或外在環境");
+    else if (ELEM_KE[shiA.el] === yingA.el) relPlain.push("你比較能掌握對方或局面");
+    if (relPlain.length) say(relPlain.join("；") + "。");
+    if (yongPick && yongPick.idx === gua.shi) {
+      say("這件事就落在你自己身上，跟你很有緣。", "good");
+    } else if (focus && !focusIsFu && yongPick) {
+      if (ELEM_GEN[focus.el] === shiA.el || ELEM_KE[focus.el] === shiA.el) say("這件事會主動找上你，比較容易得到。", "good");
+      else if (ELEM_GEN[shiA.el] === focus.el || ELEM_KE[shiA.el] === focus.el) say("這件事要你主動去追求，會比較辛苦。");
+    }
+    if (gua.mainRel === "六沖") say(cat === "病" ? "整體氣氛是「散」：剛生的病容易好，拖很久的病則要小心。" : "整體氣氛是「散」：事情變動快、不容易穩定。");
+    if (gua.mainRel === "六合") say(cat === "病" ? "整體氣氛是「合」：剛生的病容易拖，久病反而撐得住。" : "整體氣氛是「合」：事情容易聚合、穩定，但也可能拖延。");
+    if (gua.mainRel === "六合" && gua.chgRel === "六沖") say("先聚後散：一開始談得攏，後來可能生變。", "bad");
+    if (gua.mainRel === "六沖" && gua.chgRel === "六合") say("先散後聚：一開始不順，後來會好轉。", "good");
+    if (yaoFan.length || fanFu.some(function(f) { return f.kind === "反吟"; })) {
+      say("過程會反反覆覆、來回折騰" + (yongChongKe ? "，而且對這件事傷害較大。" : "，但最後仍有機會成。"), yongChongKe ? "bad" : "");
+    }
+    if (yaoFu.length || fanFu.some(function(f) { return f.kind === "伏吟"; })) say("事情容易停滯、卡住，心情也比較鬱悶。");
+    var advice = {
+      "吉": "整體順利，可以積極去做。",
+      "偏吉": "大致順利，留意上面提到的不利因素就好。",
+      "平（成敗參半，看後續變化）": "好壞參半，關鍵在後續變化和你自己的作為。",
+      "偏凶（阻礙較多）": "阻礙比較多，建議保守一點、多做準備，或延後再做。",
+      "凶": "目前不利，建議暫緩，或另作打算。"
+    }[verdict];
+    say("結論：" + advice, vTone);
+
+    // 應期換成實際日期：從起卦日起算 60 天內，最近的那一天
+    var baseDay = castTime || new Date();
+    var ziAt23 = getRadio("ziMode") === "23";
+    var nextDay = function(zhi) {
+      for (var d = 0; d < 60; d++) {
+        var day = new Date(baseDay.getFullYear(), baseDay.getMonth(), baseDay.getDate() + d, 12);
+        var lun = Solar.fromDate(day).getLunar();
+        var gz = ziAt23 ? lun.getDayInGanZhiExact() : lun.getDayInGanZhiExact2();
+        if (gz.charAt(1) === zhi) return { d: d, text: (day.getMonth() + 1) + "/" + day.getDate() + (d === 0 ? "（起卦當天，" : "（") + zhi + "日）" };
+      }
+      return { d: 99, text: zhi + "日" };
+    };
+    var dayZhis = [];
+    yq.items.forEach(function(it) {
+      if (it.tone === "note" || it.tone === "bad") return;
+      var re = /([子丑寅卯辰巳午未申酉戌亥])日/g, m;
+      while ((m = re.exec(it.text))) if (dayZhis.indexOf(m[1]) < 0) dayZhis.push(m[1]);
+    });
+    if (focus && focus.useless) say("時間上：這件事目前看不到明確的好轉時機。", "bad");
+    else if (dayZhis.length) say("可能有變化或結果的日子：" + dayZhis.slice(0, 4).map(nextDay).sort(function(a, b) { return a.d - b.d; }).map(function(x) { return x.text; }).join("、") + "。若是長期的事，則看相同地支的月份或年份。");
+    say("以上是依六爻規則推算的參考，實際還要配合你自己的狀況判斷。", "note");
+    sections.unshift(plain);
+
+    var SECTION_PLAIN = {
+      "總斷": "把有利和不利的因素放在一起看整體偏好或偏壞。「卦中之病」是事情卡住的地方，解開的時候往往就是應驗的時候。",
+      "卦象總覽": "整個卦的大格局，像是事情的氣氛和走向（聚或散、穩定或反覆），作為背景參考。",
+      "用神分析": "用神就是代表你所問之事的那一爻。下面逐項列出月份、日子和其他爻對它的加分或扣分，分數越高，這件事越有力。",
+      "原神・忌神・仇神": "原神是幫這件事的力量，忌神是妨礙它的力量，仇神是打擊幫手、助長阻力的力量。",
+      "世應與自身": "世爻代表你自己，應爻代表對方或你要面對的環境；看兩者強弱和互動，就知道彼此的關係。",
+      "動爻與暗動": "會動的爻是卦中正在發生的變化，會去幫助或傷害其他爻；暗動是暗中發生、你可能沒察覺的變化。",
+      "三合局與三刑": "三合局是幾股力量結成一夥，力量很大；三刑代表摩擦、傷害，只作輔助參考。",
+      "六獸與神煞（象法，只作參考）": "六獸、神煞描述事情的性質和人的個性（例如口舌、喜慶、奔波），不決定吉凶。",
+      "應期參考": "事情可能發生或有結果的時間。「○日」是依地支推算的日子，最上面的白話解讀已換成實際日期。",
+      "各爻旺衰明細": "每一爻的力量評分表，數字越大越強，供進階對照。"
+    };
+    sections.forEach(function(s) { if (!s.plain && SECTION_PLAIN[s.title]) s.plain = SECTION_PLAIN[s.title]; });
+
+    // 名詞白話：只列出這次分析中有出現的名詞
+    var TERM_PLAIN = [
+      ["用神", "代表你所問之事或之人的那一爻"],
+      ["原神", "生用神的爻，也就是幫助這件事的力量"],
+      ["忌神", "剋用神的爻，也就是妨礙這件事的力量"],
+      ["仇神", "剋原神、生忌神的爻，間接不利"],
+      ["世爻", "代表你自己"],
+      ["應爻", "代表對方、環境或你要面對的事"],
+      ["月建", "起卦當月的地支，決定這個月誰當令、誰有力"],
+      ["日辰", "起卦當天的地支，影響較長遠"],
+      ["月令", "依月建看旺、相、休、囚、死：旺最強、死最弱"],
+      ["旬空", "暫時落空、還沒到位；分真空（真的沒有）與假空（時候到了就有）"],
+      ["月破", "被月建沖壞，這個月不順；分真破與假破"],
+      ["日破", "力量弱又被當天沖到，暫時沒有作用"],
+      ["暗動", "表面安靜卻被當天沖動，暗中發生作用"],
+      ["合絆", "被合住綁住，想動也動不了"],
+      ["回頭生", "變化之後反過來幫助自己，好現象"],
+      ["回頭剋", "變化之後反過來傷害自己，壞現象"],
+      ["化進神", "越變越好、越來越大"],
+      ["化退神", "越變越弱、往後退"],
+      ["入墓", "被收起來、卡住，要等被打開"],
+      ["入庫", "有力量但暫時收起來，打開後仍有用"],
+      ["絕處逢生", "走到絕路時有人或條件出手相救"],
+      ["貪生忘剋", "阻力忙著去幫助助力，反而不來妨礙你"],
+      ["伏神", "沒有出現在卦面上、藏在底下的爻，代表事情還沒浮上檯面"],
+      ["飛神", "壓在伏神上面的那一爻"],
+      ["六沖", "整體主「散」：變動快、不穩定"],
+      ["六合", "整體主「合」：聚合、穩定，也可能拖延"],
+      ["反吟", "反反覆覆、去而復返"],
+      ["伏吟", "停滯不前、原地打轉"],
+      ["遊魂", "心神不定、漂泊變動"],
+      ["歸魂", "回歸本位、塵埃落定"],
+      ["獨發", "全卦只有一爻在動，是整件事的焦點"],
+      ["三合", "三股力量結成一夥，力量很大"],
+      ["三刑", "摩擦、傷害的象，只在已經不利時加重"],
+      ["卦身", "事情的主體；上卦表示事情有著落"],
+      ["應期", "事情應驗、有結果的時間"]
+    ];
+    var allText = sections.map(function(s) { return s.items.map(function(it) { return it.text; }).join(" "); }).join(" ");
+    var gl = { title: "名詞白話", items: [], plain: "這次分析裡出現的專有名詞，用一般說法解釋。" };
+    TERM_PLAIN.forEach(function(t) { if (allText.indexOf(t[0]) >= 0) gl.items.push({ text: t[0] + "：" + t[1], tone: "" }); });
+    if (gl.items.length) sections.push(gl);
+
     return { verdict: verdict, tone: vTone, sections: sections };
   }
 
@@ -2289,6 +2471,7 @@
     var out = ["整體傾向：" + r.verdict, ""];
     r.sections.forEach(function(s) {
       out.push("■ " + s.title);
+      if (s.plain) out.push("（白話）" + s.plain);
       s.items.forEach(function(it) { out.push("・" + it.text); });
       if (s.table) {
         s.table.rows.forEach(function(row) { out.push("　" + row.filter(Boolean).join("｜")); });
@@ -2303,6 +2486,7 @@
     var html = '<div class="ana-verdict ana-' + (r.tone || "mid") + '">整體傾向：' + escapeHtml(r.verdict) + '</div>';
     r.sections.forEach(function(s) {
       html += '<h3>' + escapeHtml(s.title) + '</h3>';
+      if (s.plain) html += '<p class="ana-plain">' + escapeHtml(s.plain) + '</p>';
       if (s.table) {
         html += '<div class="ana-table-wrap"><table class="ana-table"><thead><tr>' +
           s.table.head.map(function(h) { return '<th>' + escapeHtml(h) + '</th>'; }).join("") + '</tr></thead><tbody>' +
