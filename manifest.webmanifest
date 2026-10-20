@@ -1,9 +1,10 @@
 {
+  "id": "./",
   "name": "文王聖卦六爻排盤",
   "short_name": "文王聖卦",
-  "description": "三銅錢起卦、六爻裝卦排盤與斷卦輔助，可離線使用。",
+  "description": "三銅錢起卦、六爻裝卦排盤、斷卦分析與教學，可離線使用。",
   "lang": "zh-Hant",
-  "start_url": "./3-2.html",
+  "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "any",
@@ -12,6 +13,10 @@
   "icons": [
     { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
     { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "開始起卦", "url": "./3-2.html", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "卜卦紀錄", "url": "./3-2.html#history", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] }
   ]
 }

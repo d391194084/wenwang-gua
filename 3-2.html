@@ -734,6 +734,7 @@
     <div class="topbar">
       <h1>文王聖卦六爻排盤</h1>
       <div class="top-actions">
+        <button class="secondary small" onclick="location.href='./'">首頁</button>
         <button class="secondary small" onclick="openDialog('dlgSettings')">設定</button>
         <button class="secondary small" onclick="openDialog('dlgHistory')">紀錄</button>
         <button class="secondary small" onclick="openDialog('dlgRules')">法則</button>
@@ -3310,6 +3311,19 @@
   renderPan();
   updateButtons();
   renderHistory();
+
+  // 從首頁進來：?mode=auto|manual 指定起卦方式，#history、#rules、#settings 直接打開對應視窗
+  (function() {
+    var m = /[?&]mode=(auto|manual)/.exec(location.search);
+    if (m && yaos.length === 0) {
+      setRadio("castMode", m[1]);
+      saveSettings();
+      applyCastMode();
+    }
+    var dlg = { "#history": "dlgHistory", "#rules": "dlgRules", "#settings": "dlgSettings" }[location.hash];
+    if (dlg) openDialog(dlg);
+    if (m || dlg) history.replaceState(null, "", location.pathname);
+  })();
 
   // 離線 PWA：需經 http(s) 開啟才能註冊（直接開本機檔案時略過）
   if ("serviceWorker" in navigator && location.protocol.indexOf("http") === 0) {

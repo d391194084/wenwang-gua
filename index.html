@@ -2,11 +2,585 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>文王聖卦</title>
-  <meta http-equiv="refresh" content="0; url=3-2.html">
+  <meta name="description" content="文王聖卦六爻排盤：三銅錢起卦、自動裝卦、斷卦分析與教學，可離線使用。">
+  <meta name="theme-color" content="#7a2318">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="文王聖卦">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <style>
+    :root {
+      --bg: #d8ccb8;
+      --paper: #f7f1e3;
+      --panel: #efe5cf;
+      --line: #bfa888;
+      --frame: #7a583b;
+      --ink: #221a14;
+      --muted: #59493b;
+      --red: #b52417;
+      --seal: #7a2318;
+      --gold: #8c5319;
+      --gilt: #d6aa58;
+      --blue: #264653;
+      /* 筆電、大螢幕字放大，手機維持可讀 */
+      --fs: clamp(17px, calc(0.9vw + 8px), 26px);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: "DFKai-SB", "BiauKai", "標楷體", "PMingLiU", "新細明體", "Microsoft JhengHei", serif;
+    }
+
+    body {
+      min-height: 100vh;
+      background:
+        radial-gradient(ellipse at 50% -10%, rgba(255, 248, 230, 0.55), transparent 60%),
+        var(--bg);
+      color: var(--ink);
+      font-size: var(--fs);
+      line-height: 1.5;
+      padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+        max(20px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+    }
+
+    .home {
+      max-width: 46em;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 0.9em;
+    }
+
+    /* ---------- 標題 ---------- */
+    .hero {
+      text-align: center;
+      padding: 0.6em 0 0.2em;
+    }
+
+    .hero img {
+      width: 4.4em;
+      height: 4.4em;
+      border-radius: 22%;
+      box-shadow: 0 6px 18px rgba(80, 20, 10, 0.35);
+    }
+
+    .hero h1 {
+      font-size: 2.3em;
+      color: var(--seal);
+      letter-spacing: 0.35em;
+      text-indent: 0.35em;
+      line-height: 1.3;
+      margin-top: 0.2em;
+    }
+
+    .hero p {
+      color: var(--muted);
+      letter-spacing: 0.12em;
+      font-size: 0.95em;
+    }
+
+    .card {
+      background: var(--paper);
+      border: 3px double var(--frame);
+      border-radius: 12px;
+      padding: 0.8em 1em;
+      box-shadow: 0 6px 18px rgba(45, 30, 15, 0.22);
+    }
+
+    .card h2 {
+      font-size: 1.05em;
+      color: var(--red);
+      border-bottom: 1.5px solid var(--line);
+      padding-bottom: 0.2em;
+      margin-bottom: 0.5em;
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 0.5em;
+    }
+
+    .card h2 small {
+      font-size: 0.75em;
+      color: var(--muted);
+      font-weight: normal;
+    }
+
+    .card h2 small a { color: var(--gold); }
+
+    /* ---------- 今日干支 ---------- */
+    .today-date {
+      text-align: center;
+      font-weight: bold;
+      font-size: 1.1em;
+    }
+
+    .today-lunar {
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.9em;
+    }
+
+    .pillars {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 0.4em;
+      margin: 0.6em 0;
+    }
+
+    .pillar {
+      background: var(--panel);
+      border: 1.5px solid var(--frame);
+      border-radius: 8px;
+      text-align: center;
+      padding: 0.3em 0;
+    }
+
+    .pillar b {
+      display: block;
+      font-size: 1.45em;
+      color: var(--seal);
+      letter-spacing: 0.05em;
+      line-height: 1.25;
+    }
+
+    .pillar span {
+      font-size: 0.8em;
+      color: var(--muted);
+    }
+
+    .facts {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 0.35em 0.5em;
+    }
+
+    .fact {
+      background: #fcf9f2;
+      border: 1.5px solid var(--line);
+      border-radius: 6px;
+      padding: 0.05em 0.6em;
+      font-weight: bold;
+      font-size: 0.92em;
+      white-space: nowrap;
+    }
+
+    .fact em { font-style: normal; color: var(--red); }
+
+    /* ---------- 起卦入口 ---------- */
+    .cta {
+      display: block;
+      text-align: center;
+      text-decoration: none;
+      background: linear-gradient(180deg, #96301f, var(--seal));
+      color: #fff6e6;
+      border: 2px solid #4a120b;
+      border-radius: 12px;
+      padding: 0.55em 0.5em;
+      font-size: 1.5em;
+      font-weight: bold;
+      letter-spacing: 0.4em;
+      text-indent: 0.4em;
+      box-shadow: 0 6px 16px rgba(90, 20, 10, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    }
+
+    .cta small {
+      display: block;
+      font-size: 0.5em;
+      letter-spacing: 0.15em;
+      text-indent: 0;
+      opacity: 0.85;
+    }
+
+    .cta:active { transform: translateY(1px); }
+
+    .modes {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.6em;
+    }
+
+    .btn {
+      display: block;
+      text-align: center;
+      text-decoration: none;
+      background: #fdfaf2;
+      color: var(--ink);
+      border: 2px solid var(--frame);
+      border-radius: 10px;
+      padding: 0.45em 0.3em;
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 1em;
+    }
+
+    .btn small {
+      display: block;
+      font-size: 0.75em;
+      color: var(--muted);
+      font-weight: normal;
+    }
+
+    .btn:hover, .tile:hover { background: #f1e7d2; }
+
+    /* ---------- 功能磚 ---------- */
+    .tiles {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 0.6em;
+    }
+
+    .tile {
+      text-align: center;
+      text-decoration: none;
+      color: var(--ink);
+      background: var(--paper);
+      border: 1.5px solid var(--frame);
+      border-radius: 12px;
+      padding: 0.55em 0.2em 0.45em;
+      box-shadow: 0 3px 10px rgba(45, 30, 15, 0.15);
+      font-weight: bold;
+      font-size: 0.95em;
+    }
+
+    .seal {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 2.1em;
+      height: 2.1em;
+      border-radius: 50%;
+      background: var(--seal);
+      color: #fff2dc;
+      font-size: 1.15em;
+      box-shadow: inset 0 0 0 2px var(--gilt);
+      margin-bottom: 0.15em;
+    }
+
+    .tile span { display: block; }
+    .tile .seal { display: flex; margin: 0 auto 0.15em; }
+
+    /* ---------- 最近紀錄 ---------- */
+    .recent { list-style: none; }
+
+    .recent a {
+      display: block;
+      text-decoration: none;
+      color: var(--ink);
+      padding: 0.35em 0.2em;
+      border-bottom: 1px dashed var(--line);
+    }
+
+    .recent li:last-child a { border-bottom: none; }
+
+    .recent .r-title { color: var(--red); font-weight: bold; }
+    .recent .r-meta { color: var(--muted); font-size: 0.82em; }
+    .empty { color: var(--muted); text-align: center; padding: 0.4em 0; }
+
+    /* ---------- 學習九步 ---------- */
+    .steps {
+      list-style: none;
+      counter-reset: step;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(13em, 1fr));
+      gap: 0.3em 1em;
+    }
+
+    .steps li {
+      counter-increment: step;
+      padding-left: 1.9em;
+      position: relative;
+      font-size: 0.92em;
+    }
+
+    .steps li::before {
+      content: counter(step);
+      position: absolute;
+      left: 0;
+      top: 0.15em;
+      width: 1.45em;
+      height: 1.45em;
+      border-radius: 50%;
+      background: var(--gold);
+      color: #fff;
+      font-size: 0.85em;
+      text-align: center;
+      line-height: 1.45em;
+    }
+
+    .steps b { color: var(--seal); }
+
+    .hint {
+      margin-top: 0.5em;
+      font-size: 0.85em;
+      color: var(--muted);
+      background: var(--panel);
+      border-radius: 6px;
+      padding: 0.3em 0.6em;
+    }
+
+    /* ---------- 加入主畫面 ---------- */
+    .install {
+      border-color: var(--seal);
+      background: linear-gradient(180deg, #fbf3e2, var(--paper));
+    }
+
+    .install p { font-size: 0.92em; }
+
+    .install-btn {
+      margin-top: 0.5em;
+      width: 100%;
+      background: var(--seal);
+      color: #fff6e6;
+      border-color: #4a120b;
+      font-size: 1.1em;
+      letter-spacing: 0.15em;
+    }
+
+    .install-btn:hover { background: #962b1e; }
+
+    .ios-steps {
+      margin-top: 0.4em;
+      padding-left: 1.4em;
+      font-size: 0.92em;
+    }
+
+    .share-icon {
+      display: inline-block;
+      width: 1em;
+      height: 1em;
+      vertical-align: -0.12em;
+    }
+
+    .hidden { display: none !important; }
+
+    footer {
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.82em;
+      padding-top: 0.3em;
+    }
+
+    footer a { color: var(--muted); }
+
+    @media (max-width: 420px) {
+      .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .pillar b { font-size: 1.25em; }
+    }
+  </style>
 </head>
 <body>
-  <p>正在開啟 <a href="3-2.html">文王聖卦六爻排盤</a>⋯⋯</p>
+
+<main class="home">
+  <header class="hero">
+    <img src="icons/icon-192.png" alt="">
+    <h1>文王聖卦</h1>
+    <p>三錢起卦・六爻排盤・斷卦教學</p>
+  </header>
+
+  <section class="card" aria-label="今日干支">
+    <h2>今日卦氣 <small id="clock">--:--</small></h2>
+    <div class="today-date" id="todaySolar">載入中⋯⋯</div>
+    <div class="today-lunar" id="todayLunar"></div>
+    <div class="pillars">
+      <div class="pillar"><b id="pYear">--</b><span>年</span></div>
+      <div class="pillar"><b id="pMonth">--</b><span>月</span></div>
+      <div class="pillar"><b id="pDay">--</b><span>日</span></div>
+      <div class="pillar"><b id="pTime">--</b><span>時</span></div>
+    </div>
+    <div class="facts">
+      <span class="fact">月建 <em id="fMonth">-</em></span>
+      <span class="fact">日辰 <em id="fDay">-</em></span>
+      <span class="fact">旬空 <em id="fKong">-</em></span>
+      <span class="fact" id="fJie">節令 -</span>
+    </div>
+  </section>
+
+  <a class="cta" href="3-2.html">誠心起卦<small>一事一問，定念後開始</small></a>
+
+  <div class="modes">
+    <a class="btn" href="3-2.html?mode=auto">電子搖卦<small>手機上直接擲錢</small></a>
+    <a class="btn" href="3-2.html?mode=manual">手搖銅錢輸入<small>自己擲錢，點選背數</small></a>
+  </div>
+
+  <nav class="tiles" aria-label="功能">
+    <a class="tile" href="3-2.html#history"><span class="seal">錄</span><span>卜卦紀錄</span></a>
+    <a class="tile" href="#learn"><span class="seal">學</span><span>學習九步</span></a>
+    <a class="tile" href="3-2.html#rules"><span class="seal">法</span><span>起卦法則</span></a>
+    <a class="tile" href="3-2.html#settings"><span class="seal">設</span><span>設定</span></a>
+  </nav>
+
+  <section class="card" aria-label="最近紀錄">
+    <h2>最近紀錄 <small><a href="3-2.html#history">全部</a></small></h2>
+    <ul class="recent" id="recent"></ul>
+  </section>
+
+  <section class="card install" id="installCard" aria-label="加入主畫面">
+    <h2>加入主畫面</h2>
+    <p id="installText">加入後會像 App 一樣從桌面圖示開啟，沒有網路也能起卦排盤。</p>
+    <button class="btn install-btn hidden" id="installBtn">加入主畫面</button>
+    <ol class="ios-steps hidden" id="iosSteps">
+      <li>點 Safari 下方的「分享」
+        <svg class="share-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="M8 7l4-4 4 4"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg>
+        按鈕</li>
+      <li>往下找「加入主畫面」</li>
+      <li>右上角按「新增」</li>
+    </ol>
+  </section>
+
+  <section class="card" id="learn" aria-label="學習九步">
+    <h2>學習九步 <small>解卦的辨別思路</small></h2>
+    <ol class="steps">
+      <li><b>排盤</b>：節令定月建，日柱推旬空，安世應、六親、六獸</li>
+      <li><b>取用神</b>：所問之事的主角，再定原、忌、仇</li>
+      <li><b>看月建</b>：旺相休囚死，月破、月合</li>
+      <li><b>看日辰</b>：生剋合沖，暗動、日破、長生墓絕</li>
+      <li><b>看動變</b>：誰在出手，回頭生剋、進退神</li>
+      <li><b>分真假</b>：空、破、墓、絕是真是假</li>
+      <li><b>斷吉凶</b>：以用神為主，原忌為輔</li>
+      <li><b>斷應期</b>：找病，病解之時即應期</li>
+      <li><b>看象法</b>：沖合、反伏吟、六獸只作輔助</li>
+    </ol>
+    <div class="hint">起卦後按卦名旁的「分析・教學」，切到「教學模式」，就會用你自己的卦逐步示範這九步，並附練習題。</div>
+  </section>
+
+  <footer>
+    心誠則靈・一事一問・同一件事不宜反覆重卜<br>
+    <a href="https://github.com/d391194084/wenwang-gua">原始碼</a>
+  </footer>
+</main>
+
+<script src="lib/lunar.js"></script>
+<script>
+  var SETTINGS_KEY = "wenwang_gua_settings";
+  var HISTORY_KEY = "wenwang_gua_history";
+
+  function pad(n) { return (n < 10 ? "0" : "") + n; }
+
+  function readJson(key, fallback) {
+    try { return JSON.parse(localStorage.getItem(key) || "null") || fallback; } catch (e) { return fallback; }
+  }
+
+  // 今日干支：與排盤頁相同的算法（以節分月、依子時設定換日）
+  function renderToday() {
+    if (typeof Solar === "undefined") {
+      document.getElementById("todaySolar").textContent = "找不到曆法函式庫 lib/lunar.js";
+      return;
+    }
+    var now = new Date();
+    var lunar = Solar.fromDate(now).getLunar();
+    var ziAt23 = readJson(SETTINGS_KEY, {}).ziMode === "23";
+    var dayGZ = ziAt23 ? lunar.getDayInGanZhiExact() : lunar.getDayInGanZhiExact2();
+    var monthGZ = lunar.getMonthInGanZhiExact();
+    var week = "日一二三四五六".charAt(now.getDay());
+    document.getElementById("todaySolar").textContent =
+      now.getFullYear() + " 年 " + (now.getMonth() + 1) + " 月 " + now.getDate() + " 日（週" + week + "）";
+    document.getElementById("todayLunar").textContent =
+      "農曆" + lunar.getMonthInChinese() + "月" + lunar.getDayInChinese();
+    document.getElementById("clock").textContent = pad(now.getHours()) + ":" + pad(now.getMinutes());
+    document.getElementById("pYear").textContent = lunar.getYearInGanZhiExact();
+    document.getElementById("pMonth").textContent = monthGZ;
+    document.getElementById("pDay").textContent = dayGZ;
+    document.getElementById("pTime").textContent = lunar.getTimeInGanZhi();
+    document.getElementById("fMonth").textContent = monthGZ.charAt(1);
+    document.getElementById("fDay").textContent = dayGZ;
+    document.getElementById("fKong").textContent = ziAt23 ? lunar.getDayXunKongExact() : lunar.getDayXunKongExact2();
+    var next = lunar.getNextJie();
+    var ns = next.getSolar();
+    document.getElementById("fJie").textContent = "節令 " + lunar.getPrevJie().getName() +
+      "（下個節 " + next.getName() + " " + ns.getMonth() + "/" + ns.getDay() + "）";
+  }
+
+  function renderRecent() {
+    var box = document.getElementById("recent");
+    var arr = readJson(HISTORY_KEY, []);
+    if (!Array.isArray(arr) || !arr.length) {
+      box.innerHTML = '<li class="empty">尚無紀錄，起卦後會自動保存在這台裝置。</li>';
+      return;
+    }
+    box.innerHTML = "";
+    arr.slice(0, 3).forEach(function(h) {
+      var li = document.createElement("li");
+      var a = document.createElement("a");
+      a.href = "3-2.html#history";
+      var t = document.createElement("div");
+      t.className = "r-title";
+      t.textContent = h.title || "";
+      var m = document.createElement("div");
+      m.className = "r-meta";
+      m.textContent = (h.time || "") + "｜" + (h.question || "（未填問事）");
+      a.appendChild(t);
+      a.appendChild(m);
+      li.appendChild(a);
+      box.appendChild(li);
+    });
+  }
+
+  // 加入主畫面：Chrome、Edge、Android 用系統安裝提示；iPhone、iPad 顯示 Safari 步驟
+  var deferredPrompt = null;
+  var installBtn = document.getElementById("installBtn");
+  var installText = document.getElementById("installText");
+  var standalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+  var ua = navigator.userAgent;
+  var isIOS = /iphone|ipad|ipod/i.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+
+  function setupInstall() {
+    if (standalone) {
+      document.getElementById("installCard").classList.add("hidden");
+      return;
+    }
+    if (location.protocol.indexOf("http") !== 0) {
+      installText.textContent = "目前是直接開啟本機檔案，無法加入主畫面。請用網址 https://d391194084.github.io/wenwang-gua/ 開啟。";
+      return;
+    }
+    if (isIOS) {
+      var inSafari = /safari/i.test(ua) && !/crios|fxios|edgios|line|fban|fbav|instagram/i.test(ua);
+      installText.textContent = inSafari ?
+        "iPhone、iPad 請用 Safari 的分享選單加入（Apple 不開放網頁自動安裝）：" :
+        "請先用 Safari 開啟本頁（右上角選單→用 Safari 開啟），再依下列步驟加入：";
+      document.getElementById("iosSteps").classList.remove("hidden");
+      return;
+    }
+    installText.textContent = "加入後會像 App 一樣從桌面圖示開啟，沒有網路也能起卦排盤。若按鈕沒有出現，請用瀏覽器選單的「安裝應用程式」或「加到主畫面」。";
+  }
+
+  window.addEventListener("beforeinstallprompt", function(e) {
+    e.preventDefault();
+    deferredPrompt = e;
+    installText.textContent = "加入後會像 App 一樣從桌面圖示開啟，沒有網路也能起卦排盤。";
+    installBtn.classList.remove("hidden");
+  });
+
+  installBtn.addEventListener("click", function() {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then(function(choice) {
+      if (choice.outcome === "accepted") installBtn.classList.add("hidden");
+      deferredPrompt = null;
+    });
+  });
+
+  window.addEventListener("appinstalled", function() {
+    installBtn.classList.add("hidden");
+    installText.textContent = "已加入主畫面，之後可以直接點桌面上的「文王聖卦」圖示開啟。";
+  });
+
+  renderToday();
+  renderRecent();
+  setupInstall();
+  setInterval(renderToday, 30000);
+  window.addEventListener("pageshow", renderRecent);
+
+  if ("serviceWorker" in navigator && location.protocol.indexOf("http") === 0) {
+    navigator.serviceWorker.register("sw.js").catch(function() { /* 註冊失敗不影響使用 */ });
+  }
+</script>
 </body>
 </html>

@@ -1,13 +1,16 @@
 // 文王聖卦離線快取：先回快取、背景更新；更新檔案後請調高版本號
-var CACHE = "wenwang-gua-v4";
+var CACHE = "wenwang-gua-v5";
 var FILES = [
+  "./",
+  "./index.html",
   "./3-2.html",
   "./manifest.webmanifest",
   "./lib/lunar.js",
   "./lib/zhouyi.js",
   "./icons/icon-180.png",
   "./icons/icon-192.png",
-  "./icons/icon-512.png"
+  "./icons/icon-512.png",
+  "./icons/icon-maskable-512.png"
 ];
 
 self.addEventListener("install", function(e) {
