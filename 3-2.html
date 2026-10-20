@@ -2350,7 +2350,8 @@
       if (!yuan.length && !focusIsFu) say("卦中看不到明顯的助力，這件事比較要靠自己。");
     }
     var shiPlain = { "旺": "狀態很好、很有信心", "偏旺": "狀態不錯", "不旺不衰": "狀態普通", "偏衰": "狀態偏弱、比較沒把握", "衰": "狀態很差、力不從心" }[shiA.level];
-    say("你自己目前" + shiPlain + (shiA.kong ? "，但心裡還有些猶豫、還沒完全定下來" : "") + "。");
+    // 沒選用神時上面已經以世爻說明過自己，不再重複
+    if (roles) say("你自己目前" + shiPlain + (shiA.kong ? "，但心裡還有些猶豫、還沒完全定下來" : "") + "。");
     var relPlain = [];
     if (ZHI_HE[shiA.branch] === yingA.branch) relPlain.push("你和對方關係融洽、容易談得來");
     if (isClash(shiA.branch, yingA.branch)) relPlain.push("你和對方容易意見不合");
