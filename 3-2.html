@@ -1,0 +1,3321 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>文王聖卦六爻排盤系統</title>
+  <meta name="theme-color" content="#7a2318">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="文王聖卦">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <style>
+    :root {
+      --bg: #d8ccb8;
+      --paper: #f7f1e3;
+      --panel: #efe5cf;
+      --line: #bfa888;
+      --frame: #7a583b;
+      --ink: #221a14;
+      --muted: #59493b;
+      --red: #b52417;
+      --gold: #8c5319;
+      --blue: #264653;
+      --btn: #7a2318;
+      /* 字級依視窗高度與寬度取較小者縮放，確保一屏放得下 */
+      --fs: clamp(11px, min(1.95vh, 3.6vw), 21px);
+      --gap: clamp(4px, 1vh, 12px);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: "DFKai-SB", "BiauKai", "標楷體", "PMingLiU", "新細明體", "Microsoft JhengHei", serif;
+    }
+
+    html, body {
+      height: 100%;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--ink);
+      font-size: var(--fs);
+      line-height: 1.35;
+      overflow-x: hidden;
+    }
+
+    /* 整頁固定為一個視窗高度 */
+    .app {
+      height: 100vh;
+      height: 100dvh;
+      /* 寬度隨字級放大，大螢幕不會縮在中間一小塊 */
+      max-width: max(1280px, calc(var(--fs) * 62));
+      margin: 0 auto;
+      padding: var(--gap);
+      padding-left: max(var(--gap), env(safe-area-inset-left));
+      padding-right: max(var(--gap), env(safe-area-inset-right));
+      display: flex;
+      flex-direction: column;
+      gap: var(--gap);
+    }
+
+    .frame {
+      flex: 1;
+      min-height: 0;
+      background: var(--paper);
+      border: 3px double var(--frame);
+      border-radius: 8px;
+      padding: var(--gap);
+      box-shadow: 0 6px 18px rgba(45, 30, 15, 0.3);
+      display: flex;
+      flex-direction: column;
+      gap: var(--gap);
+    }
+
+    /* ---------- 標題列 ---------- */
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      border-bottom: 2px double var(--frame);
+      padding-bottom: calc(var(--gap) * 0.8);
+    }
+
+    h1 {
+      font-size: calc(var(--fs) * 1.45);
+      color: var(--red);
+      letter-spacing: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .top-actions {
+      display: flex;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    /* ---------- 時間資訊 ---------- */
+    .meta-bar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 4px 6px;
+    }
+
+    .meta-tag {
+      background: var(--panel);
+      padding: 2px 8px;
+      border-radius: 5px;
+      border: 1.5px solid var(--frame);
+      font-size: calc(var(--fs) * 0.92);
+      font-weight: bold;
+      white-space: nowrap;
+    }
+
+    .meta-note {
+      text-align: center;
+      font-size: calc(var(--fs) * 0.8);
+      color: var(--muted);
+      font-weight: bold;
+    }
+
+    .highlight-red { color: var(--red); }
+    .highlight-gold { color: var(--gold); }
+
+    /* ---------- 主體：窄螢幕單欄、寬螢幕雙欄 ---------- */
+    .main {
+      flex: 1;
+      min-height: 0;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: auto minmax(0, 1fr);
+      gap: var(--gap);
+    }
+
+    .cast-panel {
+      display: flex;
+      flex-direction: column;
+      gap: var(--gap);
+      min-height: 0;
+    }
+
+    .pan-panel {
+      display: flex;
+      flex-direction: column;
+      gap: var(--gap);
+      min-height: 0;
+    }
+
+    @media (min-width: 560px) and (min-aspect-ratio: 1/1), (min-width: 1000px) {
+      :root {
+        /* 預設值；載入後由 fitFont() 依實際版面放到最大且一屏放得下 */
+        --fs: clamp(14px, min(2.6vh, 1.6vw), 30px);
+      }
+      .main {
+        grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+        grid-template-rows: minmax(0, 1fr);
+      }
+      .cast-panel canvas {
+        width: min(100%, 72vh, calc(var(--fs) * 32));
+      }
+    }
+
+    .question-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: bold;
+    }
+
+    .question-row span {
+      white-space: nowrap;
+    }
+
+    #question {
+      flex: 1;
+      min-width: 0;
+      font-size: var(--fs);
+      padding: 4px 8px;
+      border: 1.5px solid var(--frame);
+      border-radius: 5px;
+      background: #fcf9f2;
+      color: var(--ink);
+    }
+
+    #question:disabled {
+      background: #e8dec8;
+    }
+
+    #yongShen {
+      flex-shrink: 0;
+      max-width: 8.5em;
+      font-size: var(--fs);
+      padding: 3px 2px;
+      border: 1.5px solid var(--frame);
+      border-radius: 5px;
+      background: #fcf9f2;
+      color: var(--ink);
+    }
+
+    /* ---------- 搖卦區 ---------- */
+    .canvas-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--gap);
+      background: var(--panel);
+      padding: var(--gap);
+      border: 1.5px solid var(--line);
+      border-radius: 8px;
+    }
+
+    canvas {
+      display: block;
+      background: #e6d8be;
+      border: 2px solid var(--frame);
+      border-radius: 6px;
+      /* 只限寬度、高度依 640:190 比例自動計算，避免銅錢變形 */
+      width: min(100%, 50vh, 640px);
+      height: auto;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 6px;
+      width: 100%;
+    }
+
+    .manual-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 6px;
+      width: 100%;
+    }
+
+    .manual-hint {
+      width: 100%;
+      text-align: center;
+      font-size: calc(var(--fs) * 0.88);
+      font-weight: bold;
+      color: var(--muted);
+    }
+
+    button {
+      background: var(--btn);
+      color: #fff9f0;
+      font-weight: bold;
+      border: 2px solid #4a120b;
+      padding: 0.35em 0.8em;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: calc(var(--fs) * 1.05);
+      letter-spacing: 1px;
+      white-space: nowrap;
+    }
+
+    button:hover { background: #962b1e; }
+
+    button.secondary {
+      background: #fdfaf2;
+      color: var(--ink);
+      border: 2px solid var(--frame);
+    }
+
+    button.secondary:hover { background: #e8dec8; }
+
+    button.small {
+      padding: 0.15em 0.55em;
+      font-size: calc(var(--fs) * 0.88);
+    }
+
+    .manual-grid button {
+      padding: 0.35em 0.2em;
+      font-size: var(--fs);
+      letter-spacing: 0;
+    }
+
+    .manual-grid button small {
+      display: block;
+      font-size: 0.85em;
+    }
+
+    button:disabled {
+      background: #b5a895;
+      color: #6e6459;
+      border-color: #8c7f6e;
+      cursor: not-allowed;
+    }
+
+    .hidden { display: none !important; }
+
+    /* ---------- 卦名列 ---------- */
+    .gua-info-bar {
+      text-align: center;
+      padding: calc(var(--gap) * 0.7) 8px;
+      background: #efe3c8;
+      border: 1.5px solid var(--frame);
+      border-radius: 6px;
+      font-size: calc(var(--fs) * 1.08);
+      color: var(--red);
+      font-weight: bold;
+    }
+
+    .question-line {
+      font-size: calc(var(--fs) * 0.9);
+      color: var(--ink);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .gua-line {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 4px 10px;
+    }
+
+    /* ---------- 排盤表：撐滿剩餘高度、不橫向捲動 ---------- */
+    .pan-container {
+      flex: 1;
+      min-height: 0;
+      background: #fcf9f2;
+      border: 2px solid var(--frame);
+      border-radius: 8px;
+      padding: 4px;
+      display: flex;
+      overflow-y: auto;
+    }
+
+    .pan-table {
+      width: 100%;
+      height: 100%;
+      table-layout: fixed;
+      border-collapse: collapse;
+      text-align: center;
+    }
+
+    .pan-table th, .pan-table td {
+      padding: 2px 1px;
+      border-bottom: 1.5px solid var(--line);
+      border-right: 1px solid var(--line);
+      font-weight: bold;
+      white-space: nowrap;
+      vertical-align: middle;
+      overflow: hidden;
+    }
+
+    .pan-table th:last-child, .pan-table td:last-child { border-right: none; }
+
+    .pan-table th {
+      font-size: calc(var(--fs) * 0.92);
+      background: #e6d8be;
+      border-bottom: 2px solid var(--frame);
+      height: 1.9em;
+    }
+
+    .pan-table td {
+      font-size: var(--fs);
+    }
+
+    .pan-table tr:last-child td { border-bottom: none; }
+    .pan-table tr.moving-row { background: #f7e2c6; }
+
+    .pending-cell { color: #8c7f6e; }
+
+    /* 欄寬：六親欄需容納四字（如「父母未土」） */
+    .c-spirit { width: 11%; }
+    .c-pos { width: 9%; }
+    .c-shi { width: 8%; }
+    .c-line, .c-line2 { width: 14%; }
+    .c-rel, .c-rel2 { width: 17.5%; }
+    .col-status { width: 8%; }
+
+    /* 窄螢幕收起「動靜狀態」欄，動爻仍以 O / X 及底色標示 */
+    @media (max-width: 559px) {
+      .col-status, .cell-status { display: none; }
+      .c-spirit { width: 10.5%; }
+      .c-pos { width: 10%; }
+      .c-shi { width: 9.5%; }
+      .c-line, .c-line2 { width: 14.5%; }
+      .c-rel, .c-rel2 { width: 20.5%; }
+    }
+
+    /* 爻象：依欄寬縮放 */
+    .line-wrap {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      width: 100%;
+    }
+
+    .solid-line, .broken-line {
+      width: min(70%, 80px);
+      height: max(6px, 0.45em);
+    }
+
+    .solid-line {
+      background: var(--red);
+      border-radius: 2px;
+    }
+
+    .broken-line {
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .broken-line span {
+      width: 42%;
+      height: 100%;
+      background: var(--blue);
+      border-radius: 2px;
+    }
+
+    .mark-tag {
+      font-weight: 900;
+      width: 0.8em;
+      text-align: left;
+    }
+
+    .mark-o { color: var(--red); }
+    .mark-x { color: var(--blue); }
+
+    /* 爻下小字：旬空、月破、日沖標記與伏神 */
+    .cell-sub {
+      display: block;
+      font-size: 0.8em;
+      line-height: 1.2;
+      white-space: normal;
+    }
+
+    .flag {
+      display: inline-block;
+      color: #fff;
+      padding: 0 0.25em;
+      margin: 0 1px;
+      border-radius: 3px;
+    }
+
+    .flag-kong { background: #6b6b6b; }
+    .flag-po { background: var(--red); }
+    .flag-chong { background: var(--gold); }
+    .flag-good { background: var(--blue); }
+
+    /* 用神、原神、忌神、仇神與卦身 */
+    .role-用 { background: var(--red); }
+    .role-原 { background: var(--blue); }
+    .role-忌 { background: #3b2a1e; }
+    .role-仇 { background: #8a6d3b; }
+    .flag-body {
+      background: transparent;
+      color: var(--red);
+      border: 1px solid var(--red);
+    }
+
+    .fu-line { color: var(--blue); }
+
+    .tag-shi, .tag-ying {
+      display: inline-block;
+      padding: 0 0.3em;
+      border-radius: 4px;
+      line-height: 1.25;
+    }
+
+    .tag-shi {
+      background: var(--red);
+      color: #fff;
+    }
+
+    .tag-ying {
+      background: var(--paper);
+      color: var(--blue);
+      border: 1.5px solid var(--blue);
+    }
+
+    /* ---------- 彈出視窗 ---------- */
+    dialog {
+      margin: auto;
+      width: min(92vw, max(640px, calc(var(--fs) * 36)));
+      max-height: 86dvh;
+      background: var(--paper);
+      color: var(--ink);
+      border: 3px double var(--frame);
+      border-radius: 8px;
+      padding: 0;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+    }
+
+    dialog::backdrop { background: rgba(40, 28, 16, 0.45); }
+
+    .dlg-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 14px;
+      border-bottom: 2px solid var(--frame);
+      color: var(--red);
+      font-size: max(20px, calc(var(--fs) * 1.15));
+      font-weight: bold;
+    }
+
+    .dlg-body {
+      padding: 12px 16px;
+      overflow-y: auto;
+      max-height: calc(86dvh - 3.5em);
+      font-size: max(18px, var(--fs));
+      line-height: 1.7;
+    }
+
+    .setting-group {
+      margin-bottom: 14px;
+    }
+
+    .setting-group h3 {
+      font-size: 1em;
+      margin-bottom: 4px;
+    }
+
+    .setting-group label {
+      display: block;
+      cursor: pointer;
+      padding: 2px 0;
+    }
+
+    .setting-group input[type="radio"] {
+      width: 0.95em;
+      height: 0.95em;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+
+    .setting-note {
+      font-size: 0.85em;
+      color: var(--muted);
+    }
+
+    .history-body details {
+      border-top: 1px solid var(--line);
+      padding: 6px 0;
+    }
+
+    .history-body summary {
+      cursor: pointer;
+      font-weight: bold;
+      overflow-wrap: anywhere;
+    }
+
+    .history-body pre, .analysis-body pre {
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      background: #fcf9f2;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 8px;
+      margin: 6px 0;
+      font-size: 0.92em;
+      line-height: 1.6;
+    }
+
+    /* 卦名可點：查卦辭爻辭 */
+    #guaInfoBar.clickable {
+      cursor: pointer;
+      text-decoration: underline dotted;
+      text-underline-offset: 4px;
+    }
+
+    .jing-body h3 {
+      color: var(--red);
+      font-size: 1.06em;
+      margin: 6px 0 2px;
+    }
+
+    .jing-body .gua-ci {
+      background: #efe3c8;
+      border-radius: 6px;
+      padding: 4px 8px;
+      margin-bottom: 4px;
+    }
+
+    .jing-body ol {
+      list-style: none;
+      margin-bottom: 8px;
+    }
+
+    .jing-body li {
+      padding: 2px 6px;
+      border-bottom: 1px dashed var(--line);
+    }
+
+    .jing-body li.moving {
+      background: #f7e2c6;
+      color: var(--red);
+      font-weight: bold;
+    }
+
+    /* 斷卦分析 */
+    #dlgAnalysis { width: min(96vw, max(760px, calc(var(--fs) * 46))); }
+    .analysis-body h3 {
+      color: var(--red);
+      font-size: 1.05em;
+      margin: 12px 0 4px;
+      border-bottom: 1.5px solid var(--line);
+    }
+    .analysis-body ul { list-style: none; }
+    .analysis-body li {
+      padding: 2px 0 2px 1em;
+      text-indent: -1em;
+      line-height: 1.6;
+    }
+    .analysis-body li::before { content: "・"; }
+    .analysis-body li.ana-good { color: #1f5a3a; }
+    .analysis-body li.ana-bad { color: var(--red); }
+    .analysis-body li.ana-note { color: var(--muted); font-size: 0.92em; }
+    .ana-title {
+      font-weight: bold;
+      color: var(--red);
+      text-align: center;
+      margin-bottom: 6px;
+    }
+    .ana-verdict {
+      text-align: center;
+      font-weight: bold;
+      font-size: 1.15em;
+      padding: 6px;
+      border-radius: 6px;
+      border: 2px solid var(--frame);
+      background: #efe3c8;
+    }
+    .ana-verdict.ana-good { background: #dcebd9; border-color: #1f5a3a; color: #1f5a3a; }
+    .ana-verdict.ana-bad { background: #f3d9d3; border-color: var(--red); color: var(--red); }
+    .ana-table-wrap { overflow-x: auto; margin: 4px 0 6px; }
+    .ana-table {
+      border-collapse: collapse;
+      width: 100%;
+      font-size: 0.85em;
+      background: #fcf9f2;
+    }
+    .ana-table th, .ana-table td {
+      border: 1px solid var(--line);
+      padding: 2px 5px;
+      text-align: center;
+      white-space: nowrap;
+    }
+    .ana-table th { background: #e6d8be; }
+    .ana-table tr.fu-row td { color: var(--blue); background: #f1ecdf; }
+
+    /* 教學模式 */
+    .ana-tabs {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .ana-tabs button.active {
+      background: var(--btn);
+      color: #fff9f0;
+      border-color: #4a120b;
+    }
+    .teach-intro {
+      background: #efe3c8;
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: 0.92em;
+    }
+    .teach-step {
+      border: 1.5px solid var(--line);
+      border-radius: 8px;
+      padding: 6px 12px 10px;
+      margin-top: 12px;
+      background: #fcf9f2;
+    }
+    .teach-step ul { list-style: none; }
+    .teach-step li {
+      padding: 1px 0 1px 1em;
+      text-indent: -1em;
+    }
+    .teach-step li::before { content: "・"; }
+    .teach-goal { font-weight: bold; margin-bottom: 4px; }
+    .teach-block { margin-top: 6px; }
+    .teach-label {
+      display: inline-block;
+      font-size: 0.85em;
+      font-weight: bold;
+      color: #fff9f0;
+      background: var(--blue);
+      border-radius: 4px;
+      padding: 0 8px;
+    }
+    .teach-rule .teach-label { background: var(--gold); }
+    .teach-pit .teach-label { background: var(--red); }
+    .teach-quiz {
+      margin-top: 8px;
+      border: 1.5px dashed var(--frame);
+      border-radius: 6px;
+      padding: 4px 8px;
+      background: #f7efdc;
+    }
+    .teach-quiz summary { cursor: pointer; font-weight: bold; color: var(--blue); }
+    .teach-quiz[open] summary { margin-bottom: 4px; }
+
+    .rules-body strong { color: var(--red); }
+
+    .rules-body code {
+      background: #e2d4b7;
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-weight: bold;
+    }
+
+    .error-banner {
+      background: var(--red);
+      color: #fff9f0;
+      padding: 6px;
+      border-radius: 6px;
+      font-weight: bold;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+<div class="app">
+  <div class="frame">
+    <div class="topbar">
+      <h1>文王聖卦六爻排盤</h1>
+      <div class="top-actions">
+        <button class="secondary small" onclick="openDialog('dlgSettings')">設定</button>
+        <button class="secondary small" onclick="openDialog('dlgHistory')">紀錄</button>
+        <button class="secondary small" onclick="openDialog('dlgRules')">法則</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="meta-bar">
+        <span class="meta-tag" id="solarDate">國曆載入中...</span>
+        <span class="meta-tag highlight-gold" id="fourPillars">四柱載入中...</span>
+        <span class="meta-tag highlight-red" id="yueRi">月建：-- 日辰：--</span>
+        <span class="meta-tag highlight-red" id="xunKong">旬空：--</span>
+      </div>
+      <div class="meta-note" id="timeNote">目前時間（起卦後鎖定為起卦時間）</div>
+    </div>
+
+    <div class="error-banner hidden" id="libError">找不到曆法函式庫 lib/lunar.js，無法計算節氣干支，請確認檔案與本頁放在一起。</div>
+
+    <div class="main">
+      <section class="cast-panel">
+        <div class="question-row">
+          <span>所問：</span>
+          <input type="text" id="question" maxlength="80" placeholder="一事一問，具體寫下要問的事">
+          <select id="yongShen" title="用神（可隨時更改）">
+            <option value="">用神未選</option>
+            <option value="世">自身・世爻</option>
+            <option value="父母">父母</option>
+            <option value="兄弟">兄弟</option>
+            <option value="子孫">子孫</option>
+            <option value="妻財">妻財</option>
+            <option value="官鬼">官鬼</option>
+          </select>
+        </div>
+
+        <div class="canvas-container">
+          <canvas id="coinCanvas" width="640" height="190"></canvas>
+          <div class="controls" id="autoControls">
+            <button id="btnNext" onclick="castNextYao()">搖<span id="nextYaoName">初爻</span></button>
+            <button id="btnAll" onclick="castAllYaos()">一鍵起滿</button>
+            <button class="secondary" onclick="resetAll()">重新卜卦</button>
+          </div>
+          <div class="controls hidden" id="manualControls">
+            <div class="manual-hint">手搖後點選「背（滿文面）」枚數：<span id="manualYaoName">初爻</span></div>
+            <div class="manual-grid">
+              <button class="manual-btn" onclick="manualCast(0)">0 背<small>老陰</small></button>
+              <button class="manual-btn" onclick="manualCast(1)">1 背<small>少陽</small></button>
+              <button class="manual-btn" onclick="manualCast(2)">2 背<small>少陰</small></button>
+              <button class="manual-btn" onclick="manualCast(3)">3 背<small>老陽</small></button>
+            </div>
+            <button class="secondary" onclick="undoLast()">撤銷上一爻</button>
+            <button class="secondary" onclick="resetAll()">重新卜卦</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="pan-panel">
+        <div class="gua-info-bar">
+          <div class="gua-line">
+            <span id="guaInfoBar" onclick="openJing()">請誠心定念，開始搖卦</span>
+            <button class="secondary small hidden" id="btnAnalysis" onclick="openAnalysis()">分析・教學</button>
+            <button class="secondary small hidden" id="btnCopy" onclick="copyRecord()">複製</button>
+          </div>
+          <div class="question-line hidden" id="questionLine"></div>
+        </div>
+
+        <div class="pan-container">
+          <table class="pan-table">
+            <colgroup>
+              <col class="c-spirit">
+              <col class="c-pos">
+              <col class="c-shi">
+              <col class="c-line">
+              <col class="c-rel">
+              <col class="col-status">
+              <col class="c-line2">
+              <col class="c-rel2">
+            </colgroup>
+            <thead>
+              <tr>
+                <th>六神</th>
+                <th>爻位</th>
+                <th>世應</th>
+                <th>本卦</th>
+                <th>六親</th>
+                <th class="cell-status">動靜</th>
+                <th>變卦</th>
+                <th>變爻</th>
+              </tr>
+            </thead>
+            <tbody id="panBody">
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<dialog id="dlgSettings">
+  <div class="dlg-head">設定 <button class="secondary small" onclick="closeDialog('dlgSettings')">關閉</button></div>
+  <div class="dlg-body">
+    <div class="setting-group">
+      <h3>起卦方式</h3>
+      <label><input type="radio" name="castMode" value="auto" checked>電子搖卦</label>
+      <label><input type="radio" name="castMode" value="manual">手搖銅錢後輸入（建議）</label>
+      <div class="setting-note" id="castModeNote">起卦後需按「重新卜卦」才能切換。</div>
+    </div>
+    <div class="setting-group">
+      <h3>子時換日</h3>
+      <label><input type="radio" name="ziMode" value="00" checked>00:00 換日（晚子時仍算當日）</label>
+      <label><input type="radio" name="ziMode" value="23">23:00 換日（子時起算次日）</label>
+      <div class="setting-note">影響日辰、六獸與旬空；起卦後修改會依起卦時間重算。</div>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="dlgHistory">
+  <div class="dlg-head">卜卦紀錄（本機最近 30 筆） <button class="secondary small" onclick="closeDialog('dlgHistory')">關閉</button></div>
+  <div class="dlg-body history-body" id="historyList"></div>
+</dialog>
+
+<dialog id="dlgJing">
+  <div class="dlg-head">卦辭爻辭 <button class="secondary small" onclick="closeDialog('dlgJing')">關閉</button></div>
+  <div class="dlg-body jing-body" id="jingBody"></div>
+</dialog>
+
+<dialog id="dlgAnalysis">
+  <div class="dlg-head">斷卦分析與教學 <button class="secondary small" onclick="closeDialog('dlgAnalysis')">關閉</button></div>
+  <div class="dlg-body analysis-body">
+    <div class="ana-tabs">
+      <button class="secondary small" id="tabAnalysis" onclick="setAnalysisMode('analysis')">詳細分析</button>
+      <button class="secondary small" id="tabTeach" onclick="setAnalysisMode('teach')">教學模式</button>
+    </div>
+    <div class="ana-title" id="analysisTitle"></div>
+    <div id="analysisContent"></div>
+    <div id="teachContent" class="hidden"></div>
+    <div class="setting-note">以上依《六爻神卦整理》課程的斷卦規則自動推算，評分與吉凶傾向僅供參考；實際仍需配合所問之事與現實背景綜合判斷。</div>
+  </div>
+</dialog>
+
+<dialog id="dlgRules">
+  <div class="dlg-head">文王聖卦三銅錢擲幣法則 <button class="secondary small" onclick="closeDialog('dlgRules')">關閉</button></div>
+  <div class="dlg-body rules-body">
+    • 乾隆通寶字面為<strong>陰（0）</strong>、滿文背為<strong>陽（1）</strong>。<br>
+    • <strong>少陽</strong>：二字一背（1陽2陰） → 靜爻 <code>———</code><br>
+    • <strong>少陰</strong>：一字二背（2陽1陰） → 靜爻 <code>— —</code><br>
+    • <strong>老陰</strong>：三字全陰（0陽3陰） → 動爻 <code>— — X</code>，發動變陽<br>
+    • <strong>老陽</strong>：三背全陽（3陽0陰） → 動爻 <code>——— O</code>，發動變陰<br>
+    • <strong>排盤規則</strong>：卜爻時由下往上（初爻到上爻依次起出），盤面展示時由上往下（上爻在頂、初爻在底）。<br>
+    • <strong>月建以節分月</strong>：月份依立春、驚蟄、清明等十二節的交節時刻切換，年份以立春為界。<br>
+    • <strong>爻下標記</strong>：<span class="flag flag-kong">空</span> 爻支落入日旬空；<span class="flag flag-po">月破</span> 爻支被月建所沖；靜爻被日辰所沖時，月令旺相或得日扶為 <span class="flag flag-chong">暗動</span>，休囚為 <span class="flag flag-po">日破</span>；動爻被日沖標 <span class="flag flag-chong">日沖</span>。<br>
+    • <strong>旺衰</strong>：依月建五行定旺、相、休、囚、死（同我為旺、生我為相、我生為休、我剋為囚、剋我為死），寬螢幕顯示在動靜欄，其餘日生、日剋、日合、入日墓等見「分析」。<br>
+    • <strong>動爻變化</strong>（標在變爻下方）：回頭生、回頭剋、化進神（亥→子、寅→卯、巳→午、申→酉、丑→辰、辰→未、未→戌、戌→丑）、化退神（反之）、化合、化沖（爻反吟）、化空、化破、化墓、化絕。<br>
+    • <strong>反吟・伏吟</strong>：內外卦發動後變成方位相沖之卦（乾巽、坤艮、坎離、震兌互變）為反吟；變後地支不變（乾震互變）為伏吟。<br>
+    • <strong>用神</strong>：在「所問」旁選擇用神，盤上世應欄以 <span class="flag role-用">用</span><span class="flag role-原">原</span><span class="flag role-忌">忌</span><span class="flag role-仇">仇</span> 標示用神、原神（生用神）、忌神（剋用神）、仇神（剋原神）；用神不上卦時取伏神。<br>
+    • <strong>卦身</strong>：陽世從子月起、陰世從午月起，由初爻數到世爻，所得地支為卦身，盤上以 <span class="flag flag-body">身</span> 標示。<br>
+    • <strong>合局刑害</strong>：申子辰水、亥卯未木、寅午戌火、巳酉丑金，須有動爻參與、靜爻至多一個，日月可補；寅巳申、丑戌未三刑與子卯相刑須有動爻參與；六害列出動爻或日月害世爻、用神者。<br>
+    • <strong>六沖・六合</strong>：本卦或變卦內外卦三組對應爻（初四、二五、三上）地支皆相沖為六沖卦，皆相合為六合卦，標在卦名旁。<br>
+    • <strong>伏神</strong>：本卦五類六親不全時，從本宮首卦（八純卦）同一爻位取出所缺六親作伏神，以「伏」字標在該爻六親下方。<br>
+    • <strong>起卦須知</strong>：心誠則靈，一事一問；同一件事不宜反覆重卜。
+  </div>
+</dialog>
+
+<script src="lib/lunar.js"></script>
+<script src="lib/zhouyi.js"></script>
+<script>
+  var canvas = document.getElementById('coinCanvas');
+  var ctx = canvas.getContext('2d');
+
+  var YAO_NAMES = ["初爻", "第二爻", "第三爻", "第四爻", "第五爻", "上爻"];
+  var YAO_SHORT = ["初爻", "二爻", "三爻", "四爻", "五爻", "上爻"];
+  var FIVE_ELEMENTS = {
+    "子": "水", "丑": "土", "寅": "木", "卯": "木", "辰": "土", "巳": "火",
+    "午": "火", "未": "土", "申": "金", "酉": "金", "戌": "土", "亥": "水"
+  };
+  var SIX_SPIRITS = ["青龍", "朱雀", "勾陳", "螣蛇", "白虎", "玄武"];
+  var ZHI_ORDER = "子丑寅卯辰巳午未申酉戌亥";
+  var ZHI_HE = {
+    "子": "丑", "丑": "子", "寅": "亥", "亥": "寅", "卯": "戌", "戌": "卯",
+    "辰": "酉", "酉": "辰", "巳": "申", "申": "巳", "午": "未", "未": "午"
+  };
+  var LIU_HAI = {
+    "子": "未", "未": "子", "丑": "午", "午": "丑", "寅": "巳", "巳": "寅",
+    "卯": "辰", "辰": "卯", "申": "亥", "亥": "申", "酉": "戌", "戌": "酉"
+  };
+  var ELEM_GEN = { "木": "火", "火": "土", "土": "金", "金": "水", "水": "木" };   // 甲生乙
+  var ELEM_KE = { "木": "土", "土": "水", "水": "火", "火": "金", "金": "木" };    // 甲剋乙
+  var MU = { "木": "未", "火": "戌", "土": "辰", "金": "丑", "水": "辰" };        // 墓庫（土隨水）
+  var JUE = { "木": "申", "火": "亥", "土": "巳", "金": "寅", "水": "巳" };       // 絕地
+  var JIN_SHEN = { "亥": "子", "寅": "卯", "巳": "午", "申": "酉", "丑": "辰", "辰": "未", "未": "戌", "戌": "丑" };
+  var FAN_YIN_TRIGRAM = { "乾": "巽", "巽": "乾", "坤": "艮", "艮": "坤", "坎": "離", "離": "坎", "震": "兌", "兌": "震" };
+  var SAN_HE = [
+    { zhi: "申子辰", el: "水" }, { zhi: "亥卯未", el: "木" },
+    { zhi: "寅午戌", el: "火" }, { zhi: "巳酉丑", el: "金" }
+  ];
+  var SAN_XING = ["寅巳申", "丑戌未", "子卯"];
+
+  var TRIGRAM_BRANCHES = {
+    "111": { name: "乾", inner: ["子", "寅", "辰"], outer: ["午", "申", "戌"], element: "金" },
+    "110": { name: "兌", inner: ["巳", "卯", "丑"], outer: ["亥", "酉", "未"], element: "金" },
+    "101": { name: "離", inner: ["卯", "丑", "亥"], outer: ["酉", "未", "巳"], element: "火" },
+    "100": { name: "震", inner: ["子", "寅", "辰"], outer: ["午", "申", "戌"], element: "木" },
+    "011": { name: "巽", inner: ["丑", "亥", "酉"], outer: ["未", "巳", "卯"], element: "木" },
+    "010": { name: "坎", inner: ["寅", "辰", "午"], outer: ["申", "戌", "子"], element: "水" },
+    "001": { name: "艮", inner: ["辰", "午", "申"], outer: ["戌", "子", "寅"], element: "土" },
+    "000": { name: "坤", inner: ["未", "巳", "卯"], outer: ["丑", "亥", "酉"], element: "土" }
+  };
+
+  // 六十四卦名：GUA_NAMES[上卦][下卦]，下卦順序同 TRIGRAM_ORDER
+  var TRIGRAM_ORDER = ["乾", "兌", "離", "震", "巽", "坎", "艮", "坤"];
+  var GUA_NAMES = {
+    "乾": ["乾為天", "天澤履", "天火同人", "天雷無妄", "天風姤", "天水訟", "天山遯", "天地否"],
+    "兌": ["澤天夬", "兌為澤", "澤火革", "澤雷隨", "澤風大過", "澤水困", "澤山咸", "澤地萃"],
+    "離": ["火天大有", "火澤睽", "離為火", "火雷噬嗑", "火風鼎", "火水未濟", "火山旅", "火地晉"],
+    "震": ["雷天大壯", "雷澤歸妹", "雷火豐", "震為雷", "雷風恆", "雷水解", "雷山小過", "雷地豫"],
+    "巽": ["風天小畜", "風澤中孚", "風火家人", "風雷益", "巽為風", "風水渙", "風山漸", "風地觀"],
+    "坎": ["水天需", "水澤節", "水火既濟", "水雷屯", "水風井", "坎為水", "水山蹇", "水地比"],
+    "艮": ["山天大畜", "山澤損", "山火賁", "山雷頤", "山風蠱", "山水蒙", "艮為山", "山地剝"],
+    "坤": ["地天泰", "地澤臨", "地火明夷", "地雷復", "地風升", "地水師", "地山謙", "坤為地"]
+  };
+
+  var HISTORY_KEY = "wenwang_gua_history";
+  var SETTINGS_KEY = "wenwang_gua_settings";
+  var HISTORY_MAX = 30;
+
+  var yaos = [];
+  var castTime = null;      // 第一爻起出的時間；未起卦前為 null，顯示即時時間
+  var timeInfo = null;      // 目前採用的時間干支資訊
+  var isAnimating = false;
+  var clockTimer = null;
+  var lastSavedId = null;
+  var hasLunar = (typeof Solar !== "undefined");
+  var hasZhouyi = (typeof ZHOUYI !== "undefined");
+
+  function getGuaName(upperName, lowerName) {
+    return GUA_NAMES[upperName][TRIGRAM_ORDER.indexOf(lowerName)];
+  }
+
+  function isPureGua(arr) {
+    return arr[0] === arr[3] && arr[1] === arr[4] && arr[2] === arr[5];
+  }
+
+  function getPalaceAndShiYing(bits) {
+    var b = [bits[0], bits[1], bits[2], bits[3], bits[4], bits[5]];
+    var key = "";
+
+    if (isPureGua(b)) {
+      key = "" + b[0] + b[1] + b[2];
+      return { palace: TRIGRAM_BRANCHES[key], shi: 5, ying: 2, type: "本宮卦" };
+    }
+
+    var shiMap = [0, 1, 2, 3, 4];
+    var typeNames = ["一世卦", "二世卦", "三世卦", "四世卦", "五世卦"];
+    for (var step = 0; step < 5; step++) {
+      b[step] = 1 - b[step];
+      if (isPureGua(b)) {
+        key = "" + b[0] + b[1] + b[2];
+        var shi = shiMap[step];
+        return { palace: TRIGRAM_BRANCHES[key], shi: shi, ying: (shi + 3) % 6, type: typeNames[step] };
+      }
+    }
+
+    b[3] = 1 - b[3];
+    if (isPureGua(b)) {
+      key = "" + b[0] + b[1] + b[2];
+      return { palace: TRIGRAM_BRANCHES[key], shi: 3, ying: 0, type: "遊魂卦" };
+    }
+
+    b[0] = 1 - b[0];
+    b[1] = 1 - b[1];
+    b[2] = 1 - b[2];
+    key = "" + b[0] + b[1] + b[2];
+    return { palace: TRIGRAM_BRANCHES[key], shi: 2, ying: 5, type: "歸魂卦" };
+  }
+
+  function padZero(num) {
+    return num < 10 ? "0" + num : "" + num;
+  }
+
+  function formatDateTime(d) {
+    return d.getFullYear() + "-" + padZero(d.getMonth() + 1) + "-" + padZero(d.getDate()) +
+      " " + padZero(d.getHours()) + ":" + padZero(d.getMinutes());
+  }
+
+  /* ---------- 彈出視窗 ---------- */
+
+  function openDialog(id) {
+    var d = document.getElementById(id);
+    if (d.showModal) d.showModal(); else d.setAttribute("open", "");
+  }
+
+  function closeDialog(id) {
+    var d = document.getElementById(id);
+    if (d.close) d.close(); else d.removeAttribute("open");
+  }
+
+  // 點背景關閉
+  document.querySelectorAll("dialog").forEach(function(d) {
+    d.addEventListener("click", function(e) { if (e.target === d) closeDialog(d.id); });
+  });
+
+  /* ---------- 設定（本機保存） ---------- */
+
+  function getRadio(name) {
+    var el = document.querySelector('input[name="' + name + '"]:checked');
+    return el ? el.value : null;
+  }
+
+  function setRadio(name, value) {
+    var el = document.querySelector('input[name="' + name + '"][value="' + value + '"]');
+    if (el) el.checked = true;
+  }
+
+  function loadSettings() {
+    try {
+      var s = JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}");
+      if (s.castMode) setRadio("castMode", s.castMode);
+      if (s.ziMode) setRadio("ziMode", s.ziMode);
+    } catch (e) { /* 無法讀取本機儲存時沿用預設 */ }
+  }
+
+  function saveSettings() {
+    try {
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify({ castMode: getRadio("castMode"), ziMode: getRadio("ziMode") }));
+    } catch (e) { /* 忽略 */ }
+  }
+
+  /* ---------- 時間與干支（依節氣） ---------- */
+
+  function computeTimeInfo(date) {
+    var lunar = Solar.fromDate(date).getLunar();
+    var ziAt23 = (getRadio("ziMode") === "23");
+    var dayGZ = ziAt23 ? lunar.getDayInGanZhiExact() : lunar.getDayInGanZhiExact2();
+    var monthGZ = lunar.getMonthInGanZhiExact();
+    var jie = lunar.getPrevJie();
+    var jieSolar = jie.getSolar();
+    return {
+      date: date,
+      solarText: formatDateTime(date),
+      yearGZ: lunar.getYearInGanZhiExact(),
+      monthGZ: monthGZ,
+      dayGZ: dayGZ,
+      timeGZ: lunar.getTimeInGanZhi(),
+      dayStem: dayGZ.charAt(0),
+      dayZhi: dayGZ.charAt(1),
+      monthZhi: monthGZ.charAt(1),
+      xunKong: ziAt23 ? lunar.getDayXunKongExact() : lunar.getDayXunKongExact2(),
+      jieName: jie.getName(),
+      jieText: padZero(jieSolar.getMonth()) + "/" + padZero(jieSolar.getDay()) + " " +
+        padZero(jieSolar.getHour()) + ":" + padZero(jieSolar.getMinute())
+    };
+  }
+
+  function refreshTime() {
+    if (!hasLunar) return;
+    timeInfo = computeTimeInfo(castTime || new Date());
+    document.getElementById("solarDate").textContent = timeInfo.solarText;
+    document.getElementById("fourPillars").textContent = timeInfo.yearGZ + "年 " + timeInfo.monthGZ + "月 " +
+      timeInfo.dayGZ + "日 " + timeInfo.timeGZ + "時";
+    document.getElementById("yueRi").textContent = "月建" + timeInfo.monthZhi + "・日辰" + timeInfo.dayGZ;
+    document.getElementById("xunKong").textContent = "旬空" + timeInfo.xunKong;
+    document.getElementById("timeNote").textContent =
+      (castTime ? "已鎖定起卦時間" : "目前時間，起卦後鎖定") +
+      "　節令：" + timeInfo.jieName + "（" + timeInfo.jieText + " 交節）";
+  }
+
+  function startClock() {
+    stopClock();
+    refreshTime();
+    clockTimer = setInterval(refreshTime, 20000);
+  }
+
+  function stopClock() {
+    if (clockTimer) clearInterval(clockTimer);
+    clockTimer = null;
+  }
+
+  // 起第一爻時鎖定起卦時間
+  function lockCastTime() {
+    if (castTime) return;
+    castTime = new Date();
+    stopClock();
+    refreshTime();
+    document.getElementById("question").disabled = true;
+  }
+
+  /* ---------- 擲幣 ---------- */
+
+  function randomCoins() {
+    var buf = new Uint8Array(3);
+    if (window.crypto && window.crypto.getRandomValues) {
+      window.crypto.getRandomValues(buf);
+    } else {
+      for (var i = 0; i < 3; i++) buf[i] = Math.floor(Math.random() * 256);
+    }
+    return [buf[0] & 1, buf[1] & 1, buf[2] & 1];
+  }
+
+  function makeYao(coins) {
+    var yangCount = coins[0] + coins[1] + coins[2];
+    var yao = { coins: coins, yangCount: yangCount, mark: "", isChanging: false };
+
+    if (yangCount === 3) {
+      yao.typeName = "老陽"; yao.isYang = true; yao.changedIsYang = false; yao.mark = "O"; yao.isChanging = true;
+    } else if (yangCount === 2) {
+      yao.typeName = "少陰"; yao.isYang = false; yao.changedIsYang = false;
+    } else if (yangCount === 1) {
+      yao.typeName = "少陽"; yao.isYang = true; yao.changedIsYang = true;
+    } else {
+      yao.typeName = "老陰"; yao.isYang = false; yao.changedIsYang = true; yao.mark = "X"; yao.isChanging = true;
+    }
+    return yao;
+  }
+
+  function getSixRelative(palaceElement, targetElement) {
+    var relations = {
+      "金": { "金": "兄弟", "水": "子孫", "木": "妻財", "火": "官鬼", "土": "父母" },
+      "木": { "木": "兄弟", "火": "子孫", "土": "妻財", "金": "官鬼", "水": "父母" },
+      "水": { "水": "兄弟", "木": "子孫", "火": "妻財", "土": "官鬼", "金": "父母" },
+      "火": { "火": "兄弟", "土": "子孫", "金": "妻財", "水": "官鬼", "木": "父母" },
+      "土": { "土": "兄弟", "金": "子孫", "水": "妻財", "木": "官鬼", "火": "父母" }
+    };
+    return relations[palaceElement][targetElement] || "兄弟";
+  }
+
+  function getSixSpirits() {
+    var dayStem = timeInfo ? timeInfo.dayStem : "甲";
+    var startIdx = 0;
+    if (dayStem === "甲" || dayStem === "乙") startIdx = 0;
+    else if (dayStem === "丙" || dayStem === "丁") startIdx = 1;
+    else if (dayStem === "戊") startIdx = 2;
+    else if (dayStem === "己") startIdx = 3;
+    else if (dayStem === "庚" || dayStem === "辛") startIdx = 4;
+    else if (dayStem === "壬" || dayStem === "癸") startIdx = 5;
+
+    var spirits = [];
+    for (var i = 0; i < 6; i++) {
+      spirits.push(SIX_SPIRITS[(startIdx + i) % 6]);
+    }
+    return spirits;
+  }
+
+  /* ---------- 地支沖合與爻上標記 ---------- */
+
+  function isClash(a, b) {
+    return Math.abs(ZHI_ORDER.indexOf(a) - ZHI_ORDER.indexOf(b)) === 6;
+  }
+
+  // 內外卦三組對應爻地支皆沖為六沖、皆合為六合
+  function guaRelation(branches) {
+    var allClash = true, allHe = true;
+    for (var i = 0; i < 3; i++) {
+      if (!isClash(branches[i], branches[i + 3])) allClash = false;
+      if (ZHI_HE[branches[i]] !== branches[i + 3]) allHe = false;
+    }
+    return allClash ? "六沖" : (allHe ? "六合" : "");
+  }
+
+  function findKey(map, value) {
+    for (var k in map) if (map[k] === value) return k;
+    return null;
+  }
+
+  // 爻支相對月建、日辰的旺衰與生剋
+  function lineStrength(branch) {
+    var el = FIVE_ELEMENTS[branch];
+    var mz = timeInfo.monthZhi, dz = timeInfo.dayZhi;
+    var mEl = FIVE_ELEMENTS[mz], dEl = FIVE_ELEMENTS[dz];
+    var state = (el === mEl) ? "旺" : (ELEM_GEN[mEl] === el) ? "相" : (ELEM_GEN[el] === mEl) ? "休" :
+      (ELEM_KE[el] === mEl) ? "囚" : "死";
+    var notes = ["月令" + state];
+    if (branch === mz) notes.push("臨月建");
+    else if (isClash(branch, mz)) notes.push("月破");
+    else if (ZHI_HE[mz] === branch) notes.push("月合");
+    if (branch === dz) {
+      notes.push("臨日辰");
+    } else {
+      if (isClash(branch, dz)) notes.push("日沖");
+      else if (ZHI_HE[dz] === branch) notes.push("日合");
+      if (el === dEl) notes.push("日扶");
+      else if (ELEM_GEN[dEl] === el) notes.push("日生");
+      else if (ELEM_KE[dEl] === el) notes.push("日剋");
+    }
+    if (MU[el] === dz) notes.push("入日墓");
+    if (timeInfo.xunKong.indexOf(branch) >= 0) notes.push("旬空");
+    return {
+      state: state,
+      notes: notes,
+      // 靜爻逢日沖：月令旺相或得日扶為暗動，休囚為日破
+      strong: (state === "旺" || state === "相" || el === dEl) && !isClash(branch, mz)
+    };
+  }
+
+  // 爻支的旬空、月破與日沖（靜爻分暗動、日破）
+  function branchFlags(branch, isStatic) {
+    var flags = [];
+    if (!timeInfo) return flags;
+    if (timeInfo.xunKong.indexOf(branch) >= 0) flags.push({ cls: "flag-kong", text: "空" });
+    if (isClash(branch, timeInfo.monthZhi)) flags.push({ cls: "flag-po", text: "月破" });
+    if (isClash(branch, timeInfo.dayZhi)) {
+      if (!isStatic) flags.push({ cls: "flag-chong", text: "日沖" });
+      else if (lineStrength(branch).strong) flags.push({ cls: "flag-chong", text: "暗動" });
+      else flags.push({ cls: "flag-po", text: "日破" });
+    }
+    return flags;
+  }
+
+  // 動爻變化：回頭生剋、進退神、化合沖空破墓絕
+  function changeTags(branch, chgBranch) {
+    var tags = [];
+    var el = FIVE_ELEMENTS[branch], cel = FIVE_ELEMENTS[chgBranch];
+    if (el === cel) {
+      if (JIN_SHEN[branch] === chgBranch) tags.push({ cls: "flag-good", text: "化進神" });
+      else if (JIN_SHEN[chgBranch] === branch) tags.push({ cls: "flag-po", text: "化退神" });
+    } else if (ELEM_GEN[cel] === el) {
+      tags.push({ cls: "flag-good", text: "回頭生" });
+    } else if (ELEM_KE[cel] === el) {
+      tags.push({ cls: "flag-po", text: "回頭剋" });
+    }
+    if (ZHI_HE[branch] === chgBranch) tags.push({ cls: "flag-good", text: "化合" });
+    if (isClash(branch, chgBranch)) tags.push({ cls: "flag-po", text: "化沖" });
+    if (timeInfo.xunKong.indexOf(chgBranch) >= 0) tags.push({ cls: "flag-kong", text: "化空" });
+    if (isClash(chgBranch, timeInfo.monthZhi)) tags.push({ cls: "flag-po", text: "化破" });
+    if (MU[el] === chgBranch) tags.push({ cls: "flag-po", text: "化墓" });
+    if (JUE[el] === chgBranch) tags.push({ cls: "flag-po", text: "化絕" });
+    return tags;
+  }
+
+  function tagsHtml(tags) {
+    if (tags.length === 0) return "";
+    return '<span class="cell-sub">' + tags.map(function(f) {
+      return '<span class="flag ' + f.cls + '">' + f.text + '</span>';
+    }).join("") + '</span>';
+  }
+
+  function tagsText(tags) {
+    return tags.length ? "〔" + tags.map(function(f) { return f.text; }).join("・") + "〕" : "";
+  }
+
+  function flagsHtml(branch, isStatic) { return tagsHtml(branchFlags(branch, isStatic)); }
+  function flagsText(branch, isStatic) { return tagsText(branchFlags(branch, isStatic)); }
+
+  // 飛神（本卦該爻）與伏神的生剋
+  function flyFuRelation(flyEl, fuEl) {
+    if (ELEM_GEN[flyEl] === fuEl) return "飛生伏";
+    if (ELEM_KE[flyEl] === fuEl) return "飛剋伏";
+    if (ELEM_GEN[fuEl] === flyEl) return "伏生飛";
+    if (ELEM_KE[fuEl] === flyEl) return "伏剋飛";
+    return "飛伏比和";
+  }
+
+  function elementOfRelative(palaceEl, relative) {
+    var els = ["金", "木", "水", "火", "土"];
+    for (var i = 0; i < els.length; i++) {
+      if (getSixRelative(palaceEl, els[i]) === relative) return els[i];
+    }
+    return null;
+  }
+
+  // 依所選用神標出用、原、忌、仇；未選回傳 null
+  function computeRoles(gua) {
+    var sel = document.getElementById("yongShen").value;
+    if (!sel) return null;
+    var yongEl = (sel === "世") ? gua.lines[gua.shi].element : elementOfRelative(gua.palace.element, sel);
+    var yuanEl = findKey(ELEM_GEN, yongEl);
+    var jiEl = findKey(ELEM_KE, yongEl);
+    var chouEl = findKey(ELEM_KE, yuanEl);
+    var roleOfEl = {};
+    roleOfEl[yongEl] = "用";
+    roleOfEl[yuanEl] = "原";
+    roleOfEl[jiEl] = "忌";
+    roleOfEl[chouEl] = "仇";
+
+    var lineRoles = [], yongLines = [], fuYong = [];
+    for (var i = 0; i < 6; i++) {
+      var r = roleOfEl[gua.lines[i].element] || "";
+      if (sel === "世" && r === "用" && i !== gua.shi) r = "";
+      lineRoles.push(r);
+      if (r === "用") yongLines.push(i);
+    }
+    if (yongLines.length === 0) {
+      for (var j = 0; j < 6; j++) {
+        if (gua.lines[j].fu && gua.lines[j].fu.relative === sel) fuYong.push(j);
+      }
+    }
+    var relName = function(e) { return getSixRelative(gua.palace.element, e); };
+    return {
+      sel: sel,
+      lineRoles: lineRoles,
+      yongLines: yongLines,
+      fuYong: fuYong,
+      names: { "用": (sel === "世") ? "世爻" : sel, "原": relName(yuanEl), "忌": relName(jiEl), "仇": relName(chouEl) }
+    };
+  }
+
+  // 卦身：陽世從子起、陰世從午起，數到世爻
+  function guaBody(gua) {
+    var start = yaos[gua.shi].isYang ? 0 : 6;
+    var zhi = ZHI_ORDER.charAt((start + gua.shi) % 12);
+    var at = [];
+    for (var i = 0; i < 6; i++) if (gua.lines[i].branch === zhi) at.push(i);
+    return { zhi: zhi, at: at };
+  }
+
+  // 內外卦發動後的反吟、伏吟
+  function fanFuYin(gua) {
+    var res = [];
+    var parts = [
+      { label: "內卦", from: 0, t: gua.lower, ct: gua.chgLower, field: "inner" },
+      { label: "外卦", from: 3, t: gua.upper, ct: gua.chgUpper, field: "outer" }
+    ];
+    parts.forEach(function(p) {
+      var moved = yaos[p.from].isChanging || yaos[p.from + 1].isChanging || yaos[p.from + 2].isChanging;
+      if (!moved) return;
+      var desc = "（" + p.t.name + "變" + p.ct.name + "）";
+      if (FAN_YIN_TRIGRAM[p.t.name] === p.ct.name) res.push({ kind: "反吟", text: p.label + "反吟" + desc });
+      else if (p.t[p.field].join("") === p.ct[p.field].join("")) res.push({ kind: "伏吟", text: p.label + "伏吟" + desc });
+    });
+    return res;
+  }
+
+  /* ---------- 詳細斷卦分析（規則依《六爻神卦整理》課程第 7–41 集） ---------- */
+
+  var STAGES = ["長生", "沐浴", "冠帶", "臨官", "帝旺", "衰", "病", "死", "墓", "絕", "胎", "養"];
+  var CHANG_SHENG = { "木": "亥", "火": "寅", "金": "巳", "水": "申", "土": "申" };   // 六爻水土共長生
+  var GUI_REN = {
+    "甲": "丑未", "戊": "丑未", "庚": "丑未", "乙": "子申", "己": "子申",
+    "丙": "亥酉", "丁": "亥酉", "壬": "卯巳", "癸": "卯巳", "辛": "午寅"
+  };
+  var SAN_HE_HEAD = {
+    "申": "申", "子": "申", "辰": "申", "巳": "巳", "酉": "巳", "丑": "巳",
+    "寅": "寅", "午": "寅", "戌": "寅", "亥": "亥", "卯": "亥", "未": "亥"
+  };
+  var YI_MA = { "申": "寅", "巳": "亥", "寅": "申", "亥": "巳" };     // 三合首字之沖
+  var TAO_HUA = { "申": "酉", "巳": "午", "寅": "卯", "亥": "子" };   // 三合首字之下一位
+  var TIAN_XI = {
+    "寅": "戌", "卯": "戌", "辰": "戌", "巳": "丑", "午": "丑", "未": "丑",
+    "申": "辰", "酉": "辰", "戌": "辰", "亥": "未", "子": "未", "丑": "未"
+  };
+  var MONTH_STATE_SCORE = { "旺": 2.5, "相": 1.5, "休": -1, "囚": -1.5, "死": -2 };
+  var MONTH_STATE_TEXT = { "旺": "與月建同五行", "相": "月建生之", "休": "生月建而洩氣", "囚": "剋月建而耗力", "死": "月建剋之" };
+  var SPIRIT_IMAGE = {
+    "青龍": { good: "喜慶、財富、仁慈、飲食", bad: "酒色、貪杯、樂極生悲" },
+    "朱雀": { good: "文書、口才、消息", bad: "口舌是非、官司、發炎" },
+    "勾陳": { good: "穩重可靠、房地產、熟人", bad: "遲滯、糾纏牽制、固執" },
+    "螣蛇": { good: "靈活、技藝", bad: "虛驚怪異、多疑、糾纏拖延" },
+    "白虎": { good: "果斷勇猛、醫生軍警", bad: "血光、疾病手術、喪事、暴躁" },
+    "玄武": { good: "聰明、思慮縝密", bad: "暗昧、盜賊、欺騙、曖昧" }
+  };
+  var SPIRIT_REL_IMAGE = {
+    "朱雀父母": "文書、契約、消息", "朱雀官鬼": "口才或官司", "朱雀兄弟": "口舌是非",
+    "玄武父母": "契約詐欺", "玄武兄弟": "對手以不正當手段競爭", "玄武官鬼": "盜賊、暗中小人",
+    "螣蛇官鬼": "鬼神、怪異之事", "白虎官鬼": "疾病、血光、災禍"
+  };
+  var SHI_REL_NOTE = {
+    "父母": "父母持世：勞碌、責任重；占文書、房屋、考試有利，占子女不利。",
+    "兄弟": "兄弟持世：主競爭、破耗，「兄弟持世莫求財」。",
+    "子孫": "子孫持世：福神持世，主平安解憂；占功名不利（剝官削職之神）。",
+    "妻財": "妻財持世：財與我有緣；占父母、文書不利。",
+    "官鬼": "官鬼持世：占功名、工作則喜；占自身、流年則「官鬼持世事難安」。"
+  };
+  var CAT_NAMES = { "病": "疾病", "情": "婚姻感情", "訟": "官司是非", "財": "求財", "名": "功名工作", "尋": "尋人尋物、行人" };
+
+  function zhiIdx(z) { return ZHI_ORDER.indexOf(z); }
+  function stageOf(el, zhi) { return STAGES[(zhiIdx(zhi) - zhiIdx(CHANG_SHENG[el]) + 12) % 12]; }
+  function shiftZhi(z, n) { return ZHI_ORDER.charAt((zhiIdx(z) + n + 12) % 12); }
+  function clashOf(z) { return shiftZhi(z, 6); }
+  function signed(n) { return n > 0 ? "+" + n : n < 0 ? "−" + Math.abs(n) : "0"; }
+  function levelOf(s) { return s >= 3 ? "旺" : s >= 1 ? "偏旺" : s > -1.5 ? "不旺不衰" : s > -3 ? "偏衰" : "衰"; }
+  function isStrongLv(lv) { return lv === "旺" || lv === "偏旺"; }
+  function isWeakLv(lv) { return lv === "偏衰" || lv === "衰"; }
+  function zhiWithEl(z) { return z + FIVE_ELEMENTS[z]; }
+  function zhisOfEl(el) { return ZHI_ORDER.split("").filter(function(z) { return FIVE_ELEMENTS[z] === el; }); }
+  function uniq(arr) { return arr.filter(function(x, k) { return arr.indexOf(x) === k; }); }
+
+  // 依所問文字與用神判斷事類，用來調整沖合、進退等象義
+  function questionCategory(sel) {
+    var q = document.getElementById("question").value;
+    var rules = [
+      ["病", /病|疾|醫|手術|開刀|住院|健康|身體|痊癒/],
+      ["訟", /官司|訴|告|判|訟|罪|糾紛|仲裁/],
+      ["情", /婚|戀|感情|交往|復合|對象|男友|女友|老公|老婆|丈夫|妻子|姻緣|桃花|喜歡/],
+      ["尋", /走失|失物|遺失|找回|尋|下落|何時回|回來|歸期/],
+      ["名", /工作|升|職|考|面試|錄取|功名|官|求職|轉職|調動|事業/],
+      ["財", /財|錢|投資|生意|股|薪|收入|買賣|借|債|業績/]
+    ];
+    for (var k = 0; k < rules.length; k++) if (rules[k][1].test(q)) return rules[k][0];
+    if (sel === "妻財") return "財";
+    if (sel === "官鬼") return "名";
+    return "";
+  }
+
+  // 單一地支在月建、日辰、動爻、變爻之下的旺衰（逐項計分，正為生扶、負為剋洩）
+  function assessBranch(branch, opt) {
+    var el = FIVE_ELEMENTS[branch];
+    var mz = timeInfo.monthZhi, dz = timeInfo.dayZhi;
+    var mEl = FIVE_ELEMENTS[mz], dEl = FIVE_ELEMENTS[dz];
+    var a = {
+      branch: branch, el: el, moving: !!opt.moving, parts: [], score: 0, sheng: 0, ke: 0, shengAvoided: 0,
+      kong: timeInfo.xunKong.indexOf(branch) >= 0, yuePo: false, riPo: false, anDong: false,
+      heBan: false, chongSan: false, riHe: false, yueHe: false, ruMu: [], jue: false,
+      stage: stageOf(el, dz), chgTags: [], fuYin: false, kongType: "", poType: "", muType: ""
+    };
+    function add(text, delta, kind) {
+      a.parts.push({ text: text, delta: delta });
+      a.score += delta;
+      if (kind === "生") a.sheng++;
+      if (kind === "剋") a.ke++;
+    }
+
+    // 月建：提綱，定旺相休囚死
+    var st = lineStrength(branch).state;
+    var mScore;
+    if (branch === mz) {
+      mScore = 3;
+      add("臨月建（值月）", 3, "生");
+    } else if (isClash(branch, mz)) {
+      mScore = -3;
+      a.yuePo = true;
+      add("月破（被月建" + mz + "所沖）", -3, "");
+    } else if (ZHI_HE[mz] === branch) {
+      mScore = Math.max(MONTH_STATE_SCORE[st], 0) + 1.5;
+      a.yueHe = true;
+      add("月建" + mz + "來合，論合不論剋，以旺論（月令本為" + st + "）", mScore, "生");
+    } else {
+      mScore = MONTH_STATE_SCORE[st];
+      add("月令" + st + "（" + MONTH_STATE_TEXT[st] + "）", mScore, mScore > 0 ? "生" : (st === "死" ? "剋" : ""));
+    }
+
+    // 日辰：主宰，看生剋沖合與十二長生
+    if (branch === dz) {
+      add("臨日辰（值日）", 3, "生");
+    } else {
+      if (ZHI_HE[dz] === branch) {
+        if (a.moving) {
+          a.heBan = true;
+          add("日辰" + dz + "合住動爻，為合絆，待沖開才能行動", 0, "");
+        } else {
+          a.riHe = true;
+          add("日辰" + dz + "來合（合旺）", 1.5, "生");
+        }
+      }
+      var dayGen = false;
+      if (el === dEl) {
+        add("日辰" + dz + "同五行扶之（日扶）", 1.5, "生");
+      } else if (ELEM_GEN[dEl] === el) {
+        dayGen = true;
+        add("日辰" + dz + "生之（日生）", 1.5, "生");
+      } else if (ELEM_KE[dEl] === el) {
+        if (a.stage === "長生" && mScore >= 1.5) add("日辰" + dz + "雖剋，但為長生之地；旺相論生不論剋", 0.5, "生");
+        else add("日辰" + dz + "剋之（日剋）", -1.5, "剋");
+      } else if (a.stage === "長生") {
+        add("長生於日辰" + dz + (mScore < 0 ? "（休囚逢長生，論旺）" : ""), mScore < 0 ? 1.5 : 0.5, "生");
+      }
+      if (a.stage === "帝旺" && el === "土") {
+        if (mScore > 0) add("帝旺於日辰" + dz, 0.5, "");
+        else a.parts.push({ text: "日辰" + dz + "雖為帝旺之地，月令休囚不論帝旺", delta: 0 });
+      }
+      if (a.stage === "墓") {
+        a.ruMu.push("入日墓（" + dz + "）");
+        add("入日墓（" + dz + "為" + el + "之墓），入墓期間暫失生剋之權", mScore >= 1.5 ? -0.5 : -1.5, "");
+      }
+      if (a.stage === "絕") {
+        a.jue = true;
+        if (dayGen && mScore >= 1.5) {
+          a.parts.push({ text: "日辰" + dz + "為絕地，但本爻旺相，論生不論絕", delta: 0 });
+        } else if (dayGen) {
+          add("日辰" + dz + "為絕地，本爻休囚，論絕不論生（取消日生）", -2.5, "剋");
+          a.sheng--;
+        } else {
+          add("絕於日辰" + dz, -1, "");
+        }
+      }
+      if (isClash(branch, dz)) {
+        if (!a.moving) {
+          if (lineStrength(branch).strong) {
+            a.anDong = true;
+            add("被日辰" + dz + "沖動，旺相靜爻逢日沖為暗動，能生剋他爻", 0.5, "");
+          } else {
+            a.riPo = true;
+            add("日破（休囚靜爻被日辰" + dz + "所沖）", -2, "");
+          }
+        } else if (a.score >= 0) {
+          add("日辰" + dz + "沖動爻，旺相越沖越動", 0.5, "");
+        } else {
+          a.chongSan = true;
+          add("日辰" + dz + "沖動爻，衰弱被沖散", -1, "剋");
+        }
+      }
+    }
+
+    if (a.moving) add("發動（動則有力）", 0.5, "");
+
+    // 動爻、暗動爻的生剋；旬空靜爻旬內不受生剋（避空）
+    var avoid = a.kong && !a.moving && !a.anDong;
+    (opt.actors || []).forEach(function(act) {
+      if (act.idx === opt.idx) return;
+      if (ELEM_GEN[act.el] === el) {
+        if (avoid) { a.shengAvoided++; a.parts.push({ text: act.label + "生之，但旬空之爻旬內不受生剋，出空後得其生", delta: 0 }); }
+        else add(act.label + "生之", 1, "生");
+      } else if (ELEM_KE[act.el] === el) {
+        if (avoid) a.parts.push({ text: act.label + "剋之，但旬空之爻旬內不受生剋", delta: 0 });
+        else add(act.label + "剋之", -1.5, "剋");
+      }
+      if (!a.moving && MU[el] === act.branch) {
+        a.ruMu.push("入" + act.label + "之墓");
+        add("入" + act.label + "之墓（靜爻入動爻墓）", -1, "");
+      }
+    });
+
+    // 動爻自化：回頭生剋、進退、合沖、空破墓絕、伏吟
+    if (a.moving && opt.chgBranch) {
+      var cb = opt.chgBranch;
+      var tags = changeTags(branch, cb).map(function(t) { return t.text; });
+      a.chgTags = tags;
+      var huiSheng = tags.indexOf("回頭生") >= 0;
+      tags.forEach(function(t) {
+        if (t === "回頭生") add("化出" + zhiWithEl(cb) + "回頭生", 1.5, "生");
+        else if (t === "回頭剋") add("化出" + zhiWithEl(cb) + "回頭剋（剋神最近，殺傷力大）", -2, "剋");
+        else if (t === "化進神") add("化進神（" + branch + "→" + cb + "）", 1, "");
+        else if (t === "化退神") add("化退神（" + branch + "→" + cb + "）", -1, "");
+        else if (t === "化合") add("化合（回頭合）", 0.5, "");
+        else if (t === "化沖") add("化沖（爻反吟，反覆不定）", -0.5, "");
+        else if (t === "化空") add("化空（動而化空，非真空，待填實）", -0.5, "");
+        else if (t === "化破") add("化破（所化之爻被月建沖破）", -1, "");
+        else if (t === "化墓") { a.ruMu.push("化墓（" + cb + "）"); add("化墓（自化入墓）", -1, ""); }
+        else if (t === "化絕") {
+          if (huiSheng && a.score >= 1) a.parts.push({ text: "化絕但得回頭生，旺相論生不論絕（絕處逢生）", delta: 0 });
+          else { a.jue = true; add("化絕", -1, ""); }
+        }
+      });
+      if (cb === branch) {
+        a.fuYin = true;
+        add("化出相同地支（爻伏吟，動如不動）", -0.5, "");
+      }
+    }
+
+    a.score = Math.round(a.score * 10) / 10;
+    a.level = levelOf(a.score);
+
+    if (a.kong) {
+      if (a.moving) a.kongType = "假空（動不為空）";
+      else if (a.anDong) a.kongType = "假空（日沖，沖空則起）";
+      else if (a.score >= 1) a.kongType = "假空（旺不為空）";
+      else if (a.sheng + a.shengAvoided > 0 && a.ke === 0) a.kongType = "假空（有生扶，待時而用）";
+      else if (a.yuePo && a.sheng + a.shengAvoided === 0) a.kongType = "真空（月破又空，到底空）";
+      else if (a.ke > 0 && a.sheng + a.shengAvoided === 0) a.kongType = "真空（無生有剋，到底空）";
+      else if (a.score <= -3) a.kongType = "真空（休囚至極，到底空）";
+      else a.kongType = "空而力弱（出空填實才見作用）";
+    }
+    if (a.yuePo) {
+      if (a.moving) a.poType = "假破（動爻自帶能量，可出破、實破、合破）";
+      else if (a.sheng > 0 && a.ke === 0) a.poType = "假破（有生無剋，可待解破）";
+      else if (a.ke > 0 && a.sheng === 0) a.poType = "真破（靜而有剋無生，到底破而無用）";
+      else a.poType = "月破（靜而少援，當月無力，待出破）";
+    }
+    if (a.ruMu.length) {
+      a.muType = a.score >= 1 ? "入庫（旺相入墓只是暫存，沖墓或沖爻即出）" : "真入墓（休囚入墓，如被埋藏，難出）";
+    }
+    a.useless = a.kongType.indexOf("真空") === 0 || a.poType.indexOf("真破") === 0 ||
+      (a.ruMu.length > 0 && a.score <= -3) || (a.riPo && a.score <= -3);
+    return a;
+  }
+
+  // 整卦各爻評估；先找出能生剋他爻的動爻與暗動爻
+  function assessGua(gua) {
+    var dz = timeInfo.dayZhi;
+    var actors = [], blocked = [];
+    for (var i = 0; i < 6; i++) {
+      var ln = gua.lines[i];
+      var moving = yaos[i].isChanging;
+      var an = !moving && isClash(ln.branch, dz) && lineStrength(ln.branch).strong;
+      if (!moving && !an) continue;
+      var label = YAO_SHORT[i] + ln.relative + ln.branch + (moving ? "動" : "暗動");
+      if (stageOf(ln.element, dz) === "墓") { blocked.push(label + "入日墓，暫失生剋之權"); continue; }
+      if (moving && ZHI_HE[dz] === ln.branch) { blocked.push(label + "被日辰合絆，暫不能生剋"); continue; }
+      actors.push({ idx: i, branch: ln.branch, el: ln.element, label: label, moving: moving });
+    }
+    var lines = [];
+    for (var j = 0; j < 6; j++) {
+      var l = gua.lines[j];
+      var a = assessBranch(l.branch, { idx: j, moving: yaos[j].isChanging, chgBranch: l.chgBranch, actors: actors });
+      a.idx = j;
+      a.rel = l.relative;
+      a.name = YAO_SHORT[j] + l.relative + l.branch + l.element;
+      if (l.fu) {
+        a.fuA = assessBranch(l.fu.branch, { idx: -1, moving: false, actors: actors });
+        a.fuA.name = "伏" + l.fu.relative + l.fu.branch + l.fu.element;
+      }
+      lines.push(a);
+    }
+    lines.forEach(function(a) { if (a.fuA) a.fuA.verdict = judgeFu(a.fuA, a); });
+    return { lines: lines, actors: actors, blocked: blocked };
+  }
+
+  // 伏神能否出伏：有用、無用伏神各四條
+  function judgeFu(fu, fly) {
+    var mz = timeInfo.monthZhi, dz = timeInfo.dayZhi;
+    var mEl = FIVE_ELEMENTS[mz], dEl = FIVE_ELEMENTS[dz];
+    var rel = flyFuRelation(fly.el, fu.el);
+    var good = [], bad = [];
+    if (fu.branch === mz || fu.branch === dz || ELEM_GEN[mEl] === fu.el || ELEM_GEN[dEl] === fu.el ||
+      mEl === fu.el || dEl === fu.el) good.push("得日月生扶");
+    if (rel === "飛生伏") good.push("飛神生伏神（得長生）");
+    if (fu.parts.some(function(p) { return /動生之$/.test(p.text) && p.delta > 0; })) good.push("動爻生伏神");
+    if (fly.yuePo || isClash(fly.branch, dz) || ELEM_KE[mEl] === fly.el || ELEM_KE[dEl] === fly.el ||
+      fly.parts.some(function(p) { return /動剋之$/.test(p.text) && p.delta < 0; })) good.push("日月動爻沖剋飛神，推開飛神");
+    if (isWeakLv(fly.level) || fly.kong || fly.ruMu.length || fly.jue) good.push("飛神休囚、空破或墓絕，伏神易出");
+
+    if (isWeakLv(fu.level) && (ELEM_KE[mEl] === fu.el || ELEM_KE[dEl] === fu.el)) bad.push("伏神休囚又被日月剋");
+    if (isStrongLv(fly.level) && rel === "飛剋伏") bad.push("飛神旺相又剋伏神（傷身）");
+    if (MU[fu.el] === mz || MU[fu.el] === dz || JUE[fu.el] === mz || JUE[fu.el] === dz) bad.push("伏神墓絕於日月");
+    if (MU[fu.el] === fly.branch || JUE[fu.el] === fly.branch) bad.push("伏神墓絕於飛爻");
+    if (isWeakLv(fu.level) && (fu.kong || fu.yuePo) && fu.sheng === 0) bad.push("伏神休囚又空破，無人生扶");
+
+    var relNote = {
+      "飛生伏": "飛生伏（得長生，易出伏）", "飛剋伏": "飛剋伏（傷身，伏神難出頭）",
+      "伏生飛": "伏生飛（洩氣，不利）", "伏剋飛": "伏剋飛（出暴，伏旺飛衰才是轉機）", "飛伏比和": "飛伏比和"
+    }[rel];
+    var verdict = bad.length && !good.length ? "無用伏神，雖有似無" :
+      good.length && !bad.length ? "有用伏神，時機到即可出伏" :
+      good.length ? "有助有阻，看雙方力量消長" : "無人提挈，暫難出伏（伏無提挈終徒爾）";
+    return { rel: rel, relNote: relNote, good: good, bad: bad, text: verdict, useless: bad.length > 0 && good.length === 0 };
+  }
+
+  // 用神兩現以上的取捨：世應 > 動爻 > 有病特殊 > 近世爻
+  function pickYong(gua, roles, A) {
+    if (!roles || !roles.yongLines.length) return null;
+    var best = null;
+    roles.yongLines.forEach(function(i) {
+      var a = A.lines[i];
+      var reasons = [];
+      var rank = -Math.abs(i - gua.shi);
+      if (i === gua.shi) { rank += 1010; reasons.push("持世"); }
+      else if (i === gua.ying) { rank += 1000; reasons.push("持應"); }
+      if (a.moving || a.anDong) { rank += 100; reasons.push(a.moving ? "發動" : "暗動"); }
+      var special = [];
+      if (a.branch === timeInfo.monthZhi) special.push("臨月");
+      if (a.branch === timeInfo.dayZhi) special.push("臨日");
+      if (a.yueHe) special.push("月合");
+      if (a.riHe) special.push("日合");
+      if (a.yuePo) special.push("月破");
+      if (a.riPo) special.push("日破");
+      if (a.kong) special.push("旬空");
+      if (a.ruMu.length) special.push("入墓");
+      if (special.length) { rank += 10; reasons.push("有病或特殊（" + special.join("、") + "）"); }
+      if (!best || rank > best.rank) best = { idx: i, rank: rank, reasons: reasons };
+    });
+    return best;
+  }
+
+  function roleOfLine(roles, i) { return roles ? roles.lineRoles[i] : ""; }
+
+  // 動爻變化依角色論吉凶
+  function changeMeaning(role, a, cat) {
+    var out = [];
+    var good = role === "用" || role === "原";
+    var evil = role === "忌" || role === "仇";
+    a.chgTags.forEach(function(t) {
+      if (t === "回頭生") out.push(good ? "回頭生：吉神得助，力量增強" : evil ? "回頭生：凶神得助，其害加重" : "回頭生：本爻轉旺");
+      if (t === "回頭剋") out.push(good ? "回頭剋：原用二神遇之則凶" : evil ? "回頭剋：忌仇二神遇之則吉" : "回頭剋：本爻受傷");
+      if (t === "化進神") {
+        var s = good ? "化進神：吉神化進，吉上加吉" : evil ? "化進神：凶神化進，凶勢加重" : "化進神：事情向前、變大、變快";
+        s += isStrongLv(a.level) ? "；旺相化進，乘勢而進" : "；休囚化進，待旺相之時而進";
+        if (cat === "尋") s += "；占尋人尋物，進者不回";
+        out.push(s);
+      }
+      if (t === "化退神") {
+        var r = good ? "化退神：吉神化退，漸失其力" : evil ? "化退神：凶神化退，其害漸減" : "化退神：事情後退、變小、變弱";
+        r += isStrongLv(a.level) ? "；旺相之退是慢慢退，占近事暫時不退" : "；休囚化退，即退";
+        if (cat === "尋") r += "；占尋人尋物，退者可回";
+        out.push(r);
+      }
+      if (t === "化絕" && a.jue) out.push(good ? "化絕：此路受阻，須逢生扶才有轉機（絕處逢生）" : "化絕：本爻力量斷絕");
+      if (t === "化墓") out.push("化墓：自化入墓，" + (isStrongLv(a.level) ? "旺相入庫，沖開即出" : "休囚入墓，難以發揮"));
+      if (t === "化空") out.push("化空：動而化空不是真空，待填實之日");
+      if (t === "化破") out.push("化破：所化之爻月破，變後無力");
+      if (t === "化沖") out.push("化沖：爻反吟，主反覆、去而復返");
+      if (t === "化合") out.push("化合：回頭合，主牽絆、和合");
+    });
+    if (a.fuYin) out.push("爻伏吟：動如不動，憂鬱呻吟、原地打轉");
+    return out;
+  }
+
+  function spiritText(spirit, rel, a) {
+    var img = SPIRIT_IMAGE[spirit];
+    var extra = SPIRIT_REL_IMAGE[spirit + rel];
+    var tone = isStrongLv(a.level) ? "偏吉面：" + img.good : isWeakLv(a.level) ? "偏凶面：" + img.bad : "吉面：" + img.good + "；凶面：" + img.bad;
+    return spirit + "（" + tone + (extra ? "；臨" + rel + "主" + extra : "") + "）";
+  }
+
+  // 三合局：只取動爻、暗動爻、變爻、日月；中神須為動爻或變爻；變爻須與其本爻同局
+  function sanHeNotes(gua, A, roles) {
+    var notes = [];
+    var src = [];
+    A.lines.forEach(function(a, i) {
+      if (a.moving) {
+        src.push({ zhi: a.branch, kind: "動", idx: i, label: YAO_SHORT[i] + "動" });
+        src.push({ zhi: gua.lines[i].chgBranch, kind: "變", idx: i, label: YAO_SHORT[i] + "變" });
+      } else if (a.anDong) {
+        src.push({ zhi: a.branch, kind: "暗動", idx: i, label: YAO_SHORT[i] + "暗動" });
+      }
+    });
+    src.push({ zhi: timeInfo.monthZhi, kind: "月", idx: -1, label: "月建" });
+    src.push({ zhi: timeInfo.dayZhi, kind: "日", idx: -1, label: "日辰" });
+    var order = ["動", "暗動", "變", "日", "月"];
+    SAN_HE.forEach(function(g) {
+      var picks = [];
+      for (var k = 0; k < 3; k++) {
+        var z = g.zhi.charAt(k), got = null;
+        for (var o = 0; o < order.length && !got; o++) {
+          for (var s = 0; s < src.length; s++) {
+            if (src[s].zhi === z && src[s].kind === order[o] && picks.indexOf(src[s]) < 0) { got = src[s]; break; }
+          }
+        }
+        if (!got) return;
+        picks.push(got);
+      }
+      if (!picks.some(function(p) { return p.kind === "動" || p.kind === "暗動"; })) return;
+      if (picks[1].kind === "日" || picks[1].kind === "月") return;
+      var bad = picks.some(function(p) {
+        return p.kind === "變" && !picks.some(function(q) { return q.kind === "動" && q.idx === p.idx; });
+      });
+      if (bad) return;
+      var rel = getSixRelative(gua.palace.element, g.el);
+      var role = "";
+      if (roles) {
+        for (var r in roles.names) if (roles.names[r] === rel) role = r;
+        if (roles.sel === "世" && FIVE_ELEMENTS[gua.lines[gua.shi].branch] === g.el) role = "用";
+      }
+      var ill = [];
+      picks.forEach(function(p) {
+        if (p.idx < 0) return;
+        var a = A.lines[p.idx];
+        var z = p.zhi;
+        if (p.kind === "變") {
+          if (timeInfo.xunKong.indexOf(z) >= 0) ill.push(p.label + z + "空，待出空填實（" + z + "日）");
+          if (isClash(z, timeInfo.monthZhi)) ill.push(p.label + z + "月破，待解破");
+          return;
+        }
+        if (a.kong) ill.push(p.label + z + "旬空，待出空填實（" + z + "日）");
+        if (a.yuePo) ill.push(p.label + z + "月破，待實破或合破");
+        if (a.ruMu.length) ill.push(p.label + z + "入墓，待沖開");
+        if (a.heBan) ill.push(p.label + z + "被合絆，待沖開（" + clashOf(z) + "日）");
+      });
+      var judge = role === "用" || role === "原" ? "（" + role + "神局，吉）" : role === "忌" || role === "仇" ? "（" + role + "神局，凶）" : "";
+      notes.push({
+        text: g.zhi + "合成" + g.el + "局，即" + rel + "局" + judge + "：" +
+          picks.map(function(p) { return p.label + p.zhi; }).join("、") +
+          (ill.length ? "。局中有病：" + ill.join("；") + "，病解才真正成局" : "。成局則力量極大，卦中動爻難以制止"),
+        tone: role === "用" || role === "原" ? "good" : role === "忌" || role === "仇" ? "bad" : ""
+      });
+    });
+    return notes;
+  }
+
+  // 三刑：須有動爻參與；只在用神、世爻休囚受剋時作凶論
+  function xingNotes(gua, A, weakFocus) {
+    var notes = [];
+    var pool = [];
+    A.lines.forEach(function(a, i) {
+      if (a.moving) { pool.push({ zhi: a.branch, act: true, label: YAO_SHORT[i] + "動" }); pool.push({ zhi: gua.lines[i].chgBranch, act: false, label: YAO_SHORT[i] + "變" }); }
+      else if (a.anDong) pool.push({ zhi: a.branch, act: true, label: YAO_SHORT[i] + "暗動" });
+    });
+    pool.push({ zhi: timeInfo.monthZhi, act: false, label: "月建" });
+    pool.push({ zhi: timeInfo.dayZhi, act: false, label: "日辰" });
+    var tail = weakFocus ? "用神或世爻已見衰弱受剋，凶象更明確" : "用神、世爻不衰，三刑多只是虛驚（貪生忘刑）";
+    var meaning = { "寅巳申": "恃勢之刑，主鬥毆、血光、傷病、牢獄", "丑戌未": "無恩之刑，主田土、利益反目、遭背叛", "子卯": "無禮之刑，主不尊重、令人不適" };
+    SAN_XING.forEach(function(g) {
+      var picks = g.split("").map(function(z) {
+        var hit = pool.filter(function(p) { return p.zhi === z; });
+        hit.sort(function(x, y) { return (y.act ? 1 : 0) - (x.act ? 1 : 0); });
+        return hit[0] || null;
+      });
+      if (picks.some(function(p) { return !p; })) return;
+      if (!picks.some(function(p) { return p.act; })) return;
+      notes.push({ text: g + (g.length === 2 ? "相刑" : "三刑") + "（" + meaning[g] + "）：" +
+        picks.map(function(p) { return p.label + p.zhi; }).join("、") + "。" + tail, tone: weakFocus ? "bad" : "" });
+    });
+    "辰午酉亥".split("").forEach(function(z) {
+      var hit = pool.filter(function(p) { return p.zhi === z; });
+      if (hit.length >= 2 && hit.some(function(p) { return p.act; })) {
+        notes.push({ text: z + z + "自刑（自作自受、自尋煩惱）：" + hit.map(function(p) { return p.label + p.zhi; }).join("、") + "。" + tail, tone: weakFocus ? "bad" : "" });
+      }
+    });
+    return notes;
+  }
+
+  // 應期參考：找出用神的「病」，解病之時即應期
+  function yingQiNotes(a, label, isFu) {
+    var out = [];
+    var today = function(z) { return z === timeInfo.dayZhi ? z + "日（今日即是）" : z + "日"; };
+    var z = a.branch;
+    if (a.useless) {
+      out.push({ text: label + "無用（" + [a.kongType, a.poType, a.muType].filter(Boolean).join("、") + "），出空出破之時也難成事，應期以凶論或事終不成", tone: "bad" });
+      return out;
+    }
+    if (a.kong) out.push({ text: label + "旬空：出空填實之" + z + "日，或沖空之" + today(clashOf(z)) + "（沖空只有一半力道，填實才完整）" });
+    if (a.yuePo) out.push({ text: label + "月破：實破之" + z + "日、合破之" + ZHI_HE[z] + "日，或出破之" + shiftZhi(timeInfo.monthZhi, 1) + "月" });
+    if (a.ruMu.length) {
+      var muZhi = MU[a.el];
+      out.push({ text: label + a.ruMu.join("、") + "：沖墓之" + clashOf(muZhi) + "日，或沖爻之" + clashOf(z) + "日出墓" });
+    }
+    if (a.heBan || a.riHe || a.yueHe) out.push({ text: label + "被合住（合待沖）：沖開之" + clashOf(z) + "日" });
+    if (a.anDong || (!a.moving && isClash(z, timeInfo.dayZhi) && !a.riPo)) out.push({ text: label + "逢沖（沖待合）：逢合之" + ZHI_HE[z] + "日" });
+    if (a.jue) {
+      var genEl = findKey(ELEM_GEN, a.el);
+      out.push({ text: label + "逢絕：待生扶之日（" + zhisOfEl(genEl).join("、") + "日，或長生之" + CHANG_SHENG[a.el] + "日），絕處逢生" });
+    }
+    if (a.chgTags.indexOf("化進神") >= 0 && !isStrongLv(a.level)) out.push({ text: label + "休囚化進：待旺相之時（" + zhisOfEl(a.el).concat(zhisOfEl(findKey(ELEM_GEN, a.el))).join("、") + "月或日）而進" });
+    if (!out.length) {
+      if (a.moving) out.push({ text: label + "發動：逢值之" + z + "日，或逢合之" + ZHI_HE[z] + "日" });
+      else if (isStrongLv(a.level)) out.push({ text: label + "安靜而旺：逢沖之" + clashOf(z) + "日沖起，或值日之" + z + "日" + (isFu ? "（伏神待飛神被沖開之日出伏）" : "") });
+      else out.push({ text: label + "衰弱：待生旺之時（" + uniq(zhisOfEl(a.el).concat(zhisOfEl(findKey(ELEM_GEN, a.el)))).join("、") + "日或月）" });
+    }
+    return out;
+  }
+
+  // 組出完整分析：{ verdict, sections:[{title, items:[{text, tone}], table}] }
+  function buildDetailedAnalysis(gua) {
+    var A = assessGua(gua);
+    var roles = computeRoles(gua);
+    var cat = questionCategory(roles ? roles.sel : "");
+    var spirits = getSixSpirits();
+    var mz = timeInfo.monthZhi, dz = timeInfo.dayZhi;
+    var sections = [];
+    function sec(title) { var s = { title: title, items: [] }; sections.push(s); return s; }
+    function push(s, text, tone) { s.items.push({ text: text, tone: tone || "" }); }
+    function nm(i) { return A.lines[i].name; }
+
+    var movingIdx = [], anIdx = [];
+    A.lines.forEach(function(a, i) { if (a.moving) movingIdx.push(i); else if (a.anDong) anIdx.push(i); });
+    var activeCount = movingIdx.length + anIdx.length;
+
+    // ----- 用神 -----
+    var yongPick = pickYong(gua, roles, A);
+    var focus = null, focusLabel = "", focusIsFu = false, fuInfo = null;
+    if (yongPick) {
+      focus = A.lines[yongPick.idx];
+      focusLabel = "用神" + focus.name;
+    } else if (roles && roles.fuYong.length) {
+      var flyLine = A.lines[roles.fuYong[0]];
+      focus = flyLine.fuA;
+      focusLabel = "用神" + focus.name.slice(1);
+      focusIsFu = true;
+      fuInfo = { fly: flyLine, fu: flyLine.fuA };
+    } else if (!roles) {
+      focus = A.lines[gua.shi];
+      focusLabel = "世爻" + focus.name;
+    }
+
+    // ----- 原、忌、仇 -----
+    function linesOfRole(r) {
+      var res = [];
+      if (!roles) return res;
+      for (var i = 0; i < 6; i++) if (roles.lineRoles[i] === r) res.push(A.lines[i]);
+      return res;
+    }
+    function active(a) { return (a.moving || a.anDong) && !a.heBan && !(a.ruMu.length && !a.moving); }
+    var yuan = linesOfRole("原"), ji = linesOfRole("忌"), chou = linesOfRole("仇");
+    var yuanActive = yuan.filter(active), jiActive = ji.filter(active), chouActive = chou.filter(active);
+    function damagedYuan(a) {
+      var why = [];
+      if (a.yuePo) why.push("月破");
+      if (a.riPo) why.push("日破");
+      if (a.kongType.indexOf("真空") === 0) why.push("真空");
+      ["回頭剋", "化絕", "化墓", "化退神", "化破", "化空"].forEach(function(t) { if (a.chgTags.indexOf(t) >= 0 && !(t === "化絕" && !a.jue)) why.push(t); });
+      if (chouActive.some(function(c) { return ELEM_KE[c.el] === a.el; })) why.push("仇神動來剋");
+      if (a.ruMu.length && a.score < 1) why.push("休囚入墓");
+      return why;
+    }
+    var tanSheng = jiActive.length > 0 && yuanActive.some(function(y) { return damagedYuan(y).length === 0; });
+
+    // ----- 總斷 -----
+    var favor = [], against = [], neutral = [];
+    var vScore = focus ? focus.score : 0;
+    if (focus) {
+      var stateText = focusLabel + "在月日動變之下為「" + focus.level + "」（評分 " + signed(focus.score) + "）";
+      if (isStrongLv(focus.level)) favor.push(stateText);
+      else if (isWeakLv(focus.level)) against.push(stateText);
+      else neutral.push(stateText + "，吉凶看其他生剋");
+      if (focus.kongType) (focus.kongType.indexOf("真空") === 0 ? against : favor).push(focusLabel + "旬空，" + focus.kongType);
+      if (focus.poType) (focus.poType.indexOf("真破") === 0 ? against : favor).push(focusLabel + focus.poType);
+      if (focus.muType) (focus.score >= 1 ? favor : against).push(focusLabel + focus.muType);
+      if (focus.chgTags.indexOf("回頭剋") >= 0) against.push(focusLabel + "動化回頭剋");
+      if (focus.chgTags.indexOf("回頭生") >= 0) favor.push(focusLabel + "動化回頭生");
+      if (focus.chgTags.indexOf("化進神") >= 0) favor.push(focusLabel + "化進神");
+      if (focus.chgTags.indexOf("化退神") >= 0) (cat === "尋" ? favor : against).push(focusLabel + "化退神" + (cat === "尋" ? "（占尋，退者可回）" : ""));
+      if (focusIsFu) {
+        (fuInfo.fu.verdict.useless ? against : favor).push("用神不上卦，伏於" + fuInfo.fly.name + "之下：" + fuInfo.fu.verdict.text);
+        if (fuInfo.fu.verdict.useless) vScore = Math.min(vScore, -3.5);
+        else vScore -= 0.5;
+      }
+      if (focus.useless) vScore = Math.min(vScore, -3.5);
+    }
+    if (roles) {
+      if (tanSheng) { favor.push("忌神與原神同動，貪生忘剋，接續相生"); vScore += 1.5; }
+      else if (jiActive.length) against.push("忌神" + jiActive.map(function(a) { return a.name + (a.moving ? "發動" : "暗動"); }).join("、") + "來剋用神");
+      if (yuanActive.length && !tanSheng) {
+        yuanActive.forEach(function(y) {
+          var d = damagedYuan(y);
+          if (d.length) against.push("原神" + y.name + "雖動，但" + d.join("、") + "，生之無力");
+          else favor.push("原神" + y.name + "發動生用神");
+        });
+      }
+      if (!yuan.length && !focusIsFu) against.push("原神不上卦，用神少根");
+      if (yongPick && yongPick.idx === gua.shi) { favor.push("用神持世，所問之事與自己有緣"); vScore += 0.5; }
+      else if (focus && !focusIsFu) {
+        var shiEl = A.lines[gua.shi].el;
+        if (ELEM_GEN[focus.el] === shiEl || ZHI_HE[focus.branch] === A.lines[gua.shi].branch) { favor.push("用神生合世爻，事來就我"); vScore += 0.5; }
+      }
+    }
+    var verdict = vScore >= 2.5 ? "吉" : vScore >= 1 ? "偏吉" : vScore > -1.5 ? "平（成敗參半，看後續變化）" : vScore > -3 ? "偏凶（阻礙較多）" : "凶";
+    var vTone = vScore >= 1 ? "good" : vScore > -1.5 ? "" : "bad";
+
+    var sum = sec("總斷");
+    if (!roles) push(sum, "尚未選擇用神，以下以世爻代表自身概略判斷；在「所問」旁選擇用神，分析會以用神為主。", "note");
+    if (cat) push(sum, "所問事類判斷為「" + CAT_NAMES[cat] + "」，沖合、進退等象義依此解釋。", "note");
+    neutral.forEach(function(t) { push(sum, "現況：" + t); });
+    favor.forEach(function(t) { push(sum, "有利：" + t, "good"); });
+    against.forEach(function(t) { push(sum, "不利：" + t, "bad"); });
+    if (focus) {
+      var ills = [];
+      if (focus.kong) ills.push("旬空");
+      if (focus.yuePo) ills.push("月破");
+      if (focus.riPo) ills.push("日破");
+      if (focus.ruMu.length) ills.push("入墓");
+      if (focus.heBan) ills.push("合絆");
+      if (focus.jue) ills.push("逢絕");
+      if (focus.ke > 0) ills.push("受剋");
+      if (ills.length) push(sum, "卦中之病：" + focusLabel + ills.join("、") + "。「天機盡洩於有病之間，斷法總在於醫藥之處」，解病之時即應期（見下方應期參考）。", "note");
+    }
+
+    // ----- 卦象總覽 -----
+    var ov = sec("卦象總覽");
+    push(ov, "本卦" + gua.mainName + "，屬" + gua.palace.name + "宮" + gua.palace.element + "，" + gua.palaceType +
+      "；世在" + YAO_SHORT[gua.shi] + "、應在" + YAO_SHORT[gua.ying] + "。月建" + mz + "（" + FIVE_ELEMENTS[mz] + "）、日辰" + timeInfo.dayGZ + "、旬空" + timeInfo.xunKong + "。");
+    var hunText = {
+      "遊魂卦": "遊魂卦：心神不定、漂泊變動，宜遷移不宜固守；占感情易見異思遷（象法，只作參考）",
+      "歸魂卦": "歸魂卦：塵埃落定、回歸本位，宜守原地；占感情主回心轉意（象法，只作參考）"
+    };
+    if (hunText[gua.palaceType]) push(ov, hunText[gua.palaceType]);
+    if (gua.hasMoving) {
+      var cb = [];
+      for (var c = 0; c < 6; c++) cb.push(yaos[c].changedIsYang ? 1 : 0);
+      var chgType = getPalaceAndShiYing(cb).type;
+      if (hunText[chgType]) push(ov, "變卦" + gua.chgName + "為" + hunText[chgType]);
+    }
+    var pattern;
+    if (activeCount === 0) pattern = "盡靜：六爻安靜且無日沖，「靜者恆美」，以用神之病（空、合）找應期，沖動之日應事";
+    else if (activeCount === 6) pattern = "盡發：六爻皆動，「動者招咎」，變化大、多暗藏凶險";
+    else if (activeCount === 1) {
+      var only = movingIdx.length ? movingIdx[0] : anIdx[0];
+      pattern = "獨發：只有" + nm(only) + (movingIdx.length ? "發動" : "暗動") + "，是全卦焦點，獨發之爻常可作應期參考（吉凶仍看用神）";
+    } else if (activeCount === 5) {
+      var still = [0, 1, 2, 3, 4, 5].filter(function(i) { return movingIdx.indexOf(i) < 0 && anIdx.indexOf(i) < 0; })[0];
+      pattern = "獨靜：只有" + nm(still) + "安靜，常以獨靜之爻定應期";
+    } else pattern = activeCount + " 爻發動（含暗動）" + (activeCount >= 4 ? "，卦爻競發，勢必翻騰，事多變動" : "，以動爻與用神的生剋為斷");
+    push(ov, pattern);
+
+    function relText(kind) {
+      if (kind === "六沖") {
+        return { "病": "近病逢沖即癒，久病逢沖則凶", "情": "主分散、不合，不利婚姻感情", "訟": "官非易散（不代表勝訴）", "財": "變動快、不穩，合作易意見不合", "名": "主變動快，工作易調動", "尋": "主散，難以聚合" }[cat] ||
+          "主散、變動、衝突；所惡之事宜沖，所好之事不宜";
+      }
+      return { "病": "近病逢合拖延難癒，久病逢合反可支撐", "情": "主和合、易成", "訟": "官事纏綿、逃不掉", "財": "主合作順利、聚財", "名": "主維持現狀，難以變動", "尋": "主聚，人或物在一處" }[cat] ||
+        "主聚、穩定、牽絆；所好之事宜合，所惡之事不宜";
+    }
+    if (gua.mainRel) push(ov, "本卦為" + gua.mainRel + "卦：" + relText(gua.mainRel));
+    if (gua.chgRel) push(ov, "變卦為" + gua.chgRel + "卦：" + relText(gua.chgRel));
+    if (gua.mainRel === "六合" && gua.chgRel === "六沖") push(ov, "合變沖（合處逢沖）：先成後敗、先聚後散", "bad");
+    if (gua.mainRel === "六沖" && gua.chgRel === "六合") push(ov, "沖變合（沖中逢合）：先敗後成、先散後聚", "good");
+    if (focus && !focusIsFu) {
+      if (gua.mainRel === "六沖" && (focus.riHe || focus.yueHe || focus.chgTags.indexOf("化合") >= 0)) push(ov, "六沖卦而用神逢合（沖中逢合）：先散後聚、先難後易", "good");
+      if (gua.mainRel === "六合" && (isClash(focus.branch, mz) || isClash(focus.branch, dz) || focus.chgTags.indexOf("化沖") >= 0)) push(ov, "六合卦而用神逢沖（合處逢沖）：先成後敗、先得後失", "bad");
+    }
+
+    // 反吟、伏吟、卦的回頭剋
+    var fanFu = fanFuYin(gua);
+    var yaoFan = [], yaoFu = [];
+    movingIdx.forEach(function(i) {
+      if (A.lines[i].chgTags.indexOf("化沖") >= 0) yaoFan.push(nm(i) + "化" + gua.lines[i].chgBranch);
+      if (A.lines[i].fuYin) yaoFu.push(nm(i));
+    });
+    var yongChongKe = focus && !focusIsFu && focus.moving &&
+      (focus.chgTags.indexOf("化沖") >= 0 || focus.chgTags.indexOf("回頭剋") >= 0);
+    if (fanFu.some(function(f) { return f.kind === "反吟"; }) || yaoFan.length) {
+      var ft = fanFu.filter(function(f) { return f.kind === "反吟"; }).map(function(f) { return f.text; });
+      push(ov, "反吟：" + ft.concat(yaoFan.length ? ["爻反吟（" + yaoFan.join("、") + "）"] : []).join("；") +
+        "。主反覆不定、去而復返、得而復失。" + (yongChongKe ? "用神又化回頭沖剋，是「淚淋淋」的大凶。" : "用神不化沖剋，雖反覆，事終可成。"),
+        yongChongKe ? "bad" : "");
+    }
+    if (fanFu.some(function(f) { return f.kind === "伏吟"; }) || yaoFu.length) {
+      var fu2 = fanFu.filter(function(f) { return f.kind === "伏吟"; }).map(function(f) { return f.text; });
+      push(ov, "伏吟：" + fu2.concat(yaoFu.length ? ["爻伏吟（" + yaoFu.join("、") + "）"] : []).join("；") +
+        "。主憂鬱呻吟、動如不動、停滯不前；內卦伏吟我方不利，外卦伏吟對方不利。用神旺相者，沖開之時仍可得志。");
+    }
+    [{ label: "內卦", t: gua.lower, ct: gua.chgLower, from: 0 }, { label: "外卦", t: gua.upper, ct: gua.chgUpper, from: 3 }].forEach(function(p) {
+      var moved = yaos[p.from].isChanging || yaos[p.from + 1].isChanging || yaos[p.from + 2].isChanging;
+      if (moved && ELEM_KE[p.ct.element] === p.t.element) push(ov, p.label + p.t.name + "（" + p.t.element + "）變" + p.ct.name + "（" + p.ct.element + "），為卦的回頭剋：" + p.label + "所代表的一方受傷", "bad");
+    });
+    var body = guaBody(gua);
+    push(ov, "卦身" + body.zhi + (body.at.length ? "：上卦於" + body.at.map(nm).join("、") + "，事體有著落" : "：不上卦，事體尚無著落"));
+
+    // ----- 用神分析 -----
+    var ys = sec("用神分析");
+    if (!roles) {
+      push(ys, "用神未選。以世爻" + nm(gua.shi) + "代表自身：");
+    } else {
+      push(ys, "所問取「" + roles.names["用"] + "」為用神；原神" + roles.names["原"] + "（生用神）、忌神" + roles.names["忌"] + "（剋用神）、仇神" + roles.names["仇"] + "（剋原神、生忌神）。");
+      if (roles.yongLines.length > 1) {
+        push(ys, "用神" + ["", "", "兩", "三", "四", "五", "六"][roles.yongLines.length] + "現（" + roles.yongLines.map(nm).join("、") + "），依「捨閑爻用持世、捨安靜用動爻、捨不空用旬空、捨不破用月破」取" +
+          nm(yongPick.idx) + "（" + (yongPick.reasons.join("、") || "離世爻最近") + "）；其餘兼看。");
+      }
+      var yEl = roles.sel === "世" ? gua.lines[gua.shi].element : elementOfRelative(gua.palace.element, roles.sel);
+      if (focusIsFu && (FIVE_ELEMENTS[mz] === yEl || FIVE_ELEMENTS[dz] === yEl)) push(ys, "用神不上卦，但" + (FIVE_ELEMENTS[mz] === yEl ? "月建" + mz : "日辰" + dz) + "即是用神，可以日月為用神。", "good");
+    }
+    if (focus) {
+      focus.parts.forEach(function(p) { push(ys, p.text + "（" + signed(p.delta) + "）", p.delta > 0 ? "good" : p.delta < 0 ? "bad" : ""); });
+      push(ys, "合計 " + signed(focus.score) + "，判為「" + focus.level + "」。", isStrongLv(focus.level) ? "good" : isWeakLv(focus.level) ? "bad" : "");
+      if (focus.kongType) push(ys, "旬空：" + focus.kongType + "。空亡主未到、不實、心意未定；" + (focus.kongType.indexOf("真空") === 0 ? "真空出空後也無用。" : "假空待出空、沖空即可應事。"));
+      if (focus.poType) push(ys, "月破：" + focus.poType + "。");
+      if (focus.muType) push(ys, "入墓：" + focus.ruMu.join("、") + "，" + focus.muType + "。");
+      if (focus.heBan) push(ys, "用神動而被日辰合絆，有事羈絆不能行動，待沖開。");
+      if (!focusIsFu && focus.moving) changeMeaning("用", focus, cat).forEach(function(t) { push(ys, t); });
+      if (!focusIsFu && focus.moving && gua.lines[focus.idx].chgRelative === "官鬼" && focus.rel !== "官鬼") push(ys, "用神化官鬼：占病、占宅最忌。", cat === "病" ? "bad" : "");
+      if (focusIsFu) {
+        var fv = fuInfo.fu.verdict;
+        push(ys, "飛神" + fuInfo.fly.name + "（" + fuInfo.fly.level + "），" + fv.relNote + "。");
+        fv.good.forEach(function(t) { push(ys, "利於出伏：" + t, "good"); });
+        fv.bad.forEach(function(t) { push(ys, "不利出伏：" + t, "bad"); });
+        push(ys, "結論：" + fv.text + "。「伏無提挈終徒爾，飛不推開亦枉然」。", fv.useless ? "bad" : "");
+      }
+    }
+
+    // ----- 原神、忌神、仇神 -----
+    if (roles) {
+      var yj = sec("原神・忌神・仇神");
+      var roleLine = function(a, r) {
+        var st = [a.level];
+        if (a.moving) st.push("發動"); else if (a.anDong) st.push("暗動"); else st.push("安靜");
+        if (a.kongType) st.push(a.kongType);
+        if (a.poType) st.push(a.poType);
+        if (a.muType) st.push(a.muType);
+        if (a.chgTags.length) st.push("化" + gua.lines[a.idx].chgBranch + "：" + a.chgTags.join("・"));
+        return r + "神" + a.name + "：" + st.join("，");
+      };
+      if (!yuan.length) {
+        var fuYuan = A.lines.filter(function(a) { return a.fuA && gua.lines[a.idx].fu.relative === roles.names["原"]; });
+        push(yj, "原神" + roles.names["原"] + "不上卦" + (fuYuan.length ? "，伏於" + fuYuan[0].name + "之下（" + fuYuan[0].fuA.verdict.text + "）" : "") + "，用神根基較弱。", "bad");
+      }
+      yuan.forEach(function(a) {
+        var d = damagedYuan(a);
+        var t = roleLine(a, "原");
+        if (a.heBan) t += "。原神動而被日辰合絆，暫不能生用神，待沖開之" + clashOf(a.branch) + "日。";
+        else if (active(a) && !d.length) t += "。原神動來生用神，" + (focus && isStrongLv(focus.level) ? "用神旺上加旺，吉更倍。" : "用神有根，衰弱、空伏之時待時而起。");
+        else if (d.length) t += "。原神" + d.join("、") + "，用神根蒂受傷，「不惟無益，而反有損」。";
+        else t += "。原神安靜，生力有限。";
+        push(yj, t, active(a) && !d.length ? "good" : d.length ? "bad" : "");
+      });
+      ji.forEach(function(a) {
+        var t = roleLine(a, "忌");
+        var weakJi = a.kongType.indexOf("真空") === 0 || a.yuePo || a.riPo || a.ruMu.length || a.chgTags.indexOf("回頭剋") >= 0 || a.chgTags.indexOf("化退神") >= 0;
+        if (a.heBan) {
+          t += "。忌神動而被日辰合絆，暫不能剋用神；沖開之" + clashOf(a.branch) + "日需留意。";
+        } else if (active(a)) {
+          t += tanSheng ? "。忌神雖動，但原神同動，忌神貪生原神而忘剋用神，轉為接續相生。" :
+            weakJi ? "。忌神雖動，但本身受制，剋力減弱。" : "。忌神" + (a.moving ? "發動" : "暗動") + "剋用神，是卦中主要阻力" + (a.moving ? "。" : "（暗中作梗）。");
+          if (a.stage === "長生") t += "忌神長生於日，禍來不小。";
+        } else {
+          t += weakJi ? "。忌神受制（空、破、墓或受剋），不能傷用，為吉。" : "。忌神安靜，不直接傷用神。";
+        }
+        push(yj, t, active(a) && !tanSheng && !weakJi ? "bad" : weakJi || tanSheng ? "good" : "");
+      });
+      chou.forEach(function(a) {
+        var t = roleLine(a, "仇");
+        if (active(a)) t += "。仇神發動，剋原神、生忌神，間接不利用神。";
+        push(yj, t, active(a) ? "bad" : "");
+      });
+      if (!ji.length) push(yj, "忌神" + roles.names["忌"] + "不上卦，用神少一重剋制。", "good");
+    }
+
+    // ----- 世應 -----
+    var sy = sec("世應與自身");
+    var shiA = A.lines[gua.shi], yingA = A.lines[gua.ying];
+    push(sy, "世爻（自己）" + shiA.name + "，臨" + spirits[gua.shi] + "，「" + shiA.level + "」（" + signed(shiA.score) + "）" +
+      (shiA.kong ? (shiA.kongType.indexOf("真空") === 0 ? "，旬空（真空）：自己無心或底氣不足" : "，旬空（" + shiA.kongType.replace(/（.*$/, "") + "）：暫時虛而未實、尚在猶豫，出空即實") : "") + (shiA.yuePo ? "，月破" : "") + "。", isStrongLv(shiA.level) ? "good" : isWeakLv(shiA.level) ? "bad" : "");
+    push(sy, SHI_REL_NOTE[shiA.rel]);
+    push(sy, "應爻（對方、所求之處）" + yingA.name + "，臨" + spirits[gua.ying] + "，「" + yingA.level + "」（" + signed(yingA.score) + "）" +
+      (yingA.kong ? (yingA.kongType.indexOf("真空") === 0 ? "，旬空（真空）：對方無心、不實" : "，旬空（" + yingA.kongType.replace(/（.*$/, "") + "）：對方暫時猶豫或惶恐，出空即實") : "") + (yingA.yuePo ? "，月破" : "") + "。");
+    var syRel = [];
+    if (ZHI_HE[shiA.branch] === yingA.branch) syRel.push("世應相合：雙方有意、易合作");
+    if (isClash(shiA.branch, yingA.branch)) syRel.push("世應相沖：彼此不合、意見相左");
+    if (ELEM_GEN[yingA.el] === shiA.el) syRel.push("應生世：對方有意助我");
+    else if (ELEM_GEN[shiA.el] === yingA.el) syRel.push("世生應：我付出、遷就對方");
+    else if (ELEM_KE[yingA.el] === shiA.el) syRel.push("應剋世：壓力來自對方");
+    else if (ELEM_KE[shiA.el] === yingA.el) syRel.push("世剋應：我能制住對方");
+    else syRel.push("世應比和：勢均力敵");
+    push(sy, syRel.join("；") + "。");
+    if (focus && !focusIsFu && yongPick && yongPick.idx !== gua.shi) {
+      var yEl2 = focus.el, sEl = shiA.el, rs = [];
+      if (ZHI_HE[focus.branch] === shiA.branch) rs.push("用神合世：相親有情");
+      if (isClash(focus.branch, shiA.branch)) rs.push("用神沖世：事來衝擊於我");
+      if (ELEM_GEN[yEl2] === sEl) rs.push("用神生世：事來就我，得之容易");
+      else if (ELEM_KE[yEl2] === sEl) rs.push("用神剋世：事來就我（求財為「財來就我終須易」；占病災則為受其所傷）");
+      else if (ELEM_GEN[sEl] === yEl2) rs.push("世生用神：我去求之，較費心力");
+      else if (ELEM_KE[sEl] === yEl2) rs.push("世剋用神：我去求之，「我去求財必是難」，世爻須旺才擔得起");
+      else rs.push("世與用神比和");
+      push(sy, rs.join("；") + "。");
+    }
+
+    // ----- 動爻與暗動 -----
+    if (activeCount) {
+      var dy = sec("動爻與暗動");
+      movingIdx.concat(anIdx).sort(function(x, y) { return y - x; }).forEach(function(i) {
+        var a = A.lines[i];
+        var r = roleOfLine(roles, i);
+        var head = nm(i) + "（" + spirits[i] + "，" + (r ? r + "神" : "閒爻") + "，" + a.level + "）" +
+          (a.moving ? "動化" + gua.lines[i].chgRelative + gua.lines[i].chgBranch + gua.lines[i].chgElement : "暗動");
+        var hits = [];
+        A.lines.forEach(function(b, k) {
+          if (k === i) return;
+          var tag = (k === gua.shi ? "世" : "") + (roleOfLine(roles, k) === "用" ? "用" : "");
+          if (ELEM_GEN[a.el] === b.el) hits.push("生" + YAO_SHORT[k] + b.rel + b.branch + (tag ? "（" + tag + "）" : ""));
+          else if (ELEM_KE[a.el] === b.el) hits.push("剋" + YAO_SHORT[k] + b.rel + b.branch + (tag ? "（" + tag + "）" : ""));
+        });
+        var blockedNote = A.blocked.filter(function(t) { return t.indexOf(YAO_SHORT[i]) === 0; });
+        var t = head + "。" + (blockedNote.length ? blockedNote.join("；") + "。" : hits.length ? "作用：" + hits.join("、") + "。" : "");
+        var cm = a.moving ? changeMeaning(r, a, cat) : [];
+        if (!a.moving) cm.push(r === "原" || r === "用" ? "暗動生扶，有貴人暗中相助（福來不知）" : r === "忌" || r === "仇" ? "暗動剋害，有人暗中作梗（禍來不覺）" : "暗中有所動作");
+        if (a.moving && gua.lines[i].chgRelative === "官鬼" && a.rel === "子孫") cm.push("子孫化鬼：占病、占子女不祥");
+        if (a.moving && a.rel === "官鬼" && gua.lines[i].chgRelative === "子孫") cm.push("鬼化子孫：憂患轉解");
+        push(dy, t + (cm.length ? cm.join("；") + "。" : ""), r === "用" || r === "原" ? (isStrongLv(a.level) ? "good" : "") : r === "忌" || r === "仇" ? "bad" : "");
+      });
+    }
+
+    // ----- 合局與刑 -----
+    var weakFocus = (focus && isWeakLv(focus.level) && focus.ke > 0) || (isWeakLv(shiA.level) && shiA.ke > 0);
+    var combos = sanHeNotes(gua, A, roles).concat(xingNotes(gua, A, weakFocus));
+    if (combos.length) {
+      var hj = sec("三合局與三刑");
+      combos.forEach(function(n) { push(hj, n.text, n.tone); });
+      push(hj, "三刑、六害屬附加象意，不改吉凶；六害屢試無驗，一般不論。", "note");
+    }
+
+    // ----- 六獸與神煞 -----
+    var ss = sec("六獸與神煞（象法，只作參考）");
+    push(ss, "世爻臨" + spiritText(spirits[gua.shi], shiA.rel, shiA));
+    if (focus && !focusIsFu && yongPick && yongPick.idx !== gua.shi) push(ss, "用神臨" + spiritText(spirits[yongPick.idx], focus.rel, focus));
+    movingIdx.forEach(function(i) {
+      if (i === gua.shi || (yongPick && i === yongPick.idx)) return;
+      push(ss, YAO_SHORT[i] + "動爻臨" + spiritText(spirits[i], A.lines[i].rel, A.lines[i]));
+    });
+    var head3 = SAN_HE_HEAD[dz];
+    var sha = [
+      { name: "貴人", zhis: GUI_REN[timeInfo.dayStem], note: "主貴人相助；臨用神或發動生世為真貴人，被沖破、入墓、空亡則為假貴人" },
+      { name: "驛馬", zhis: YI_MA[head3], note: "主變動、奔波、出差、搬遷" },
+      { name: "桃花", zhis: TAO_HUA[head3], note: "主人緣、異性緣；卦凶時主花心、破財" },
+      { name: "天喜", zhis: TIAN_XI[mz], note: "主喜慶、福佑；占病為天醫" }
+    ];
+    sha.forEach(function(s) {
+      var on = [];
+      A.lines.forEach(function(a, i) {
+        if (s.zhis.indexOf(a.branch) < 0) return;
+        var tags = [];
+        if (i === gua.shi) tags.push("世");
+        if (i === gua.ying) tags.push("應");
+        if (roleOfLine(roles, i)) tags.push(roleOfLine(roles, i));
+        if (a.moving) tags.push("動");
+        var real = s.name === "貴人" && (roleOfLine(roles, i) === "用" || ((a.moving || a.anDong) && ELEM_GEN[a.el] === shiA.el)) && !a.yuePo && !a.kong && !a.ruMu.length;
+        on.push(nm(i) + (tags.length ? "（" + tags.join("、") + "）" : "") + (real ? "，為真貴人" : ""));
+      });
+      push(ss, s.name + "在" + s.zhis.split("").join("、") + "：" + (on.length ? on.join("；") : "不上卦") + "。" + s.note + "。");
+    });
+    push(ss, "「吉凶神煞之多端，何如生剋制化之一理」：六獸神煞附吉則吉、附凶則凶，吉凶仍以用神生剋為準。", "note");
+
+    // ----- 應期 -----
+    var yq = sec("應期參考");
+    if (focus) yingQiNotes(focus, focusLabel, focusIsFu).forEach(function(n) { push(yq, n.text, n.tone); });
+    if (focusIsFu && !fuInfo.fu.useless) push(yq, "伏神出伏：沖開飛神之" + clashOf(fuInfo.fly.branch) + "日，或飛神逢空之時");
+    if (activeCount === 1) {
+      var key = movingIdx.length ? movingIdx[0] : anIdx[0];
+      push(yq, "獨發之爻" + nm(key) + "：值日之" + A.lines[key].branch + "日、逢合之" + ZHI_HE[A.lines[key].branch] + "日可作參考");
+    } else if (activeCount === 5) {
+      var st5 = [0, 1, 2, 3, 4, 5].filter(function(i) { return movingIdx.indexOf(i) < 0 && anIdx.indexOf(i) < 0; })[0];
+      push(yq, "獨靜之爻" + nm(st5) + "：其值日之" + A.lines[st5].branch + "日或逢沖之" + clashOf(A.lines[st5].branch) + "日可作參考");
+    }
+    if (jiActive.length && !tanSheng) {
+      push(yq, "需留意：忌神" + jiActive.map(function(a) { return a.name; }).join("、") + "值日（" + uniq(jiActive.map(function(a) { return a.branch; })).join("、") + "日）力量最強，" +
+        (focus ? "或" + focusLabel + "被沖之" + clashOf(focus.branch) + "日" : ""), "bad");
+    }
+    push(yq, "近事以日、時論，遠事以月、年論；吉事解病之時應吉，凶事病發之時應凶。", "note");
+
+    // ----- 各爻明細 -----
+    var dt = sec("各爻旺衰明細");
+    dt.table = {
+      head: ["爻", "六神", "六親地支", "角色", "月建", "日辰", "動變", "評分"],
+      rows: []
+    };
+    for (var i = 5; i >= 0; i--) {
+      var a = A.lines[i];
+      var mPart = a.parts[0] ? a.parts[0].text.replace(/（.*$/, "") : "";
+      var dParts = a.parts.filter(function(p) { return /日辰|日破|入日墓|值日|長生於日|絕於日/.test(p.text); })
+        .map(function(p) { return p.text.replace(/（.*?）/g, "").replace(/，.*$/, ""); });
+      var chg = a.moving ? "化" + gua.lines[i].chgBranch + (a.chgTags.length ? "：" + a.chgTags.join("・") : "") : (a.anDong ? "暗動" : "靜");
+      var marks = [];
+      if (a.kong) marks.push(a.kongType.replace(/（.*$/, ""));
+      if (a.poType) marks.push(a.poType.replace(/（.*$/, ""));
+      if (a.ruMu.length) marks.push("入墓");
+      var who = (i === gua.shi ? "世" : i === gua.ying ? "應" : "") + (roleOfLine(roles, i) || "");
+      dt.table.rows.push([
+        YAO_SHORT[i], spirits[i], a.rel + a.branch + a.el + (marks.length ? "（" + marks.join("・") + "）" : ""),
+        who || "－", mPart, dParts.join("；") || "－", chg, signed(a.score) + " " + a.level
+      ]);
+      if (a.fuA) {
+        dt.table.rows.push(["", "", a.fuA.name, "伏", a.fuA.parts[0] ? a.fuA.parts[0].text.replace(/（.*$/, "") : "",
+          "", a.fuA.verdict.text, signed(a.fuA.score) + " " + a.fuA.level]);
+      }
+    }
+    push(dt, "評分為月建、日辰、動爻、變爻逐項加減的參考值：3 以上旺、1 以上偏旺、−1.5 至 1 不旺不衰、−3 至 −1.5 偏衰、−3 以下衰。", "note");
+
+    return { verdict: verdict, tone: vTone, sections: sections };
+  }
+
+  // 「複製」與紀錄用的純文字版
+  function buildAnalysisLines(gua) {
+    var r = buildDetailedAnalysis(gua);
+    var out = ["整體傾向：" + r.verdict, ""];
+    r.sections.forEach(function(s) {
+      out.push("■ " + s.title);
+      s.items.forEach(function(it) { out.push("・" + it.text); });
+      if (s.table) {
+        s.table.rows.forEach(function(row) { out.push("　" + row.filter(Boolean).join("｜")); });
+      }
+      out.push("");
+    });
+    return out;
+  }
+
+  function analysisHtml(gua) {
+    var r = buildDetailedAnalysis(gua);
+    var html = '<div class="ana-verdict ana-' + (r.tone || "mid") + '">整體傾向：' + escapeHtml(r.verdict) + '</div>';
+    r.sections.forEach(function(s) {
+      html += '<h3>' + escapeHtml(s.title) + '</h3>';
+      if (s.table) {
+        html += '<div class="ana-table-wrap"><table class="ana-table"><thead><tr>' +
+          s.table.head.map(function(h) { return '<th>' + escapeHtml(h) + '</th>'; }).join("") + '</tr></thead><tbody>' +
+          s.table.rows.map(function(row) {
+            return '<tr' + (row[3] === "伏" ? ' class="fu-row"' : '') + '>' + row.map(function(c) { return '<td>' + escapeHtml(c) + '</td>'; }).join("") + '</tr>';
+          }).join("") + '</tbody></table></div>';
+      }
+      html += '<ul>' + s.items.map(function(it) {
+        return '<li' + (it.tone ? ' class="ana-' + it.tone + '"' : '') + '>' + escapeHtml(it.text) + '</li>';
+      }).join("") + '</ul>';
+    });
+    return html;
+  }
+
+  /* ---------- 教學模式：依本卦逐步說明解卦思路 ---------- */
+
+  var STEMS = "甲乙丙丁戊己庚辛壬癸";
+  var REL_MEANING = {
+    "父母": "長輩、師長；房屋、車船、衣服、學校；文書、證件、考試、契約、消息；天氣主雨",
+    "兄弟": "兄弟姊妹、朋友、同事、同學、競爭者；阻隔之神、破財耗財之神；天氣主風雲",
+    "子孫": "子女、晚輩、學生、寵物、客戶、醫藥、醫生；福神、解憂之神，也是剝官削職之神",
+    "妻財": "錢財、物價、貨物、資產、飲食；男占的妻子、女友",
+    "官鬼": "功名、工作、上司、政府；女占的丈夫、男友；疾病、官司、災禍、小人、鬼神",
+    "世": "自己（問自身吉凶、自己的病、流年等）"
+  };
+  var CAT_YONG = {
+    "財": "求財取妻財為用神",
+    "名": "功名、工作取官鬼；考試兼看父母（文書）",
+    "病": "自己生病取世爻；問家人取該家人所屬六親（父母、子孫、兄弟、妻財或官鬼）",
+    "情": "男占取妻財、女占取官鬼，並看世應關係",
+    "訟": "世爻為自己、應爻為對方，兼看官鬼（官府）",
+    "尋": "失物取妻財；尋人依身分取六親，交情淺的人取應爻"
+  };
+  var JIN_SHEN_TEXT = "亥→子、丑→辰、寅→卯、辰→未、巳→午、未→戌、申→酉、戌→丑";
+
+  function monthReason(branch) {
+    var el = FIVE_ELEMENTS[branch], mz = timeInfo.monthZhi, mEl = FIVE_ELEMENTS[mz];
+    var st = lineStrength(branch).state;
+    var how = {
+      "旺": el + "與月建" + mz + mEl + "同五行，同我為旺",
+      "相": "月建" + mz + mEl + "生" + el + "，生我為相",
+      "休": el + "生月建" + mz + mEl + "，我生為休（洩氣）",
+      "囚": el + "剋月建" + mz + mEl + "，我剋為囚（耗力）",
+      "死": "月建" + mz + mEl + "剋" + el + "，剋我為死"
+    }[st];
+    if (branch === mz) how += "；而且就是月建本身（臨月建），最旺";
+    else if (isClash(branch, mz)) how += "；但" + branch + "與月建" + mz + "相沖，為月破";
+    else if (ZHI_HE[mz] === branch) how += "；但月建" + mz + "與" + branch + "相合，論合不論剋，以旺論";
+    return how;
+  }
+
+  function dayReason(branch, moving) {
+    var el = FIVE_ELEMENTS[branch], dz = timeInfo.dayZhi, dEl = FIVE_ELEMENTS[dz];
+    var r = [];
+    if (branch === dz) return "就是日辰本身（值日），如日中天";
+    if (el === dEl) r.push("與日辰" + dz + dEl + "同五行（日扶）");
+    else if (ELEM_GEN[dEl] === el) r.push("日辰" + dz + dEl + "生" + el + "（日生）");
+    else if (ELEM_KE[dEl] === el) r.push("日辰" + dz + dEl + "剋" + el + "（日剋）");
+    else r.push("日辰" + dz + dEl + "與" + el + "無直接生剋（" + el + "生" + dEl + "或剋" + dEl + "，對本爻是洩或耗）");
+    if (ZHI_HE[dz] === branch) r.push(moving ? "日辰來合動爻為合絆，綁住不能動" : "日辰來合靜爻為合旺");
+    if (isClash(branch, dz)) {
+      if (moving) r.push("日辰沖動爻：旺則越沖越動，衰則沖散");
+      else r.push("日辰沖靜爻：" + (lineStrength(branch).strong ? "本爻旺相，沖起為暗動" : "本爻休囚，沖成日破"));
+    }
+    var stg = stageOf(el, dz);
+    if (stg === "長生" || stg === "帝旺" || stg === "墓" || stg === "絕") r.push("十二長生在日辰為「" + stg + "」");
+    return r.join("；");
+  }
+
+  function teachingSteps(gua) {
+    var A = assessGua(gua);
+    var roles = computeRoles(gua);
+    var cat = questionCategory(roles ? roles.sel : "");
+    var spirits = getSixSpirits();
+    var full = buildDetailedAnalysis(gua);
+    function secItems(title) {
+      for (var k = 0; k < full.sections.length; k++) if (full.sections[k].title === title) return full.sections[k].items.map(function(it) { return it.text; });
+      return [];
+    }
+    var mz = timeInfo.monthZhi, dz = timeInfo.dayZhi, ds = timeInfo.dayStem;
+    var pEl = gua.palace.element;
+    var pick = pickYong(gua, roles, A);
+    var focus = null, focusLabel = "", fly = null;
+    if (pick) { focus = A.lines[pick.idx]; focusLabel = "用神" + focus.name; }
+    else if (roles && roles.fuYong.length) { fly = A.lines[roles.fuYong[0]]; focus = fly.fuA; focusLabel = "用神" + focus.name.slice(1); }
+    else { focus = A.lines[gua.shi]; focusLabel = "世爻" + focus.name; }
+    var others = A.lines.filter(function(a) { return !pick || a.idx !== pick.idx; });
+    var steps = [];
+
+    // 1. 排盤基礎
+    var sIdx = STEMS.indexOf(ds);
+    var xunHead = shiftZhi(dz, -sIdx);
+    var shiRule = { "本宮卦": "八純卦世在上爻", "一世卦": "一世卦世在初爻", "二世卦": "二世卦世在二爻", "三世卦": "三世卦世在三爻",
+      "四世卦": "四世卦世在四爻", "五世卦": "五世卦世在五爻", "遊魂卦": "遊魂卦世在四爻", "歸魂卦": "歸魂卦世在三爻" }[gua.palaceType];
+    var spiritStart = { "甲": "青龍", "乙": "青龍", "丙": "朱雀", "丁": "朱雀", "戊": "勾陳", "己": "螣蛇", "庚": "白虎", "辛": "白虎", "壬": "玄武", "癸": "玄武" }[ds];
+    steps.push({
+      title: "排盤基礎：先確認盤沒有排錯",
+      goal: "由起卦時間定出月建、日辰、旬空，再找卦宮、安世應、安六親、起六獸。盤一錯，後面全錯。",
+      apply: [
+        "起卦時間 " + timeInfo.solarText + "，上一個「節」是" + timeInfo.jieName + "（" + timeInfo.jieText + "），所以月建為" + mz + "。",
+        "日辰" + timeInfo.dayGZ + "：" + ds + "是第 " + (sIdx + 1) + " 個天干，往回數 " + sIdx + " 位到甲，旬首是甲" + xunHead + "；這一旬十天用不到的兩個地支是" + timeInfo.xunKong + "，就是旬空。",
+        "本卦" + gua.mainName + "是" + gua.palace.name + "宮的" + gua.palaceType + "，" + shiRule + "，應爻與世爻相隔兩位，在" + YAO_SHORT[gua.ying] + "。",
+        "六親以宮的五行" + pEl + "為「我」：同我為兄弟（" + pEl + "）、我生為子孫（" + ELEM_GEN[pEl] + "）、我剋為妻財（" + ELEM_KE[pEl] + "）、剋我為官鬼（" + findKey(ELEM_KE, pEl) + "）、生我為父母（" + findKey(ELEM_GEN, pEl) + "）。",
+        "六獸依日干" + ds + "從初爻起" + spiritStart + "，往上依序排：初爻" + spirits[0] + "、二爻" + spirits[1] + "……上爻" + spirits[5] + "。"
+      ],
+      rule: [
+        "月份以「節」交接，不以「氣」：立春、驚蟄、清明、立夏、芒種、小暑、立秋、白露、寒露、立冬、大雪、小寒（第 09 集）。",
+        "世應歌訣：八純世在上，一世初、二世二……五世五，遊魂四、歸魂三；應爻與世爻隔兩位（第 04、05 集）。",
+        "六獸：甲乙青龍、丙丁朱雀、戊勾陳、己螣蛇、庚辛白虎、壬癸玄武，從初爻往上排（第 06、20 集）。"
+      ],
+      pitfall: [
+        "月初幾天常常還沒交節，仍屬上個月；看月建一定要查交節時刻。",
+        "晚上 23 點後起卦，日辰依「子時換日」設定而不同，會連帶改變旬空與六獸。"
+      ],
+      quiz: [
+        { q: "本卦的妻財是什麼五行？官鬼呢？", a: "宮五行為" + pEl + "，我剋者為妻財，所以妻財屬" + ELEM_KE[pEl] + "；剋我者為官鬼，屬" + findKey(ELEM_KE, pEl) + "。" },
+        { q: "如果在甲" + clashOf(xunHead) + "旬（例如甲" + clashOf(xunHead) + "日）起卦，旬空是哪兩支？", a: "甲" + clashOf(xunHead) + "旬：旬首" + clashOf(xunHead) + "往前推兩位，旬空為" + shiftZhi(clashOf(xunHead), -2) + shiftZhi(clashOf(xunHead), -1) + "。口訣：旬首地支的前兩位就是旬空。" }
+      ]
+    });
+
+    // 2. 取用神
+    var apply2 = [];
+    var q = document.getElementById("question").value.trim();
+    if (cat) apply2.push("所問「" + q + "」屬於" + CAT_NAMES[cat] + "，一般" + CAT_YONG[cat] + "。");
+    if (roles) {
+      var yongEl = roles.sel === "世" ? gua.lines[gua.shi].element : elementOfRelative(pEl, roles.sel);
+      apply2.push("你選的用神是「" + roles.names["用"] + "」，代表：" + (REL_MEANING[roles.sel] || "") + "。");
+      apply2.push("用神屬" + yongEl + "，所以生" + yongEl + "的" + findKey(ELEM_GEN, yongEl) + "（" + roles.names["原"] + "）是原神，剋" + yongEl + "的" + findKey(ELEM_KE, yongEl) +
+        "（" + roles.names["忌"] + "）是忌神，剋原神的" + findKey(ELEM_KE, findKey(ELEM_GEN, yongEl)) + "（" + roles.names["仇"] + "）是仇神。");
+      if (pick && roles.yongLines.length > 1) apply2.push("用神出現" + ["", "", "兩", "三", "四", "五", "六"][roles.yongLines.length] + "次，取" + focus.name + "，理由：" + (pick.reasons.join("、") || "都沒有特殊之處，取離世爻最近的") + "。");
+      else if (pick) apply2.push("用神只出現一次，就是" + focus.name + "。");
+      if (fly) apply2.push("卦中沒有用神，從本宮首卦" + gua.palace.name + "為" + { "乾": "天", "兌": "澤", "離": "火", "震": "雷", "巽": "風", "坎": "水", "艮": "山", "坤": "地" }[gua.palace.name] + "的同一爻位找到" + focus.name + "，伏在" + fly.name + "（飛神）之下。");
+    } else {
+      apply2.push("你還沒選用神。請先想清楚「問的是哪一個人、哪一件事」，再到「所問」旁的選單選擇；沒選時，下面以世爻代表自己來示範。");
+    }
+    steps.push({
+      title: "取用神：所問之事的主角",
+      goal: "依所問之事決定用神，再由五行生剋推出原神、忌神、仇神。用神取錯，整卦都會斷錯。",
+      apply: apply2,
+      rule: [
+        "用神：所問的人事物；原神：生用神者；忌神：剋用神者；仇神：剋原神（也生忌神）者（第 07 集）。",
+        "用神多現：捨閑爻而用持世，捨無權而用月日，捨安靜而用動爻，捨不破而用月破，捨不空而用旬空（第 12、40 集）。",
+        "用神不上卦：到本宮首卦找同類六親為伏神；若月建或日辰就是用神，也可直接以日月為用神（第 17、32 集）。"
+      ],
+      pitfall: [
+        "問題含糊會取錯用神，「不驗多因問者沒說出真正想問的事」（第 41 集）。一事一問，寫具體。",
+        "同一物看用途：家用車看父母、營業貨車看妻財；寵物看子孫、養來賣的牲畜看妻財（第 07 集）。",
+        "占流年最忌官鬼持世，占功名卻最喜官鬼持世：同一個象，所問不同，吉凶相反（第 41 集）。"
+      ],
+      quiz: [
+        { q: "問「父親的病何時好」，用神取什麼？原神、忌神是哪一類？", a: "用神取父母（父親）。原神是生父母的官鬼，忌神是剋父母的妻財。注意不是取官鬼：官鬼雖代表疾病，但問的主角是父親。" },
+        { q: "女生問「和男友能否走下去」，用神取什麼？", a: "取官鬼（女占丈夫、男友），並看世應：世為自己、應為對方。若卦中官鬼不現，就找伏神。" }
+      ]
+    });
+
+    // 3. 月建
+    var other3 = others.filter(function(a) { return a.branch !== mz; })[0] || others[0];
+    steps.push({
+      title: "看月建：當下的旺衰（提綱）",
+      goal: "月建是「萬卜之提綱」，一個月內當權，決定每一爻的旺、相、休、囚、死。",
+      apply: [
+        focusLabel + "：" + monthReason(focus.branch) + "。",
+        (focus === A.lines[gua.shi] ? "" : "世爻" + A.lines[gua.shi].name + "：" + monthReason(A.lines[gua.shi].branch) + "。")
+      ].filter(Boolean),
+      rule: [
+        "同我為旺、生我為相、我生為休、我剋為囚、剋我為死（第 07 集）。",
+        "月建與爻相沖為月破；月建與爻相合，論合不論剋，一律以旺論（第 10、11 集）。"
+      ],
+      pitfall: [
+        "「休」和「囚」都算弱，但不是沒用；最後還要看日辰和動爻（第 11 集的十六組範例）。",
+        "月破先分真破、假破：動爻或有生扶的是假破，不要一見月破就斷無用。"
+      ],
+      quiz: [{ q: other3.name + "在月建" + mz + "之下是旺、相、休、囚、死哪一個？", a: monthReason(other3.branch) + "。" }]
+    });
+
+    // 4. 日辰
+    var clashed = A.lines.filter(function(a) { return !a.moving && isClash(a.branch, dz); })[0];
+    var quiz4 = clashed ?
+      { q: clashed.name + "是靜爻，被日辰" + dz + "所沖，是暗動還是日破？", a: monthReason(clashed.branch) + "。" + (lineStrength(clashed.branch).strong ? "本爻旺相（或得日扶），旺相靜爻逢日沖為暗動，能像動爻一樣生剋他爻。" : "本爻休囚，休囚靜爻逢日沖為日破，與月破一樣無力。") } :
+      { q: "假如卦中有一個" + clashOf(dz) + FIVE_ELEMENTS[clashOf(dz)] + "靜爻，被日辰" + dz + "沖，會是暗動還是日破？", a: monthReason(clashOf(dz)) + "。" + (lineStrength(clashOf(dz)).strong ? "旺相，所以沖成暗動。" : "休囚，所以沖成日破。") };
+    steps.push({
+      title: "看日辰：長期的主宰",
+      goal: "日辰是「六爻之主宰」，對靜爻、動爻、變爻、伏神都能生、合、扶、拱，也能沖、剋、墓、絕。",
+      apply: [focusLabel + "：" + dayReason(focus.branch, focus.moving) + "。",
+        "月建與日辰合起來，" + focusLabel + "判為「" + focus.level + "」。"],
+      rule: [
+        "值日最旺；日生、日扶為旺；日剋為衰（第 11 集）。",
+        "日合靜爻為合旺；日合動爻為合絆，動不了（第 11 集）。",
+        "日沖靜爻：旺相成暗動，休囚成日破；日沖動爻：旺相越沖越動，衰弱被沖散（第 10、11 集）。",
+        "十二長生最常用生、旺、墓、絕：木長生亥、火長生寅、金長生巳、水土長生申；三合局首字長生、中字帝旺、末字為墓（第 08 集）。",
+        "同一地支既生又絕（例：巳對土）或既剋又長生（例：巳對金）：旺相論生不論絕，休囚論絕不論生（第 08、19 集）。"
+      ],
+      pitfall: [
+        "月令休囚時，日辰雖是帝旺之地也不論帝旺（第 11 集：辰土在子月子日仍衰）。",
+        "暗動要先分旺衰，不是被沖就一定動。"
+      ],
+      quiz: [quiz4]
+    });
+
+    // 5. 動爻變爻
+    var apply5 = [];
+    if (A.actors.length) {
+      A.actors.forEach(function(act) {
+        var effects = [];
+        A.lines.forEach(function(b, k) {
+          if (k === act.idx) return;
+          if (ELEM_GEN[act.el] === b.el) effects.push("生" + YAO_SHORT[k] + b.rel + b.branch);
+          else if (ELEM_KE[act.el] === b.el) effects.push("剋" + YAO_SHORT[k] + b.rel + b.branch);
+        });
+        apply5.push(act.label + "（" + act.el + "）：" + (effects.join("、") || "對其他爻沒有直接生剋") + "。");
+      });
+    } else {
+      apply5.push("本卦沒有能生剋他爻的動爻或暗動爻，屬靜卦：旺衰主要看月建與日辰，應期多看用神之病與逢沖之日。");
+    }
+    A.blocked.forEach(function(t) { apply5.push(t + "。"); });
+    A.lines.forEach(function(a) {
+      if (!a.moving) return;
+      var tags = a.chgTags.filter(function(t) { return /回頭|進神|退神/.test(t); });
+      if (tags.length) apply5.push(a.name + "化" + gua.lines[a.idx].chgBranch + FIVE_ELEMENTS[gua.lines[a.idx].chgBranch] + "：" + tags.join("、") + "（變爻只回頭作用在自己這一爻）。");
+    });
+    var movingOne = A.lines.filter(function(a) { return a.moving; })[0];
+    var quiz5 = movingOne ?
+      { q: movingOne.name + "化" + gua.lines[movingOne.idx].chgBranch + "，是回頭生、回頭剋、化進還是化退？", a: (function() {
+          var cb = gua.lines[movingOne.idx].chgBranch, cel = FIVE_ELEMENTS[cb];
+          if (cel === movingOne.el) return "同屬" + cel + "，看順逆：" + (JIN_SHEN[movingOne.branch] === cb ? "順行為化進神。" : JIN_SHEN[cb] === movingOne.branch ? "逆行為化退神。" : cb === movingOne.branch ? "地支相同，是伏吟。" : "不在進退神表上，只算比和。");
+          if (ELEM_GEN[cel] === movingOne.el) return cel + "生" + movingOne.el + "，回頭生。";
+          if (ELEM_KE[cel] === movingOne.el) return cel + "剋" + movingOne.el + "，回頭剋。";
+          return movingOne.el + (ELEM_GEN[movingOne.el] === cel ? "生" : "剋") + cel + "，是本爻去生剋變爻（洩或耗），不是回頭生剋。";
+        })() } :
+      { q: "化進神有哪八組？", a: JIN_SHEN_TEXT + "。反過來就是化退神。" };
+    steps.push({
+      title: "看動爻與變爻：誰在出手",
+      goal: "動爻（含暗動）有生剋其他爻的能力；靜爻不能生剋動爻；變爻只回頭作用在本爻。",
+      apply: apply5,
+      rule: [
+        "回頭剋：土化木、木化金、金化火、火化水、水化土。原用二神遇之則凶，忌仇二神遇之則吉（第 25 集）。",
+        "化進神：" + JIN_SHEN_TEXT + "；吉神宜化進，忌神宜化退（第 14、33 集）。",
+        "貪生忘剋：忌神與原神同動，忌神去生原神、原神再生用神，接續相生，反而吉（第 24、26 集）。",
+        "暗動和動爻一樣能生剋：生用神是貴人暗助（福來不知），剋用神是有人暗害（禍來不覺）（第 10 集）。",
+        "入墓的爻、被日辰合絆的動爻，暫時沒有生剋的能力（第 11、22 集）。"
+      ],
+      pitfall: [
+        "不要把變爻拿去生剋別的爻，變爻只管本爻。",
+        "忌神發動不一定凶：先看原神有沒有同動、忌神本身有沒有空破墓絕或化退。",
+        "一生一剋叫匹敵，平手；還要看用神本身旺衰，太衰的「生之不起」（第 24 集）。"
+      ],
+      quiz: [quiz5]
+    });
+
+    // 6. 空破墓絕
+    var apply6 = [];
+    A.lines.forEach(function(a) {
+      var bits = [];
+      if (a.kongType) bits.push("旬空→" + a.kongType);
+      if (a.poType) bits.push(a.poType);
+      if (a.muType) bits.push(a.ruMu.join("、") + "→" + a.muType);
+      if (a.jue) bits.push("逢絕（看有沒有生扶，絕處逢生）");
+      if (a.riPo) bits.push("日破");
+      if (bits.length) apply6.push(a.name + "：" + bits.join("；") + "。");
+      if (a.fuA && (a.fuA.kongType || a.fuA.poType)) apply6.push(a.fuA.name + "：" + [a.fuA.kongType, a.fuA.poType].filter(Boolean).join("；") + "。");
+    });
+    if (!apply6.length) apply6.push("本卦各爻沒有空、破、墓、絕，判斷時直接比較旺衰與生剋即可。");
+    var kongLine = A.lines.filter(function(a) { return a.kong; })[0];
+    steps.push({
+      title: "空、破、墓、絕：分真假",
+      goal: "有病的爻要分真假。假的只是暫時，時機一到就有用；真的才是無用之爻。",
+      apply: apply6,
+      rule: [
+        "假空：旺不為空、動不為空、動而化空、日辰沖空（沖空則起）、有日辰或動爻生扶。真空：靜爻休囚被剋又空，或月破又空（第 13、30 集）。",
+        "假破：動而有生無剋，可出破、實破（同支之日）、合破（合日）。真破：靜而有剋無生，到底破而無用（第 10、31 集）。",
+        "旺相入墓是入庫，沖墓或沖爻即出；休囚入墓才是真入墓。入墓期間不能生剋，也不受生剋（第 22 集）。",
+        "逢絕要有日月動爻生扶，叫絕處逢生；忌神絕處逢生反為大凶（第 19 集）。"
+      ],
+      pitfall: [
+        "空亡不必怕，它是短暫蟄伏、蓄積能量（第 13 集）。",
+        "旬空的靜爻在旬內「避空」，不受其他爻生剋，也不能生剋別人。",
+        "卦最凶是用神空亡，最善是忌神旬空（第 30 集）。"
+      ],
+      quiz: [kongLine ?
+        { q: kongLine.name + "旬空，是真空還是假空？", a: kongLine.kongType + "。判斷依據：" + monthReason(kongLine.branch) + "；" + dayReason(kongLine.branch, kongLine.moving) + "；" + (kongLine.moving ? "而且是動爻。" : "是靜爻。") } :
+        { q: "「動不為空」和「動而化空」有什麼不同？", a: "動不為空：動爻本身旬空，因為發動自帶能量，不算真空。動而化空：動爻化出的變爻旬空，也不是真空，待填實之日應事。" }]
+    });
+
+    // 7. 斷吉凶
+    steps.push({
+      title: "斷吉凶：以用神為主，原忌為輔",
+      goal: "把前面幾步合起來：用神旺不旺？有沒有原神生、忌神剋？空破墓絕是真是假？世爻擔不擔得起？",
+      apply: ["整體傾向：" + full.verdict + "。"].concat(secItems("總斷").filter(function(t) { return /^(有利|不利|現況)/.test(t); })),
+      rule: [
+        "欲問吉凶，研究用神生剋；要知禍福，須詳用忌（第 15 集）。",
+        "用神旺相、有原神生、忌神不動或受制為吉；用神休囚、忌神旺動、原神受傷為凶（第 07、26 集）。",
+        "財來就我終須易，我去求財必是難：用神生剋沖世是事來就我，世去生剋用神是我去求（第 12 集）。"
+      ],
+      pitfall: [
+        "分數只是幫你整理，重點是能說出每一項為什麼加、為什麼減。",
+        "六獸、神煞、遊魂歸魂、反伏吟、三刑都是象法，不能拿來決定吉凶（第 20、21、37 集）。"
+      ],
+      quiz: [{ q: "如果把本卦的忌神改成安靜、原神發動，結論會怎麼變？", a: "忌神不動就不直接剋用神，原神發動又來生，用神會更旺，結論往吉的方向走。這就是為什麼斷卦一定要先看「誰在動」。" }]
+    });
+
+    // 8. 應期
+    steps.push({
+      title: "斷應期：找病，病解之時就是應期",
+      goal: "「天機盡洩於有病之間，斷法總在於醫藥之處」：用神的病（空、破、合、墓、絕）就是線索，解病的日子就是應期。",
+      apply: secItems("應期參考"),
+      rule: [
+        "空待填實或沖空；破待實破、合破或出破；合待沖；沖待合；墓待沖；絕待生（第 12、27 集）。",
+        "動爻應期：逢值、逢合；靜爻應期：逢沖、逢值（第 22、24 集）。",
+        "獨發、獨靜之爻常是應期線索（第 38 集）。近事斷日時，遠事斷月年（第 40 集）。"
+      ],
+      pitfall: [
+        "沖空只有一半力道，出空填實才是完整的力道（第 39 集還錢例：卯日還一半，酉日才還清）。",
+        "吉事看病解之日應吉，凶事看病發（忌神最旺、用神被沖）之日應凶。"
+      ],
+      quiz: [{ q: "用神" + focus.branch + "如果旬空又旺相，可能哪兩天應事？", a: "出空填實的" + focus.branch + "日，或沖空的" + clashOf(focus.branch) + "日。旺相是假空，所以會應。" }]
+    });
+
+    // 9. 象法
+    steps.push({
+      title: "看細節（象法）：讓卦更有畫面，但不定吉凶",
+      goal: "六沖六合、反吟伏吟、遊魂歸魂、六獸、神煞、三刑，是用來補充細節與心態，不能取代用神生剋。",
+      apply: secItems("卦象總覽").slice(1).concat(secItems("六獸與神煞（象法，只作參考）").slice(0, 2)),
+      rule: [
+        "人之所惡者宜沖，所好者宜合；近病逢沖即癒，久病逢沖則凶（第 18、36 集）。",
+        "反吟：用神不化沖剋，雖反覆終成；伏吟：憂鬱呻吟、動如不動（第 15、28、29 集）。",
+        "六獸是附和之神：附吉則吉，附凶則凶；「吉凶神煞之多端，何如生剋制化之一理」（第 20、21 集）。"
+      ],
+      pitfall: [
+        "一見白虎、螣蛇就斷凶，一見青龍就斷吉，是本末倒置。",
+        "三刑只有在用神或世爻衰弱又受剋時才作凶論；六害屢試無驗，一般不論（第 23、37 集）。"
+      ],
+      quiz: [{ q: "問近病得六合卦，好不好？", a: "不好。近病逢合，病被合住，拖延難好；要等沖開之日。反過來，久病逢合反而能撐住。" }]
+    });
+
+    return steps;
+  }
+
+  function teachingHtml(gua) {
+    var steps = teachingSteps(gua);
+    var html = '<div class="teach-intro">建議先自己照下面的步驟想一遍，再點開「練習」看答案，最後到「詳細分析」對照。每一步都以你這一卦的實際爻位示範，括號中的集數是《六爻神卦整理》課程出處。</div>';
+    steps.forEach(function(s, n) {
+      html += '<section class="teach-step"><h3>第 ' + (n + 1) + ' 步｜' + escapeHtml(s.title) + '</h3>' +
+        '<p class="teach-goal">' + escapeHtml(s.goal) + '</p>';
+      [["本卦怎麼看", s.apply, "apply"], ["判斷規則", s.rule, "rule"], ["常見錯誤", s.pitfall, "pit"]].forEach(function(b) {
+        if (!b[1].length) return;
+        html += '<div class="teach-block teach-' + b[2] + '"><div class="teach-label">' + b[0] + '</div><ul>' +
+          b[1].map(function(t) { return '<li>' + escapeHtml(t) + '</li>'; }).join("") + '</ul></div>';
+      });
+      s.quiz.forEach(function(qz) {
+        html += '<details class="teach-quiz"><summary>練習：' + escapeHtml(qz.q) + '</summary><div>' + escapeHtml(qz.a) + '</div></details>';
+      });
+      html += '</section>';
+    });
+    html += '<section class="teach-step"><h3>練習建議</h3><ul>' +
+      ["每次起卦後，先在紙上照這九步自己斷一次，寫下用神、旺衰、吉凶傾向和預估應期。",
+        "再打開「詳細分析」對照，找出自己漏看的地方（最常漏的是暗動、合絆、真假空）。",
+        "事情應驗後回頭檢討：應期和吉凶有沒有對上？斷錯就找出是哪一步疏忽（第 28 集的學習建議）。",
+        "一事一問，同一件事不要反覆重卜。"].map(function(t) { return '<li>' + escapeHtml(t) + '</li>'; }).join("") +
+      '</ul></section>';
+    return html;
+  }
+
+  var ANA_MODE_KEY = "wenwang_gua_analysis_mode";
+
+  function setAnalysisMode(mode) {
+    document.getElementById("analysisContent").classList.toggle("hidden", mode === "teach");
+    document.getElementById("teachContent").classList.toggle("hidden", mode !== "teach");
+    document.getElementById("tabAnalysis").classList.toggle("active", mode !== "teach");
+    document.getElementById("tabTeach").classList.toggle("active", mode === "teach");
+    try { localStorage.setItem(ANA_MODE_KEY, mode); } catch (e) { /* 忽略 */ }
+  }
+
+  /* ---------- 卦辭爻辭查詢 ---------- */
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"]/g, function(c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;" }[c];
+    });
+  }
+
+  function jingSection(title, name, movingIdx) {
+    var j = ZHOUYI[name];
+    if (!j) return "";
+    var html = '<h3>' + title + '：' + name + '</h3><div class="gua-ci">卦辭：' + escapeHtml(j.gua) + '</div>';
+    if (movingIdx) {
+      html += '<ol>' + j.yao.map(function(text, i) {
+        // 乾坤第七條為用九、用六，六爻全動時一併標示
+        var on = (i < 6) ? movingIdx.indexOf(i) >= 0 : movingIdx.length === 6;
+        return '<li' + (on ? ' class="moving"' : '') + '>' + escapeHtml(text) + '</li>';
+      }).join("") + '</ol>';
+    }
+    return html;
+  }
+
+  function openJing() {
+    var gua = analyzeGua();
+    if (!gua || !hasZhouyi) return;
+    var moving = [];
+    for (var i = 0; i < 6; i++) if (yaos[i].isChanging) moving.push(i);
+    var html = jingSection("本卦", gua.mainName, moving);
+    if (gua.hasMoving) {
+      html += '<div class="setting-note">標色為本卦動爻之爻辭。</div>' + jingSection("變卦", gua.chgName, null);
+    } else {
+      html += '<div class="setting-note">六爻安靜，以本卦卦辭為主。</div>';
+    }
+    html += '<div class="setting-note">經文來源：維基文庫《周易》。</div>';
+    document.getElementById("jingBody").innerHTML = html;
+    openDialog("dlgJing");
+  }
+
+  function openAnalysis() {
+    var gua = analyzeGua();
+    if (!gua || !timeInfo) return;
+    document.getElementById("analysisTitle").textContent = guaTitle(gua);
+    document.getElementById("analysisContent").innerHTML = analysisHtml(gua);
+    document.getElementById("teachContent").innerHTML = teachingHtml(gua);
+    var mode = "analysis";
+    try { mode = localStorage.getItem(ANA_MODE_KEY) || "analysis"; } catch (e) { /* 忽略 */ }
+    setAnalysisMode(mode);
+    openDialog("dlgAnalysis");
+  }
+
+  /* ---------- 銅錢繪製 ---------- */
+
+  function drawCoins(coins, flipScale, statusMsg) {
+    if (typeof flipScale === "undefined") flipScale = 1;
+    if (typeof statusMsg === "undefined") statusMsg = "";
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    var centers = [150, 320, 490];
+    var centerY = 74;
+    var r = 52;
+
+    for (var i = 0; i < 3; i++) {
+      var x = centers[i];
+      var isYang = coins ? (coins[i] === 1) : false;
+
+      ctx.save();
+      ctx.translate(x, centerY);
+      ctx.scale(flipScale, 1);
+
+      var grad = ctx.createRadialGradient(0, 0, 6, 0, 0, r);
+      grad.addColorStop(0, '#e8c368');
+      grad.addColorStop(0.65, '#b8862d');
+      grad.addColorStop(1, '#5e3f10');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(0, 0, r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.lineWidth = 3.5;
+      ctx.strokeStyle = '#4a300a';
+      ctx.stroke();
+
+      var sq = 20;
+      ctx.fillStyle = '#e6d8be';
+      ctx.fillRect(-sq/2, -sq/2, sq, sq);
+      ctx.lineWidth = 2.5;
+      ctx.strokeStyle = '#4a300a';
+      ctx.strokeRect(-sq/2, -sq/2, sq, sq);
+
+      ctx.fillStyle = '#221303';
+      ctx.font = 'bold 22px "DFKai-SB", "BiauKai", "標楷體", serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+
+      if (coins && isYang) {
+        ctx.fillStyle = '#8f1609';
+        ctx.fillText("滿文", 0, -31);
+        ctx.fillText("【陽】", 0, 31);
+      } else {
+        ctx.fillText("乾隆", 0, -31);
+        ctx.fillText("通寶", 0, 31);
+      }
+      ctx.restore();
+    }
+
+    // 畫布會縮小顯示，狀態字用較大字級
+    ctx.fillStyle = '#221a14';
+    ctx.font = 'bold 30px "DFKai-SB", "BiauKai", "標楷體", serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    var defaultMsg = (yaos.length === 6) ? "文王聖卦排盤完畢" : ("現在準備搖：" + YAO_NAMES[yaos.length]);
+    ctx.fillText(statusMsg || defaultMsg, 320, 163);
+  }
+
+  function coinsText(coins) {
+    var resText = [];
+    for (var j = 0; j < 3; j++) resText.push(coins[j] ? "背" : "字");
+    return resText.join("、");
+  }
+
+  function animateToss(finalCoins, callback) {
+    isAnimating = true;
+    updateButtons();
+    var frames = 0;
+    var maxFrames = 16;
+
+    function step() {
+      frames++;
+      var scale = Math.abs(Math.cos(frames * 0.45));
+      if (scale < 0.1) scale = 0.1;
+      drawCoins(randomCoins(), scale, "銅錢翻擲中...");
+
+      if (frames < maxFrames) {
+        setTimeout(step, 30);
+      } else {
+        drawCoins(finalCoins, 1, "擲得：" + coinsText(finalCoins));
+        isAnimating = false;
+        callback();
+      }
+    }
+    step();
+  }
+
+  /* ---------- 排盤 ---------- */
+
+  function trigramKey(from, field) {
+    return "" + (yaos[from][field] ? 1 : 0) + (yaos[from + 1][field] ? 1 : 0) + (yaos[from + 2][field] ? 1 : 0);
+  }
+
+  // 搖滿六爻後計算整卦資訊；未滿則回傳 null
+  function analyzeGua() {
+    if (yaos.length < 6) return null;
+    var lower = TRIGRAM_BRANCHES[trigramKey(0, "isYang")];
+    var upper = TRIGRAM_BRANCHES[trigramKey(3, "isYang")];
+    var chgLower = TRIGRAM_BRANCHES[trigramKey(0, "changedIsYang")];
+    var chgUpper = TRIGRAM_BRANCHES[trigramKey(3, "changedIsYang")];
+
+    var bits = [];
+    var hasMoving = false;
+    for (var k = 0; k < 6; k++) {
+      bits.push(yaos[k].isYang ? 1 : 0);
+      if (yaos[k].isChanging) hasMoving = true;
+    }
+    var palaceInfo = getPalaceAndShiYing(bits);
+    var element = palaceInfo.palace.element;
+
+    var lines = [];
+    var mainBranches = [], chgBranches = [], present = {};
+    for (var i = 0; i < 6; i++) {
+      var branch = (i < 3) ? lower.inner[i] : upper.outer[i - 3];
+      var chgBranch = (i < 3) ? chgLower.inner[i] : chgUpper.outer[i - 3];
+      var relative = getSixRelative(element, FIVE_ELEMENTS[branch]);
+      present[relative] = true;
+      mainBranches.push(branch);
+      chgBranches.push(chgBranch);
+      lines.push({
+        branch: branch,
+        element: FIVE_ELEMENTS[branch],
+        relative: relative,
+        chgBranch: chgBranch,
+        chgElement: FIVE_ELEMENTS[chgBranch],
+        chgRelative: getSixRelative(element, FIVE_ELEMENTS[chgBranch]),
+        fu: null
+      });
+    }
+
+    // 伏神：本卦缺的六親，從本宮首卦同爻位取出
+    var palace = palaceInfo.palace;
+    for (var p = 0; p < 6; p++) {
+      var fuBranch = (p < 3) ? palace.inner[p] : palace.outer[p - 3];
+      var fuRelative = getSixRelative(element, FIVE_ELEMENTS[fuBranch]);
+      if (!present[fuRelative]) {
+        lines[p].fu = { relative: fuRelative, branch: fuBranch, element: FIVE_ELEMENTS[fuBranch] };
+      }
+    }
+
+    return {
+      mainName: getGuaName(upper.name, lower.name),
+      chgName: getGuaName(chgUpper.name, chgLower.name),
+      lower: lower,
+      upper: upper,
+      chgLower: chgLower,
+      chgUpper: chgUpper,
+      mainRel: guaRelation(mainBranches),
+      chgRel: hasMoving ? guaRelation(chgBranches) : "",
+      hasMoving: hasMoving,
+      palace: palaceInfo.palace,
+      palaceType: palaceInfo.type,
+      shi: palaceInfo.shi,
+      ying: palaceInfo.ying,
+      lines: lines
+    };
+  }
+
+  // 卦名列：本卦（宮・世數・六沖六合）之 變卦（六沖六合）
+  function guaTitle(gua) {
+    var s = gua.mainName + "（" + gua.palace.name + "宮" + gua.palace.element + "・" + gua.palaceType +
+      (gua.mainRel ? "・" + gua.mainRel : "") + "）";
+    if (!gua.hasMoving) return s + "　六爻安靜";
+    s += " 之 " + gua.chgName + (gua.chgRel ? "（" + gua.chgRel + "）" : "");
+    if (gua.mainRel && gua.chgRel && gua.mainRel !== gua.chgRel) {
+      s += "　" + gua.mainRel.charAt(1) + "變" + gua.chgRel.charAt(1);
+    }
+    var kinds = [];
+    fanFuYin(gua).forEach(function(f) { if (kinds.indexOf(f.kind) < 0) kinds.push(f.kind); });
+    if (kinds.length) s += "　" + kinds.join("・");
+    return s;
+  }
+
+  function lineHtml(isYang, mark) {
+    var bar = isYang ? '<div class="solid-line"></div>' : '<div class="broken-line"><span></span><span></span></div>';
+    var markHtml = '<span class="mark-tag ' + (mark === 'O' ? 'mark-o' : 'mark-x') + '">' + (mark || "") + '</span>';
+    return '<div class="line-wrap">' + bar + markHtml + '</div>';
+  }
+
+  function renderPan() {
+    var tbody = document.getElementById("panBody");
+    var guaInfoBar = document.getElementById("guaInfoBar");
+    tbody.innerHTML = "";
+    var spirits = getSixSpirits();
+    var gua = analyzeGua();
+
+    // 下卦搖滿三爻即可先裝內卦地支；外卦須等六爻搖滿
+    var lowerTrigram = (yaos.length >= 3) ? TRIGRAM_BRANCHES[trigramKey(0, "isYang")] : null;
+    var chgLowerTrigram = (yaos.length >= 3) ? TRIGRAM_BRANCHES[trigramKey(0, "changedIsYang")] : null;
+
+    if (gua) {
+      guaInfoBar.textContent = guaTitle(gua);
+    } else {
+      guaInfoBar.textContent = (yaos.length === 0) ? "請誠心定念，開始搖卦" :
+        ("已搖 " + yaos.length + " 爻，搖滿六爻後排定卦名與世應");
+    }
+    document.getElementById("btnCopy").classList.toggle("hidden", !gua);
+    document.getElementById("btnAnalysis").classList.toggle("hidden", !gua);
+    guaInfoBar.classList.toggle("clickable", !!gua && hasZhouyi);
+    guaInfoBar.title = (gua && hasZhouyi) ? "點卦名查看卦辭、爻辭" : "";
+    var roles = gua ? computeRoles(gua) : null;
+    var body = gua ? guaBody(gua) : null;
+
+    var q = document.getElementById("question").value.trim();
+    var qLine = document.getElementById("questionLine");
+    qLine.textContent = q ? ("所問：" + q) : "";
+    qLine.classList.toggle("hidden", !q);
+
+    for (var i = 5; i >= 0; i--) {
+      var yao = yaos[i];
+      var tr = document.createElement("tr");
+      var spiritName = spirits[i];
+      var yaoPosition = YAO_SHORT[i];
+
+      var shiYing = "";
+      if (gua) {
+        if (i === gua.shi) shiYing = '<span class="tag-shi">世</span>';
+        else if (i === gua.ying) shiYing = '<span class="tag-ying">應</span>';
+        var marks = [];
+        if (roles && roles.lineRoles[i]) marks.push({ cls: "role-" + roles.lineRoles[i], text: roles.lineRoles[i] });
+        if (body.at.indexOf(i) >= 0) marks.push({ cls: "flag-body", text: "身" });
+        shiYing += tagsHtml(marks);
+      }
+
+      if (!yao) {
+        tr.innerHTML =
+          '<td style="color:#59493b;">' + spiritName + '</td>' +
+          '<td>' + yaoPosition + '</td>' +
+          '<td></td>' +
+          '<td class="pending-cell">待搖</td>' +
+          '<td></td><td class="cell-status"></td><td></td><td></td>';
+        tbody.appendChild(tr);
+        continue;
+      }
+
+      if (yao.isChanging) tr.className = "moving-row";
+
+      var relCell, chgCell;
+      if (gua) {
+        var ln = gua.lines[i];
+        relCell = ln.relative + ln.branch + ln.element + flagsHtml(ln.branch, !yao.isChanging);
+        if (ln.fu) {
+          var fuYong = roles && roles.fuYong.indexOf(i) >= 0;
+          relCell += '<span class="cell-sub fu-line">伏 ' + ln.fu.relative + ln.fu.branch + ln.fu.element +
+            (fuYong ? ' <span class="flag role-用">用</span>' : '') + '</span>';
+        }
+        chgCell = yao.isChanging ?
+          (ln.chgRelative + ln.chgBranch + ln.chgElement + tagsHtml(changeTags(ln.branch, ln.chgBranch))) : "";
+      } else if (i < 3 && lowerTrigram) {
+        // 內卦已定：先顯示地支五行，六親待卦宮確定
+        var br = lowerTrigram.inner[i];
+        relCell = '<span class="pending-cell">？？</span>' + br + FIVE_ELEMENTS[br] + flagsHtml(br, !yao.isChanging);
+        var cbr = chgLowerTrigram.inner[i];
+        chgCell = yao.isChanging ?
+          ('<span class="pending-cell">？？</span>' + cbr + FIVE_ELEMENTS[cbr] + tagsHtml(changeTags(br, cbr))) : "";
+      } else {
+        relCell = '<span class="pending-cell">待定</span>';
+        chgCell = yao.isChanging ? '<span class="pending-cell">待定</span>' : "";
+      }
+
+      var statusColor = yao.isChanging ? "#b52417" : "#221a14";
+      var stateHtml = gua ? '<span class="cell-sub" style="color:#59493b;">月令' + lineStrength(gua.lines[i].branch).state + '</span>' : "";
+
+      tr.innerHTML =
+        '<td style="color:#8c5319;">' + spiritName + '</td>' +
+        '<td>' + yaoPosition + '</td>' +
+        '<td>' + shiYing + '</td>' +
+        '<td>' + lineHtml(yao.isYang, yao.mark) + '</td>' +
+        '<td>' + relCell + '</td>' +
+        '<td class="cell-status" style="color:' + statusColor + ';">' + yao.typeName + stateHtml + '</td>' +
+        '<td>' + lineHtml(yao.changedIsYang, "") + '</td>' +
+        '<td>' + chgCell + '</td>';
+      tbody.appendChild(tr);
+    }
+    scheduleFitFont();
+  }
+
+  /* ---------- 字級自動放大：寬螢幕取一屏放得下的最大字級 ---------- */
+
+  var WIDE_QUERY = window.matchMedia("(min-width: 560px) and (min-aspect-ratio: 1/1), (min-width: 1000px)");
+  var FS_MIN = 14, FS_MAX = 40;
+  var fitTimer = null;
+
+  function layoutOverflows() {
+    var boxes = document.querySelectorAll(".frame, .cast-panel, .pan-container, .topbar");
+    for (var i = 0; i < boxes.length; i++) {
+      if (boxes[i].scrollHeight > boxes[i].clientHeight + 1) return true;
+    }
+    if (document.documentElement.scrollHeight > window.innerHeight + 1) return true;
+    // 表格儲存格不換行，字被截掉也算放不下
+    var cells = document.querySelectorAll(".pan-table th, .pan-table td, .top-actions, .question-row, h1");
+    for (var j = 0; j < cells.length; j++) {
+      if (cells[j].offsetParent && cells[j].scrollWidth > cells[j].clientWidth + 1) return true;
+    }
+    return false;
+  }
+
+  // 以一個排滿的示範卦一起量，搖卦前後字級才不會忽大忽小
+  var FIT_SAMPLE = [[0, 0, 0], [1, 1, 1], [1, 0, 0], [1, 1, 0], [0, 0, 0], [1, 1, 0]];
+  var fitting = false;
+
+  function largestFittingFs() {
+    var root = document.documentElement.style;
+    var lo = FS_MIN, hi = FS_MAX;
+    root.setProperty("--fs", hi + "px");
+    if (!layoutOverflows()) return hi;
+    // 二分搜尋：找出不溢出的最大字級（精確到 0.25px）
+    while (hi - lo > 0.25) {
+      var mid = (lo + hi) / 2;
+      root.setProperty("--fs", mid + "px");
+      if (layoutOverflows()) hi = mid; else lo = mid;
+    }
+    return lo;
+  }
+
+  function fitFont() {
+    var root = document.documentElement.style;
+    if (!WIDE_QUERY.matches) {
+      root.removeProperty("--fs");
+      return;
+    }
+    fitting = true;
+    var best = largestFittingFs();
+    if (hasLunar) {
+      var savedYaos = yaos;
+      var qInput = document.getElementById("question");
+      var savedQ = qInput.value;
+      yaos = FIT_SAMPLE.map(makeYao);
+      if (!savedQ.trim()) qInput.value = "一事一問，具體寫下要問的事";
+      renderPan();
+      best = Math.min(best, largestFittingFs());
+      yaos = savedYaos;
+      qInput.value = savedQ;
+      renderPan();
+    }
+    root.setProperty("--fs", best + "px");
+    fitting = false;
+  }
+
+  function scheduleFitFont() {
+    if (fitting) return;
+    clearTimeout(fitTimer);
+    fitTimer = setTimeout(fitFont, 30);
+  }
+
+  window.addEventListener("resize", scheduleFitFont);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(scheduleFitFont);
+
+  /* ---------- 按鈕狀態 ---------- */
+
+  function updateButtons() {
+    var full = (yaos.length >= 6);
+    var nextName = full ? "已滿" : YAO_SHORT[yaos.length];
+    document.getElementById("nextYaoName").textContent = nextName;
+    document.getElementById("manualYaoName").textContent = nextName;
+    document.getElementById("btnNext").disabled = !hasLunar || full || isAnimating;
+    document.getElementById("btnAll").disabled = !hasLunar || isAnimating;
+    var manualBtns = document.querySelectorAll(".manual-btn");
+    for (var i = 0; i < manualBtns.length; i++) manualBtns[i].disabled = !hasLunar || full;
+
+    // 起卦後不可切換起卦方式；子時設定可改（會依起卦時間重算日辰）
+    var modeRadios = document.querySelectorAll('input[name="castMode"]');
+    for (var j = 0; j < modeRadios.length; j++) modeRadios[j].disabled = (yaos.length > 0);
+  }
+
+  function applyCastMode() {
+    var manual = (getRadio("castMode") === "manual");
+    document.getElementById("autoControls").classList.toggle("hidden", manual);
+    document.getElementById("manualControls").classList.toggle("hidden", !manual);
+    scheduleFitFont();
+  }
+
+  function afterYaoAdded() {
+    renderPan();
+    updateButtons();
+    if (yaos.length === 6) saveHistory();
+  }
+
+  /* ---------- 起卦動作 ---------- */
+
+  function castNextYao() {
+    if (isAnimating || yaos.length >= 6 || !hasLunar) return;
+    lockCastTime();
+    var res = makeYao(randomCoins());
+
+    animateToss(res.coins, function() {
+      yaos.push(res);
+      afterYaoAdded();
+    });
+  }
+
+  function castAllYaos() {
+    if (isAnimating || !hasLunar) return;
+    if (yaos.length > 0) {
+      if (!confirm("已起出 " + yaos.length + " 爻，一鍵起滿會清除目前的卦，重新起卦。確定嗎？\n（同一件事不宜反覆重卜）")) return;
+      resetAll();
+    }
+    lockCastTime();
+    for (var i = 0; i < 6; i++) {
+      yaos.push(makeYao(randomCoins()));
+    }
+    drawCoins(yaos[5].coins, 1, "六爻已全，排盤完成");
+    afterYaoAdded();
+  }
+
+  // 手動模式：輸入擲出的「背」枚數
+  function manualCast(backCount) {
+    if (yaos.length >= 6 || !hasLunar) return;
+    lockCastTime();
+    var coins = [0, 0, 0];
+    for (var i = 0; i < backCount; i++) coins[i] = 1;
+    yaos.push(makeYao(coins));
+    drawCoins(coins, 1, YAO_NAMES[yaos.length - 1] + "：" + coinsText(coins));
+    afterYaoAdded();
+  }
+
+  function undoLast() {
+    if (yaos.length === 0) return;
+    var wasFull = (yaos.length === 6);
+    yaos.pop();
+    if (wasFull) removeLatestHistory();
+    if (yaos.length === 0) {
+      resetAll();
+      return;
+    }
+    drawCoins(yaos[yaos.length - 1].coins, 1);
+    renderPan();
+    updateButtons();
+  }
+
+  function resetAll() {
+    if (isAnimating) return;
+    yaos = [];
+    castTime = null;
+    lastSavedId = null;
+    document.getElementById("question").disabled = false;
+    document.getElementById("yongShen").value = "";
+    startClock();
+    drawCoins(null, 1, "請誠心定念，開始起卦");
+    renderPan();
+    updateButtons();
+  }
+
+  /* ---------- 卦面文字與紀錄 ---------- */
+
+  function buildRecordText() {
+    var gua = analyzeGua();
+    if (!gua || !timeInfo) return "";
+    var spirits = getSixSpirits();
+    var q = document.getElementById("question").value.trim();
+    var out = [];
+    out.push("所問：" + (q || "（未填寫）"));
+    out.push("時間：" + timeInfo.solarText + "（" + timeInfo.yearGZ + "年 " + timeInfo.monthGZ + "月 " + timeInfo.dayGZ + "日 " + timeInfo.timeGZ + "時）");
+    out.push("月建：" + timeInfo.monthZhi + "　日辰：" + timeInfo.dayGZ + "　旬空：" + timeInfo.xunKong);
+    out.push("本卦：" + guaTitle(gua));
+    out.push("");
+    for (var i = 5; i >= 0; i--) {
+      var ln = gua.lines[i];
+      var y = yaos[i];
+      var tag = (i === gua.shi) ? "世" : (i === gua.ying) ? "應" : "　";
+      var sym = y.isYang ? "▅▅▅▅▅" : "▅▅　▅▅";
+      var mk = y.mark ? (" " + y.mark) : "　";
+      var row = spirits[i] + "　" + YAO_SHORT[i] + "　" + sym + mk + "　" + ln.relative + ln.branch + ln.element +
+        flagsText(ln.branch, !y.isChanging) + "　" + tag;
+      if (y.isChanging) {
+        row += "　→　" + ln.chgRelative + ln.chgBranch + ln.chgElement + tagsText(changeTags(ln.branch, ln.chgBranch));
+      }
+      if (ln.fu) row += "　伏：" + ln.fu.relative + ln.fu.branch + ln.fu.element;
+      out.push(row);
+    }
+    out.push("");
+    out.push("【斷卦輔助】");
+    return out.concat(buildAnalysisLines(gua)).join("\n");
+  }
+
+  function readHistory() {
+    try {
+      var arr = JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]");
+      return Array.isArray(arr) ? arr : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function writeHistory(arr) {
+    try {
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(arr.slice(0, HISTORY_MAX)));
+    } catch (e) { /* 無法保存時略過 */ }
+  }
+
+  function saveHistory() {
+    var text = buildRecordText();
+    if (!text) return;
+    var gua = analyzeGua();
+    var arr = readHistory();
+    lastSavedId = String(Date.now());
+    arr.unshift({
+      id: lastSavedId,
+      time: timeInfo.solarText,
+      question: document.getElementById("question").value.trim(),
+      title: gua.mainName + (gua.hasMoving ? "之" + gua.chgName : ""),
+      text: text
+    });
+    writeHistory(arr);
+    renderHistory();
+  }
+
+  function removeLatestHistory() {
+    if (!lastSavedId) return;
+    var id = lastSavedId;
+    writeHistory(readHistory().filter(function(h) { return h.id !== id; }));
+    lastSavedId = null;
+    renderHistory();
+  }
+
+  // 改了子時設定後，同步更新剛存的那筆紀錄
+  function updateLatestHistory() {
+    if (!lastSavedId || yaos.length < 6) return;
+    var id = lastSavedId;
+    var arr = readHistory();
+    for (var i = 0; i < arr.length; i++) {
+      if (arr[i].id === id) arr[i].text = buildRecordText();
+    }
+    writeHistory(arr);
+    renderHistory();
+  }
+
+  function renderHistory() {
+    var box = document.getElementById("historyList");
+    box.innerHTML = "";
+    var arr = readHistory();
+    if (arr.length === 0) {
+      box.textContent = "尚無紀錄。搖滿六爻後會自動保存在此裝置。";
+      return;
+    }
+    arr.forEach(function(h) {
+      var det = document.createElement("details");
+      var sum = document.createElement("summary");
+      sum.textContent = h.time + "｜" + h.title + "｜" + (h.question || "（未填問事）");
+      var pre = document.createElement("pre");
+      pre.textContent = h.text;
+      var del = document.createElement("button");
+      del.className = "secondary small";
+      del.textContent = "刪除此筆";
+      del.onclick = function() {
+        writeHistory(readHistory().filter(function(x) { return x.id !== h.id; }));
+        if (lastSavedId === h.id) lastSavedId = null;
+        renderHistory();
+      };
+      det.appendChild(sum);
+      det.appendChild(pre);
+      det.appendChild(del);
+      box.appendChild(det);
+    });
+  }
+
+  function copyRecord() {
+    var text = buildRecordText();
+    if (!text) return;
+    function fallback() {
+      var ta = document.createElement("textarea");
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand("copy"); alert("已複製卦面文字"); } catch (e) { alert(text); }
+      document.body.removeChild(ta);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function() { alert("已複製卦面文字"); }, fallback);
+    } else {
+      fallback();
+    }
+  }
+
+  /* ---------- 初始化 ---------- */
+
+  document.querySelectorAll('input[name="castMode"]').forEach(function(el) {
+    el.addEventListener("change", function() { saveSettings(); applyCastMode(); });
+  });
+  document.querySelectorAll('input[name="ziMode"]').forEach(function(el) {
+    el.addEventListener("change", function() {
+      saveSettings();
+      refreshTime();
+      renderPan();
+      updateLatestHistory();
+    });
+  });
+  document.getElementById("question").addEventListener("input", renderPan);
+  document.getElementById("yongShen").addEventListener("change", function() {
+    renderPan();
+    updateLatestHistory();
+  });
+
+  loadSettings();
+  applyCastMode();
+  if (!hasLunar) {
+    document.getElementById("libError").classList.remove("hidden");
+  } else {
+    startClock();
+  }
+  drawCoins(null, 1);
+  renderPan();
+  updateButtons();
+  renderHistory();
+
+  // 離線 PWA：需經 http(s) 開啟才能註冊（直接開本機檔案時略過）
+  if ("serviceWorker" in navigator && location.protocol.indexOf("http") === 0) {
+    navigator.serviceWorker.register("sw.js").catch(function() { /* 註冊失敗不影響使用 */ });
+  }
+</script>
+
+</body>
+</html>

@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>文王聖卦六爻排盤系統</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: "DFKai-SB", "BiauKai", "標楷體", "PMingLiU", "新細明體", "Microsoft JhengHei", serif;
+    }
+
+    body {
+      background-color: #d8ccb8;
+      color: #221a14;
+      padding: 20px 12px;
+      display: flex;
+      justify-content: center;
+      font-size: 20px;
+      line-height: 1.5;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 1020px;
+      background: #f7f1e3;
+      border: 4px double #7a583b;
+      border-radius: 8px;
+      padding: 24px 20px;
+      box-shadow: 0 10px 28px rgba(45, 30, 15, 0.35);
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 18px;
+      border-bottom: 3px double #7a583b;
+      padding-bottom: 16px;
+    }
+
+    h1 {
+      font-size: 40px;
+      color: #b52417;
+      letter-spacing: 4px;
+      margin-bottom: 8px;
+      font-weight: bold;
+    }
+
+    .subtitle {
+      font-size: 22px;
+      color: #59493b;
+      margin-bottom: 14px;
+      font-weight: bold;
+      letter-spacing: 2px;
+    }
+
+    .meta-bar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 12px;
+    }
+
+    .meta-tag {
+      background: #efe5cf;
+      padding: 6px 16px;
+      border-radius: 6px;
+      border: 2px solid #7a583b;
+      font-size: 22px;
+      font-weight: bold;
+      color: #221a14;
+      white-space: nowrap;
+    }
+
+    .highlight-red { color: #b52417; }
+    .highlight-gold { color: #8c5319; }
+
+    /* Canvas 搖卦區域 */
+    .canvas-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 18px;
+      background: #efe5cf;
+      padding: 16px;
+      border: 2px solid #bfa888;
+      border-radius: 8px;
+    }
+
+    canvas {
+      background: #e6d8be;
+      border: 3px solid #7a583b;
+      border-radius: 8px;
+      max-width: 100%;
+      height: auto;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 14px;
+      margin-top: 16px;
+    }
+
+    button {
+      background: #7a2318;
+      color: #fff9f0;
+      font-weight: bold;
+      border: 2px solid #4a120b;
+      padding: 12px 24px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 24px;
+      letter-spacing: 2px;
+    }
+
+    button:hover {
+      background: #962b1e;
+    }
+
+    button.secondary {
+      background: #fdfaf2;
+      color: #221a14;
+      border: 2px solid #7a583b;
+    }
+
+    button.secondary:hover {
+      background: #e8dec8;
+    }
+
+    button:disabled {
+      background: #b5a895;
+      color: #6e6459;
+      border-color: #8c7f6e;
+      cursor: not-allowed;
+    }
+
+    .gua-info-bar {
+      text-align: center;
+      margin-bottom: 16px;
+      padding: 10px;
+      background: #efe3c8;
+      border: 2px solid #7a583b;
+      border-radius: 6px;
+      font-size: 25px;
+      color: #b52417;
+      font-weight: bold;
+    }
+
+    /* 排盤表格（鎖定寬度與單行顯示，防止字體跑掉） */
+    .pan-container {
+      background: #fcf9f2;
+      border: 3px solid #7a583b;
+      border-radius: 8px;
+      padding: 8px;
+      overflow-x: auto;
+    }
+
+    .pan-table {
+      width: 100%;
+      min-width: 760px;
+      table-layout: fixed;
+      border-collapse: collapse;
+      text-align: center;
+      font-size: 23px;
+    }
+
+    .pan-table th, .pan-table td {
+      padding: 10px 4px;
+      height: 58px;
+      border-bottom: 2px solid #bfa888;
+      border-right: 1px solid #bfa888;
+      font-weight: bold;
+      white-space: nowrap;
+      vertical-align: middle;
+      overflow: hidden;
+    }
+
+    .pan-table th:last-child, .pan-table td:last-child {
+      border-right: none;
+    }
+
+    .pan-table th {
+      color: #221a14;
+      font-size: 23px;
+      height: 50px;
+      background: #e6d8be;
+      border-bottom: 3px solid #7a583b;
+    }
+
+    .pan-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .pan-table tr.moving-row {
+      background: #f7e2c6;
+    }
+
+    .yao-pos-cell {
+      font-size: 21px;
+      color: #221a14;
+    }
+
+    /* 爻象盒模型（固定大小，不因動爻符號而移位） */
+    .line-wrap {
+      display: inline-block;
+      width: 110px;
+      height: 20px;
+      position: relative;
+      vertical-align: middle;
+    }
+
+    .line-bar {
+      width: 80px;
+      height: 12px;
+      margin: 4px auto 0 auto;
+    }
+
+    .solid-line {
+      width: 80px;
+      height: 10px;
+      background: #b52417;
+      border-radius: 2px;
+      margin: 0 auto;
+    }
+
+    .broken-line {
+      width: 80px;
+      height: 10px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .broken-line span {
+      display: inline-block;
+      width: 34px;
+      height: 10px;
+      background: #264653;
+      border-radius: 2px;
+    }
+
+    .mark-tag {
+      position: absolute;
+      right: 0px;
+      top: 0px;
+      font-size: 20px;
+      font-weight: 900;
+      line-height: 20px;
+    }
+
+    .mark-o { color: #b52417; }
+    .mark-x { color: #264653; }
+
+    .tag-shi {
+      display: inline-block;
+      padding: 1px 6px;
+      background: #b52417;
+      color: #ffffff;
+      border-radius: 4px;
+      font-size: 20px;
+      line-height: 1.2;
+    }
+
+    .tag-ying {
+      display: inline-block;
+      padding: 1px 6px;
+      background: #f7f1e3;
+      color: #264653;
+      border: 2px solid #264653;
+      border-radius: 4px;
+      font-size: 20px;
+      line-height: 1.2;
+    }
+
+    .rules-card {
+      margin-top: 20px;
+      padding: 18px 22px;
+      background: #efe5cf;
+      border-radius: 8px;
+      border: 2px solid #7a583b;
+      border-left: 8px solid #b52417;
+      font-size: 23px;
+      color: #221a14;
+      line-height: 1.8;
+    }
+
+    .rules-card strong {
+      color: #b52417;
+    }
+
+    .rules-card code {
+      background: #e2d4b7;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <h1>文王聖卦六爻排盤系統</h1>
+    <div class="subtitle">六爻神課 • 三銅錢金錢卦 • 傳統古法排盤</div>
+    <div class="meta-bar">
+      <span class="meta-tag" id="solarDate">國曆時間載入中...</span>
+      <span class="meta-tag highlight-gold" id="fourPillars">四柱日辰載入中...</span>
+      <span class="meta-tag highlight-red" id="xunKong">旬空：--</span>
+    </div>
+  </header>
+
+  <div class="canvas-container">
+    <canvas id="coinCanvas" width="640" height="190"></canvas>
+    <div class="controls">
+      <button id="btnNext" onclick="castNextYao()">搖下一爻 (<span id="nextYaoName">初爻</span>)</button>
+      <button onclick="castAllYaos()">一鍵起滿六爻</button>
+      <button class="secondary" onclick="resetAll()">重新卜卦</button>
+    </div>
+  </div>
+
+  <div class="gua-info-bar" id="guaInfoBar">請誠心定念，點擊上方按鈕開始搖卦</div>
+
+  <section class="pan-container">
+    <table class="pan-table">
+      <colgroup>
+        <col style="width: 9%;">
+        <col style="width: 10%;">
+        <col style="width: 8%;">
+        <col style="width: 17%;">
+        <col style="width: 15%;">
+        <col style="width: 12%;">
+        <col style="width: 14%;">
+        <col style="width: 15%;">
+      </colgroup>
+      <thead>
+        <tr>
+          <th>六神</th>
+          <th>爻位</th>
+          <th>世應</th>
+          <th>本卦爻象</th>
+          <th>本卦六親</th>
+          <th>動靜狀態</th>
+          <th>變卦爻象</th>
+          <th>變卦六親</th>
+        </tr>
+      </thead>
+      <tbody id="panBody">
+      </tbody>
+    </table>
+  </section>
+
+  <div class="rules-card">
+    <strong>【文王聖卦三銅錢擲幣法則】</strong><br>
+    • 乾隆通寶字面為<strong>陰（0）</strong>、滿文背為<strong>陽（1）</strong>。<br>
+    • <strong>少陽</strong>：二字一背（1陽2陰） → 靜爻 <code>———</code><br>
+    • <strong>少陰</strong>：一字二背（2陽1陰） → 靜爻 <code>— —</code><br>
+    • <strong>老陰</strong>：三字全陰（0陽3陰） → 動爻 <code>— — X</code>，發動變陽<br>
+    • <strong>老陽</strong>：三背全陽（3陽0陰） → 動爻 <code>——— O</code>，發動變陰<br>
+    • <strong>排盤規則</strong>：卜爻時由下往上（初爻到上爻依次起出），盤面展示時由上往下（上爻在頂、初爻在底）。
+  </div>
+</div>
+
+<script>
+  var canvas = document.getElementById('coinCanvas');
+  var ctx = canvas.getContext('2d');
+
+  var YAO_NAMES = ["初爻", "第二爻", "第三爻", "第四爻", "第五爻", "上爻"];
+  var STEMS = ["甲", "乙", "丙", "丁", "戊", "己", "庚", "辛", "壬", "癸"];
+  var BRANCHES = ["子", "丑", "寅", "卯", "辰", "巳", "午", "未", "申", "酉", "戌", "亥"];
+  var FIVE_ELEMENTS = {
+    "子": "水", "丑": "土", "寅": "木", "卯": "木", "辰": "土", "巳": "火",
+    "午": "火", "未": "土", "申": "金", "酉": "金", "戌": "土", "亥": "水"
+  };
+  var SIX_SPIRITS = ["青龍", "朱雀", "勾陳", "騰蛇", "白虎", "玄武"];
+
+  var TRIGRAM_BRANCHES = {
+    "111": { name: "乾", inner: ["子", "寅", "辰"], outer: ["午", "申", "戌"], element: "金" },
+    "110": { name: "兌", inner: ["巳", "卯", "丑"], outer: ["亥", "酉", "未"], element: "金" },
+    "101": { name: "離", inner: ["卯", "丑", "亥"], outer: ["酉", "未", "巳"], element: "火" },
+    "100": { name: "震", inner: ["子", "寅", "辰"], outer: ["午", "申", "戌"], element: "木" },
+    "011": { name: "巽", inner: ["丑", "亥", "酉"], outer: ["未", "巳", "卯"], element: "木" },
+    "010": { name: "坎", inner: ["寅", "辰", "午"], outer: ["申", "戌", "子"], element: "水" },
+    "001": { name: "艮", inner: ["辰", "午", "申"], outer: ["戌", "子", "寅"], element: "土" },
+    "000": { name: "坤", inner: ["未", "巳", "卯"], outer: ["丑", "亥", "酉"], element: "土" }
+  };
+
+  var yaos = [];
+  var dayStem = "甲";
+  var dayZhi = "子";
+  var isAnimating = false;
+
+  function isPureGua(arr) {
+    return arr[0] === arr[3] && arr[1] === arr[4] && arr[2] === arr[5];
+  }
+
+  function getPalaceAndShiYing(bits) {
+    var b = [bits[0], bits[1], bits[2], bits[3], bits[4], bits[5]];
+    var key = "";
+
+    if (isPureGua(b)) {
+      key = "" + b[0] + b[1] + b[2];
+      return { palace: TRIGRAM_BRANCHES[key], shi: 5, ying: 2, type: "本宮卦" };
+    }
+
+    var shiMap = [0, 1, 2, 3, 4];
+    var typeNames = ["一世卦", "二世卦", "三世卦", "四世卦", "五世卦"];
+    for (var step = 0; step < 5; step++) {
+      b[step] = 1 - b[step];
+      if (isPureGua(b)) {
+        key = "" + b[0] + b[1] + b[2];
+        var shi = shiMap[step];
+        return { palace: TRIGRAM_BRANCHES[key], shi: shi, ying: (shi + 3) % 6, type: typeNames[step] };
+      }
+    }
+
+    b[3] = 1 - b[3];
+    if (isPureGua(b)) {
+      key = "" + b[0] + b[1] + b[2];
+      return { palace: TRIGRAM_BRANCHES[key], shi: 3, ying: 0, type: "游魂卦" };
+    }
+
+    b[0] = 1 - b[0];
+    b[1] = 1 - b[1];
+    b[2] = 1 - b[2];
+    key = "" + b[0] + b[1] + b[2];
+    return { palace: TRIGRAM_BRANCHES[key], shi: 2, ying: 5, type: "歸魂卦" };
+  }
+
+  function padZero(num) {
+    return num < 10 ? "0" + num : "" + num;
+  }
+
+  function initDateTime() {
+    var now = new Date();
+    var year = now.getFullYear();
+    var month = now.getMonth() + 1;
+    var date = now.getDate();
+    var hour = now.getHours();
+    var min = now.getMinutes();
+
+    document.getElementById("solarDate").textContent = 
+      "國曆：" + year + "-" + padZero(month) + "-" + padZero(date) + " " + padZero(hour) + ":" + padZero(min);
+
+    var yearOffset = (year - 4) % 60;
+    if (yearOffset < 0) yearOffset += 60;
+    var yearGanzhi = STEMS[yearOffset % 10] + BRANCHES[yearOffset % 12];
+
+    var a = Math.floor((14 - month) / 12);
+    var y = year + 4800 - a;
+    var m = month + 12 * a - 3;
+    var jdn = date + Math.floor((153 * m + 2) / 5) + 365 * y + Math.floor(y / 4) - Math.floor(y / 100) + Math.floor(y / 400) - 32045;
+    var dayIndex = (jdn + 49) % 60;
+    if (dayIndex < 0) dayIndex += 60;
+    dayStem = STEMS[dayIndex % 10];
+    dayZhi = BRANCHES[dayIndex % 12];
+    var dayGanzhi = dayStem + dayZhi;
+
+    var monthZhiIdx = (month + 1) % 12;
+    var yearStemIdx = yearOffset % 10;
+    var monthStemStart = ((yearStemIdx % 5) + 1) * 2 % 10;
+    var monthGanzhi = STEMS[(monthStemStart + month - 1) % 10] + BRANCHES[monthZhiIdx];
+
+    var hourZhiIdx = Math.floor((hour + 1) % 24 / 2);
+    var dayStemIdx = dayIndex % 10;
+    var hourStemStart = (dayStemIdx % 5) * 2 % 10;
+    var hourGanzhi = STEMS[(hourStemStart + hourZhiIdx) % 10] + BRANCHES[hourZhiIdx];
+
+    document.getElementById("fourPillars").textContent = "干支：" + yearGanzhi + "年 " + monthGanzhi + "月 " + dayGanzhi + "日 " + hourGanzhi + "時";
+
+    var diff = (dayIndex % 12) - (dayIndex % 10);
+    var xunStart = (diff < 0 ? diff + 12 : diff);
+    var kong1 = BRANCHES[(xunStart + 10) % 12];
+    var kong2 = BRANCHES[(xunStart + 11) % 12];
+    document.getElementById("xunKong").textContent = "旬空：" + kong1 + kong2;
+  }
+
+  function getSixSpirits() {
+    var startIdx = 0;
+    if (dayStem === "甲" || dayStem === "乙") startIdx = 0;
+    else if (dayStem === "丙" || dayStem === "丁") startIdx = 1;
+    else if (dayStem === "戊") startIdx = 2;
+    else if (dayStem === "己") startIdx = 3;
+    else if (dayStem === "庚" || dayStem === "辛") startIdx = 4;
+    else if (dayStem === "壬" || dayStem === "癸") startIdx = 5;
+
+    var spirits = [];
+    for (var i = 0; i < 6; i++) {
+      spirits.push(SIX_SPIRITS[(startIdx + i) % 6]);
+    }
+    return spirits;
+  }
+
+  function getSixRelative(palaceElement, targetElement) {
+    var relations = {
+      "金": { "金": "兄弟", "水": "子孫", "木": "妻財", "火": "官鬼", "土": "父母" },
+      "木": { "木": "兄弟", "火": "子孫", "土": "妻財", "金": "官鬼", "水": "父母" },
+      "水": { "水": "兄弟", "木": "子孫", "火": "妻財", "土": "官鬼", "金": "父母" },
+      "火": { "火": "兄弟", "土": "子孫", "金": "妻財", "水": "官鬼", "木": "父母" },
+      "土": { "土": "兄弟", "金": "子孫", "水": "妻財", "木": "官鬼", "火": "父母" }
+    };
+    return relations[palaceElement][targetElement] || "兄弟";
+  }
+
+  function drawCoins(coins, flipScale, statusMsg) {
+    if (typeof flipScale === "undefined") flipScale = 1;
+    if (typeof statusMsg === "undefined") statusMsg = "";
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    var centers = [150, 320, 490];
+    var centerY = 74;
+    var r = 48;
+
+    for (var i = 0; i < 3; i++) {
+      var x = centers[i];
+      var isYang = coins ? (coins[i] === 1) : false;
+
+      ctx.save();
+      ctx.translate(x, centerY);
+      ctx.scale(flipScale, 1);
+
+      var grad = ctx.createRadialGradient(0, 0, 6, 0, 0, r);
+      grad.addColorStop(0, '#e8c368');
+      grad.addColorStop(0.65, '#b8862d');
+      grad.addColorStop(1, '#5e3f10');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(0, 0, r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.lineWidth = 3.5;
+      ctx.strokeStyle = '#4a300a';
+      ctx.stroke();
+
+      var sq = 20;
+      ctx.fillStyle = '#e6d8be';
+      ctx.fillRect(-sq/2, -sq/2, sq, sq);
+      ctx.lineWidth = 2.5;
+      ctx.strokeStyle = '#4a300a';
+      ctx.strokeRect(-sq/2, -sq/2, sq, sq);
+
+      ctx.fillStyle = '#221303';
+      ctx.font = 'bold 18px "DFKai-SB", "BiauKai", "標楷體", serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+
+      if (coins) {
+        if (isYang) {
+          ctx.fillStyle = '#8f1609';
+          ctx.fillText("滿文", 0, -28);
+          ctx.fillText("【陽】", 0, 28);
+        } else {
+          ctx.fillText("乾隆", 0, -28);
+          ctx.fillText("通寶", 0, 28);
+        }
+      } else {
+        ctx.fillText("乾隆", 0, -28);
+        ctx.fillText("通寶", 0, 28);
+      }
+      ctx.restore();
+    }
+
+    ctx.fillStyle = '#221a14';
+    ctx.font = 'bold 22px "DFKai-SB", "BiauKai", "標楷體", serif';
+    ctx.textAlign = 'center';
+    var defaultMsg = (yaos.length === 6) ? "文王聖卦排盤完畢" : ("現在準備搖：" + YAO_NAMES[yaos.length]);
+    ctx.fillText(statusMsg || defaultMsg, 320, 165);
+  }
+
+  function animateToss(finalCoins, callback) {
+    isAnimating = true;
+    document.getElementById("btnNext").disabled = true;
+    var frames = 0;
+    var maxFrames = 16;
+
+    function step() {
+      frames++;
+      var scale = Math.abs(Math.cos(frames * 0.45));
+      if (scale < 0.1) scale = 0.1;
+      var tempCoins = [
+        Math.random() < 0.5 ? 0 : 1,
+        Math.random() < 0.5 ? 0 : 1,
+        Math.random() < 0.5 ? 0 : 1
+      ];
+      drawCoins(tempCoins, scale, "銅錢翻擲中...");
+
+      if (frames < maxFrames) {
+        setTimeout(step, 30);
+      } else {
+        var resText = [];
+        for (var j = 0; j < 3; j++) {
+          resText.push(finalCoins[j] ? "背(陽)" : "字(陰)");
+        }
+        drawCoins(finalCoins, 1, "擲得結果：" + resText.join(" 、 "));
+        isAnimating = false;
+        callback();
+      }
+    }
+    step();
+  }
+
+  function renderPan() {
+    var tbody = document.getElementById("panBody");
+    var guaInfoBar = document.getElementById("guaInfoBar");
+    tbody.innerHTML = "";
+    var spirits = getSixSpirits();
+
+    var isComplete = (yaos.length === 6);
+    var lowerTrigram = TRIGRAM_BRANCHES["111"];
+    var upperTrigram = TRIGRAM_BRANCHES["111"];
+    var chgLowerTrigram = TRIGRAM_BRANCHES["111"];
+    var chgUpperTrigram = TRIGRAM_BRANCHES["111"];
+    var basePalaceElement = "金";
+    var shiIdx = -1;
+    var yingIdx = -1;
+
+    if (yaos.length >= 3) {
+      var lowerKey = "" + (yaos[0].isYang ? 1 : 0) + (yaos[1].isYang ? 1 : 0) + (yaos[2].isYang ? 1 : 0);
+      var chgLowerKey = "" + (yaos[0].changedIsYang ? 1 : 0) + (yaos[1].changedIsYang ? 1 : 0) + (yaos[2].changedIsYang ? 1 : 0);
+      lowerTrigram = TRIGRAM_BRANCHES[lowerKey] || TRIGRAM_BRANCHES["111"];
+      chgLowerTrigram = TRIGRAM_BRANCHES[chgLowerKey] || TRIGRAM_BRANCHES["111"];
+      basePalaceElement = lowerTrigram.element;
+    }
+
+    if (isComplete) {
+      var upperKey = "" + (yaos[3].isYang ? 1 : 0) + (yaos[4].isYang ? 1 : 0) + (yaos[5].isYang ? 1 : 0);
+      var chgUpperKey = "" + (yaos[3].changedIsYang ? 1 : 0) + (yaos[4].changedIsYang ? 1 : 0) + (yaos[5].changedIsYang ? 1 : 0);
+      upperTrigram = TRIGRAM_BRANCHES[upperKey] || TRIGRAM_BRANCHES["111"];
+      chgUpperTrigram = TRIGRAM_BRANCHES[chgUpperKey] || TRIGRAM_BRANCHES["111"];
+
+      var bits = [];
+      var hasMoving = false;
+      for (var k = 0; k < 6; k++) {
+        bits.push(yaos[k].isYang ? 1 : 0);
+        if (yaos[k].isChanging) hasMoving = true;
+      }
+
+      var palaceInfo = getPalaceAndShiYing(bits);
+      basePalaceElement = palaceInfo.palace.element;
+      shiIdx = palaceInfo.shi;
+      yingIdx = palaceInfo.ying;
+
+      var mainGuaName = upperTrigram.name + lowerTrigram.name;
+      var chgGuaName = chgUpperTrigram.name + chgLowerTrigram.name;
+      guaInfoBar.textContent = "【本卦】" + mainGuaName + "（" + palaceInfo.palace.name + "宮" + basePalaceElement + " • " + palaceInfo.type + "）" +
+        (hasMoving ? ("  ➔  【變卦】" + chgGuaName) : "（六爻安靜無變）");
+    } else {
+      guaInfoBar.textContent = "目前已搖 " + yaos.length + " 爻（共 6 爻，搖滿後自動排定本宮與世應）";
+    }
+
+    for (var i = 5; i >= 0; i--) {
+      var yao = yaos[i];
+      var tr = document.createElement("tr");
+      var spiritName = spirits[i];
+      var yaoPosition = YAO_NAMES[i];
+
+      var shiYing = "—";
+      if (isComplete) {
+        if (i === shiIdx) shiYing = '<span class="tag-shi">世</span>';
+        else if (i === yingIdx) shiYing = '<span class="tag-ying">應</span>';
+      }
+
+      if (!yao) {
+        tr.innerHTML =
+          '<td style="color:#59493b;">' + spiritName + '</td>' +
+          '<td class="yao-pos-cell">' + yaoPosition + '</td>' +
+          '<td>—</td>' +
+          '<td style="color:#8c7f6e;">待搖卦</td>' +
+          '<td>—</td>' +
+          '<td>—</td>' +
+          '<td>—</td>' +
+          '<td>—</td>';
+      } else {
+        if (yao.isChanging) tr.className = "moving-row";
+
+        var branch = (i < 3) ? lowerTrigram.inner[i] : upperTrigram.outer[i - 3];
+        var element = FIVE_ELEMENTS[branch];
+        var sixRelative = isComplete ? getSixRelative(basePalaceElement, element) : "待定";
+
+        var chgBranch = (i < 3) ? chgLowerTrigram.inner[i] : chgUpperTrigram.outer[i - 3];
+        var chgElement = FIVE_ELEMENTS[chgBranch];
+        var chgSixRelative = isComplete ? getSixRelative(basePalaceElement, chgElement) : "待定";
+
+        var markHtml = yao.mark ? ('<span class="mark-tag ' + (yao.mark === 'O' ? 'mark-o' : 'mark-x') + '">' + yao.mark + '</span>') : "";
+        var origBar = yao.isYang ? '<div class="solid-line"></div>' : '<div class="broken-line"><span></span><span></span></div>';
+        var origLine = '<div class="line-wrap"><div class="line-bar">' + origBar + '</div>' + markHtml + '</div>';
+
+        var chgBar = yao.changedIsYang ? '<div class="solid-line"></div>' : '<div class="broken-line"><span></span><span></span></div>';
+        var chgLine = '<div class="line-wrap"><div class="line-bar">' + chgBar + '</div></div>';
+
+        var statusColor = yao.isChanging ? "#b52417" : "#221a14";
+
+        tr.innerHTML =
+          '<td style="color:#8c5319;">' + spiritName + '</td>' +
+          '<td class="yao-pos-cell">' + yaoPosition + '</td>' +
+          '<td>' + shiYing + '</td>' +
+          '<td>' + origLine + '</td>' +
+          '<td>' + sixRelative + branch + element + '</td>' +
+          '<td style="color:' + statusColor + ';">' + yao.typeName + '</td>' +
+          '<td>' + chgLine + '</td>' +
+          '<td>' + (yao.isChanging ? (chgSixRelative + chgBranch + chgElement) : '—') + '</td>';
+      }
+      tbody.appendChild(tr);
+    }
+  }
+
+  function tossOnce() {
+    var coins = [
+      Math.random() < 0.5 ? 0 : 1,
+      Math.random() < 0.5 ? 0 : 1,
+      Math.random() < 0.5 ? 0 : 1
+    ];
+    var yangCount = coins[0] + coins[1] + coins[2];
+
+    var typeName = "";
+    var isYang = false;
+    var changedIsYang = false;
+    var mark = "";
+    var isChanging = false;
+
+    if (yangCount === 3) {
+      typeName = "老陽(動)";
+      isYang = true;
+      changedIsYang = false;
+      mark = "O";
+      isChanging = true;
+    } else if (yangCount === 2) {
+      typeName = "少陰(靜)";
+      isYang = false;
+      changedIsYang = false;
+    } else if (yangCount === 1) {
+      typeName = "少陽(靜)";
+      isYang = true;
+      changedIsYang = true;
+    } else {
+      typeName = "老陰(動)";
+      isYang = false;
+      changedIsYang = true;
+      mark = "X";
+      isChanging = true;
+    }
+
+    return {
+      coins: coins,
+      yangCount: yangCount,
+      typeName: typeName,
+      isYang: isYang,
+      changedIsYang: changedIsYang,
+      mark: mark,
+      isChanging: isChanging
+    };
+  }
+
+  function castNextYao() {
+    if (isAnimating || yaos.length >= 6) return;
+    var res = tossOnce();
+
+    animateToss(res.coins, function() {
+      yaos.push(res);
+      renderPan();
+
+      var nameSpan = document.getElementById("nextYaoName");
+      var btnNext = document.getElementById("btnNext");
+      if (yaos.length < 6) {
+        if (nameSpan) nameSpan.textContent = YAO_NAMES[yaos.length];
+        btnNext.disabled = false;
+      } else {
+        if (nameSpan) nameSpan.textContent = "已滿";
+        btnNext.disabled = true;
+      }
+    });
+  }
+
+  function castAllYaos() {
+    if (isAnimating) return;
+    yaos = [];
+    for (var i = 0; i < 6; i++) {
+      yaos.push(tossOnce());
+    }
+
+    drawCoins(yaos[5].coins, 1, "六爻已全，文王聖卦排盤圓滿完成！");
+    renderPan();
+    var nameSpan = document.getElementById("nextYaoName");
+    if (nameSpan) nameSpan.textContent = "已滿";
+    document.getElementById("btnNext").disabled = true;
+  }
+
+  function resetAll() {
+    if (isAnimating) return;
+    yaos = [];
+    document.getElementById("btnNext").disabled = false;
+    var nameSpan = document.getElementById("nextYaoName");
+    if (nameSpan) nameSpan.textContent = YAO_NAMES[0];
+    drawCoins(null, 1, "請誠心定念，點擊「搖下一爻」或「一鍵起滿六爻」");
+    renderPan();
+  }
+
+  // 直接執行初始化，不依賴特定載入事件，確保任何環境皆可立即啟動
+  initDateTime();
+  drawCoins(null, 1);
+  renderPan();
+</script>
+
+</body>
+</html>
