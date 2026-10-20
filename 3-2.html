@@ -383,6 +383,7 @@
 
     /* 窄螢幕收起「動靜狀態」欄，動爻仍以 O / X 及底色標示 */
     @media (max-width: 559px) {
+      .h1-sub { display: none; }
       .col-status, .cell-status { display: none; }
       .c-spirit { width: 10.5%; }
       .c-pos { width: 10%; }
@@ -732,7 +733,7 @@
 <div class="app">
   <div class="frame">
     <div class="topbar">
-      <h1>文王聖卦六爻排盤</h1>
+      <h1>文王聖卦<span class="h1-sub">六爻排盤</span></h1>
       <div class="top-actions">
         <button class="secondary small" onclick="location.href='./'">首頁</button>
         <button class="secondary small" onclick="openDialog('dlgSettings')">設定</button>
