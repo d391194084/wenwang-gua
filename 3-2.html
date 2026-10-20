@@ -856,6 +856,13 @@
       <label><input type="radio" name="ziMode" value="23">23:00 換日（子時起算次日）</label>
       <div class="setting-note">影響日辰、六獸與旬空；起卦後修改會依起卦時間重算。</div>
     </div>
+    <div class="setting-group">
+      <h3>問卦者性別</h3>
+      <label><input type="radio" name="gender" value="" checked>不指定</label>
+      <label><input type="radio" name="gender" value="男">男</label>
+      <label><input type="radio" name="gender" value="女">女</label>
+      <div class="setting-note">問感情、婚姻時自動選用神：男占取妻財、女占取官鬼。</div>
+    </div>
   </div>
 </dialog>
 
@@ -1061,12 +1068,13 @@
       var s = JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}");
       if (s.castMode) setRadio("castMode", s.castMode);
       if (s.ziMode) setRadio("ziMode", s.ziMode);
+      if (s.gender) setRadio("gender", s.gender);
     } catch (e) { /* 無法讀取本機儲存時沿用預設 */ }
   }
 
   function saveSettings() {
     try {
-      localStorage.setItem(SETTINGS_KEY, JSON.stringify({ castMode: getRadio("castMode"), ziMode: getRadio("ziMode") }));
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify({ castMode: getRadio("castMode"), ziMode: getRadio("ziMode"), gender: getRadio("gender") }));
     } catch (e) { /* 忽略 */ }
   }
 
@@ -3074,7 +3082,7 @@
     { re: /父親|母親|爸|媽|父母|雙親|長輩|老師|師父|師長|祖父|祖母|爺爺|奶奶|外公|外婆|阿公|阿嬤|公公|婆婆|岳父|岳母|伯父|伯母|叔叔|阿姨|姑姑|舅舅/, value: "父母", why: "問長輩取父母" },
     { re: /兒子|女兒|小孩|孩子|子女|孫子|孫女|學生|寵物|狗|貓|晚輩|姪子|姪女|外甥|胎兒|懷孕|生小孩/, value: "子孫", why: "問子女晚輩取子孫" },
     { re: /哥哥|弟弟|姊姊|姐姐|妹妹|兄弟|姊妹|朋友|同事|同學|室友|合夥人/, value: "兄弟", why: "問兄弟朋友取兄弟" },
-    { re: /感情|婚姻|結婚|復合|姻緣|桃花|交往|曖昧/, value: "", why: "感情請自選用神：男占取妻財、女占取官鬼" },
+    { re: /感情|婚姻|結婚|復合|姻緣|桃花|交往|曖昧|有結果|在一起|有未來|有沒有未來|還愛|愛我|喜歡我|想我|聯絡我|告白|表白|分手|離婚|外遇|小三|劈腿|相親|另一半|正緣|脫單|回到我身邊/, value: "情" },
     { re: /上司|老闆|主管|長官/, value: "官鬼", why: "問上司取官鬼" },
     { re: /下雨|雨天|颱風/, value: "父母", why: "占雨取父母" },
     { re: /晴天|放晴|出太陽/, value: "子孫", why: "占晴取子孫" },
@@ -3083,11 +3091,21 @@
     { re: /工作|求職|面試|錄取|應徵|升遷|升職|職位|調職|轉職|事業|考試|考上|上榜|考取|公職|選舉/, value: "官鬼", why: "功名工作取官鬼，考試兼看父母" },
     { re: /財|錢|投資|股票|基金|生意|業績|收入|薪|賺|借款|債|買賣|中獎|彩券/, value: "妻財", why: "求財取妻財" },
     { re: /病|身體|健康|手術|開刀|平安|運勢|流年|自己|官司|訴訟|吉凶/, value: "世", why: "問自身取世爻" },
+    { re: /我(跟|和|與)(他|她)|(他|她)(跟|和|與)我|(他|她)對我/, value: "情" },
     // 最後備援：前面都沒對到，問的是「我」、未來前途或眼前的吉凶運氣時取世爻
     { re: /我|本人|自身|未來|將來|以後|年後|前途|前景|發展|好運|運氣|手氣|順不順|順利|吉利|好事|壞事|等一下|待會|待一下|今天|今晚|明天|這週|本週|這個月|最近|現在|適合|適不適合/, value: "世", why: "問自身吉凶取世爻" }
   ];
   var yongManual = false;   // 使用者自己選過用神
   var yongAutoNote = "";    // 顯示在所問下方的自動判斷說明
+
+  // 感情：依設定的問卦者性別；未設定時，所問只提到「她」就取妻財
+  function loveRule(q) {
+    var g = getRadio("gender");
+    if (g === "男") return { value: "妻財", why: "感情，男占取妻財" };
+    if (g === "女") return { value: "官鬼", why: "感情，女占取官鬼" };
+    if (/她/.test(q) && !/他/.test(q)) return { value: "妻財", why: "問女方取妻財" };
+    return { value: "", why: "感情要看問卦者性別：到「設定」選擇性別後會自動選（男占取妻財、女占取官鬼）" };
+  }
 
   function autoPickYong() {
     var sel = document.getElementById("yongShen");
@@ -3097,6 +3115,7 @@
     for (var i = 0; q && i < YONG_RULES.length; i++) {
       if (YONG_RULES[i].re.test(q)) { rule = YONG_RULES[i]; break; }
     }
+    if (rule && rule.value === "情") rule = loveRule(q);
     if (rule && rule.value) {
       sel.value = rule.value;
       yongAutoNote = "用神自動取" + sel.options[sel.selectedIndex].text + "（" + rule.why + "，可自行更改）";
@@ -3347,6 +3366,13 @@
       refreshTime();
       renderPan();
       updateLatestHistory();
+    });
+  });
+  document.querySelectorAll('input[name="gender"]').forEach(function(el) {
+    el.addEventListener("change", function() {
+      saveSettings();
+      autoPickYong();
+      renderPan();
     });
   });
   document.getElementById("question").addEventListener("input", function() {
