@@ -769,6 +769,7 @@
           <select id="yongShen" title="用神（可隨時更改）">
             <option value="">用神未選</option>
             <option value="世">自身・世爻</option>
+            <option value="應">對方・應爻</option>
             <option value="父母">父母</option>
             <option value="兄弟">兄弟</option>
             <option value="子孫">子孫</option>
@@ -1310,11 +1311,17 @@
     return null;
   }
 
+  // 用神取世爻或應爻時，回傳該爻位置；取六親時回傳 -1
+  function lineYongIdx(gua, sel) {
+    return sel === "世" ? gua.shi : sel === "應" ? gua.ying : -1;
+  }
+
   // 依所選用神標出用、原、忌、仇；未選回傳 null
   function computeRoles(gua) {
     var sel = document.getElementById("yongShen").value;
     if (!sel) return null;
-    var yongEl = (sel === "世") ? gua.lines[gua.shi].element : elementOfRelative(gua.palace.element, sel);
+    var yongLine = lineYongIdx(gua, sel);
+    var yongEl = (yongLine >= 0) ? gua.lines[yongLine].element : elementOfRelative(gua.palace.element, sel);
     var yuanEl = findKey(ELEM_GEN, yongEl);
     var jiEl = findKey(ELEM_KE, yongEl);
     var chouEl = findKey(ELEM_KE, yuanEl);
@@ -1327,7 +1334,7 @@
     var lineRoles = [], yongLines = [], fuYong = [];
     for (var i = 0; i < 6; i++) {
       var r = roleOfEl[gua.lines[i].element] || "";
-      if (sel === "世" && r === "用" && i !== gua.shi) r = "";
+      if (yongLine >= 0 && r === "用" && i !== yongLine) r = "";
       lineRoles.push(r);
       if (r === "用") yongLines.push(i);
     }
@@ -1342,7 +1349,7 @@
       lineRoles: lineRoles,
       yongLines: yongLines,
       fuYong: fuYong,
-      names: { "用": (sel === "世") ? "世爻" : sel, "原": relName(yuanEl), "忌": relName(jiEl), "仇": relName(chouEl) }
+      names: { "用": (sel === "世") ? "世爻" : (sel === "應") ? "應爻" : sel, "原": relName(yuanEl), "忌": relName(jiEl), "仇": relName(chouEl) }
     };
   }
 
@@ -1779,7 +1786,8 @@
       var role = "";
       if (roles) {
         for (var r in roles.names) if (roles.names[r] === rel) role = r;
-        if (roles.sel === "世" && FIVE_ELEMENTS[gua.lines[gua.shi].branch] === g.el) role = "用";
+        var yl = lineYongIdx(gua, roles.sel);
+        if (yl >= 0 && FIVE_ELEMENTS[gua.lines[yl].branch] === g.el) role = "用";
       }
       var ill = [];
       picks.forEach(function(p) {
@@ -2065,7 +2073,7 @@
         push(ys, "用神" + ["", "", "兩", "三", "四", "五", "六"][roles.yongLines.length] + "現（" + roles.yongLines.map(nm).join("、") + "），依「捨閑爻用持世、捨安靜用動爻、捨不空用旬空、捨不破用月破」取" +
           nm(yongPick.idx) + "（" + (yongPick.reasons.join("、") || "離世爻最近") + "）；其餘兼看。");
       }
-      var yEl = roles.sel === "世" ? gua.lines[gua.shi].element : elementOfRelative(gua.palace.element, roles.sel);
+      var yEl = lineYongIdx(gua, roles.sel) >= 0 ? gua.lines[lineYongIdx(gua, roles.sel)].element : elementOfRelative(gua.palace.element, roles.sel);
       if (focusIsFu && (FIVE_ELEMENTS[mz] === yEl || FIVE_ELEMENTS[dz] === yEl)) push(ys, "用神不上卦，但" + (FIVE_ELEMENTS[mz] === yEl ? "月建" + mz : "日辰" + dz) + "即是用神，可以日月為用神。", "good");
     }
     if (focus) {
@@ -2318,7 +2326,8 @@
     "子孫": "子女、晚輩、學生、寵物、客戶、醫藥、醫生；福神、解憂之神，也是剝官削職之神",
     "妻財": "錢財、物價、貨物、資產、飲食；男占的妻子、女友",
     "官鬼": "功名、工作、上司、政府；女占的丈夫、男友；疾病、官司、災禍、小人、鬼神",
-    "世": "自己（問自身吉凶、自己的病、流年等）"
+    "世": "自己（問自身吉凶、自己的病、流年等）",
+    "應": "對方、交情不深或身分不明的他人（尋人、行人歸期、對方心意、談判對手）"
   };
   var CAT_YONG = {
     "財": "求財取妻財為用神",
@@ -2420,7 +2429,7 @@
     var q = document.getElementById("question").value.trim();
     if (cat) apply2.push("所問「" + q + "」屬於" + CAT_NAMES[cat] + "，一般" + CAT_YONG[cat] + "。");
     if (roles) {
-      var yongEl = roles.sel === "世" ? gua.lines[gua.shi].element : elementOfRelative(pEl, roles.sel);
+      var yongEl = lineYongIdx(gua, roles.sel) >= 0 ? gua.lines[lineYongIdx(gua, roles.sel)].element : elementOfRelative(pEl, roles.sel);
       apply2.push("你選的用神是「" + roles.names["用"] + "」，代表：" + (REL_MEANING[roles.sel] || "") + "。");
       apply2.push("用神屬" + yongEl + "，所以生" + yongEl + "的" + findKey(ELEM_GEN, yongEl) + "（" + roles.names["原"] + "）是原神，剋" + yongEl + "的" + findKey(ELEM_KE, yongEl) +
         "（" + roles.names["忌"] + "）是忌神，剋原神的" + findKey(ELEM_KE, findKey(ELEM_GEN, yongEl)) + "（" + roles.names["仇"] + "）是仇神。");
@@ -3088,12 +3097,13 @@
     { re: /晴天|放晴|出太陽/, value: "子孫", why: "占晴取子孫" },
     { re: /遺失|失物|掉了|弄丟|找回|錢包|鑰匙/, value: "妻財", why: "失物取妻財" },
     { re: /房子|房屋|買房|租屋|搬家|車子|買車|合約|契約|文件|證件|簽證|執照|證照|消息|回信|通知/, value: "父母", why: "房屋、車、文書消息取父母" },
+    { re: /在什麼方向|在哪個方向|往哪個方向|往哪裡|什麼方位|哪個方位|在哪裡|在哪|人在|下落|去向|行蹤|失聯|離家|走失|失蹤|有沒有出國|出國了|還在這裡|還在不在|在不在|還在嗎|回來了|何時回|什麼時候回|幾時回|會回來|歸期/, value: "行" },
     { re: /工作|求職|面試|錄取|應徵|升遷|升職|職位|調職|轉職|事業|考試|考上|上榜|考取|公職|選舉/, value: "官鬼", why: "功名工作取官鬼，考試兼看父母" },
     { re: /財|錢|投資|股票|基金|生意|業績|收入|薪|賺|借款|債|買賣|中獎|彩券/, value: "妻財", why: "求財取妻財" },
     { re: /病|身體|健康|手術|開刀|平安|運勢|流年|自己|官司|訴訟|吉凶/, value: "世", why: "問自身取世爻" },
     { re: /我(跟|和|與)(他|她)|(他|她)(跟|和|與)我|(他|她)對我/, value: "情" },
     // 最後備援：前面都沒對到，問的是「我」、未來前途或眼前的吉凶運氣時取世爻
-    { re: /我|本人|自身|未來|將來|以後|年後|前途|前景|發展|沒事|有事|出事|過關|度過|危險|安全|有驚無險|化險為夷|好運|運氣|手氣|順不順|順利|吉利|好事|壞事|等一下|待會|待一下|今天|今晚|明天|這週|本週|這個月|最近|現在|適合|適不適合/, value: "世", why: "問自身吉凶取世爻" }
+    { re: /我|本人|自身|未來|將來|以後|年後|前途|前景|發展|沒事|有事|出事|過關|出國|出行|旅遊|旅行|出差|出門|度過|危險|安全|有驚無險|化險為夷|好運|運氣|手氣|順不順|順利|吉利|好事|壞事|等一下|待會|待一下|今天|今晚|明天|這週|本週|這個月|最近|現在|適合|適不適合/, value: "世", why: "問自身吉凶取世爻" }
   ];
   var yongManual = false;   // 使用者自己選過用神
   var yongAutoNote = "";    // 顯示在所問下方的自動判斷說明
@@ -3107,6 +3117,13 @@
     return { value: "", why: "感情要看問卦者性別：到「設定」選擇性別後會自動選（男占取妻財、女占取官鬼）" };
   }
 
+  // 行蹤、方位：問東西取妻財；問自己取世爻；身分不明的他人取應爻
+  function whereRule(q) {
+    if (/東西|物品|錢|手機|鑰匙|戒指|首飾|包包|證件|文件/.test(q)) return { value: /證件|文件/.test(q) ? "父母" : "妻財", why: "失物看所失之物" };
+    if (/我/.test(q) && !/他|她|對方|人/.test(q)) return { value: "世", why: "問自身取世爻" };
+    return { value: "應", why: "問他人行蹤，身分不明取應爻；若是家人朋友請改選對應六親" };
+  }
+
   function autoPickYong() {
     var sel = document.getElementById("yongShen");
     if (yongManual || yaos.length >= 6) return;
@@ -3116,6 +3133,7 @@
       if (YONG_RULES[i].re.test(q)) { rule = YONG_RULES[i]; break; }
     }
     if (rule && rule.value === "情") rule = loveRule(q);
+    if (rule && rule.value === "行") rule = whereRule(q);
     if (rule && rule.value) {
       sel.value = rule.value;
       yongAutoNote = "用神自動取" + sel.options[sel.selectedIndex].text + "（" + rule.why + "，可自行更改）";
