@@ -204,6 +204,13 @@
       color: var(--ink);
     }
 
+    /* 依所問自動選出的用神 */
+    #yongShen.auto-picked {
+      border-color: var(--gold);
+      background: #fbf0d6;
+      box-shadow: 0 0 0 2px rgba(140, 83, 25, 0.3);
+    }
+
     /* ---------- 搖卦區 ---------- */
     .canvas-container {
       display: flex;
@@ -2913,7 +2920,7 @@
 
     var q = document.getElementById("question").value.trim();
     var qLine = document.getElementById("questionLine");
-    qLine.textContent = q ? ("所問：" + q) : "";
+    qLine.textContent = q ? ("所問：" + q + (yongAutoNote ? "｜" + yongAutoNote : "")) : "";
     qLine.classList.toggle("hidden", !q);
 
     for (var i = 5; i >= 0; i--) {
@@ -3056,6 +3063,48 @@
   window.addEventListener("resize", scheduleFitFont);
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(scheduleFitFont);
 
+
+  /* ---------- 依所問自動選用神 ---------- */
+
+  // 由上往下比對，先比人物再比事情；value 為空字串表示需自行判斷
+  var YONG_RULES = [
+    { re: /借.{0,3}錢|還錢|欠.{0,2}錢|借款|討債|追債/, value: "妻財", why: "借貸錢財取妻財" },
+    { re: /老婆|太太|妻子|未婚妻|女友|女朋友/, value: "妻財", why: "問妻子、女友取妻財" },
+    { re: /老公|丈夫|未婚夫|男友|男朋友/, value: "官鬼", why: "問丈夫、男友取官鬼" },
+    { re: /父親|母親|爸|媽|父母|雙親|長輩|老師|師父|師長|祖父|祖母|爺爺|奶奶|外公|外婆|阿公|阿嬤|公公|婆婆|岳父|岳母|伯父|伯母|叔叔|阿姨|姑姑|舅舅/, value: "父母", why: "問長輩取父母" },
+    { re: /兒子|女兒|小孩|孩子|子女|孫子|孫女|學生|寵物|狗|貓|晚輩|姪子|姪女|外甥|胎兒|懷孕|生小孩/, value: "子孫", why: "問子女晚輩取子孫" },
+    { re: /哥哥|弟弟|姊姊|姐姐|妹妹|兄弟|姊妹|朋友|同事|同學|室友|合夥人/, value: "兄弟", why: "問兄弟朋友取兄弟" },
+    { re: /感情|婚姻|結婚|復合|姻緣|桃花|交往|曖昧/, value: "", why: "感情請自選用神：男占取妻財、女占取官鬼" },
+    { re: /上司|老闆|主管|長官/, value: "官鬼", why: "問上司取官鬼" },
+    { re: /下雨|雨天|颱風/, value: "父母", why: "占雨取父母" },
+    { re: /晴天|放晴|出太陽/, value: "子孫", why: "占晴取子孫" },
+    { re: /遺失|失物|掉了|弄丟|找回|錢包|鑰匙/, value: "妻財", why: "失物取妻財" },
+    { re: /房子|房屋|買房|租屋|搬家|車子|買車|合約|契約|文件|證件|簽證|執照|證照|消息|回信|通知/, value: "父母", why: "房屋、車、文書消息取父母" },
+    { re: /工作|求職|面試|錄取|應徵|升遷|升職|職位|調職|轉職|事業|考試|考上|上榜|考取|公職|選舉/, value: "官鬼", why: "功名工作取官鬼，考試兼看父母" },
+    { re: /財|錢|投資|股票|基金|生意|業績|收入|薪|賺|借款|債|買賣|中獎|彩券/, value: "妻財", why: "求財取妻財" },
+    { re: /病|身體|健康|手術|開刀|平安|運勢|流年|自己|官司|訴訟|吉凶/, value: "世", why: "問自身取世爻" }
+  ];
+  var yongManual = false;   // 使用者自己選過用神
+  var yongAutoNote = "";    // 顯示在所問下方的自動判斷說明
+
+  function autoPickYong() {
+    var sel = document.getElementById("yongShen");
+    if (yongManual || yaos.length >= 6) return;
+    var q = document.getElementById("question").value.trim();
+    var rule = null;
+    for (var i = 0; q && i < YONG_RULES.length; i++) {
+      if (YONG_RULES[i].re.test(q)) { rule = YONG_RULES[i]; break; }
+    }
+    if (rule && rule.value) {
+      sel.value = rule.value;
+      yongAutoNote = "用神自動取" + sel.options[sel.selectedIndex].text + "（" + rule.why + "，可自行更改）";
+    } else {
+      if (yongAutoNote.indexOf("用神自動取") === 0) sel.value = "";
+      yongAutoNote = rule ? rule.why : "";
+    }
+    sel.classList.toggle("auto-picked", !!(rule && rule.value));
+  }
+
   /* ---------- 按鈕狀態 ---------- */
 
   function updateButtons() {
@@ -3145,6 +3194,9 @@
     lastSavedId = null;
     document.getElementById("question").disabled = false;
     document.getElementById("yongShen").value = "";
+    yongManual = false;
+    yongAutoNote = "";
+    autoPickYong();
     startClock();
     drawCoins(null, 1, "請誠心定念，開始起卦");
     renderPan();
@@ -3295,8 +3347,16 @@
       updateLatestHistory();
     });
   });
-  document.getElementById("question").addEventListener("input", renderPan);
+  document.getElementById("question").addEventListener("input", function() {
+    if (!this.value.trim()) yongManual = false;
+    autoPickYong();
+    renderPan();
+  });
   document.getElementById("yongShen").addEventListener("change", function() {
+    // 自己選過用神後，就不再依所問自動更換
+    yongManual = true;
+    yongAutoNote = "";
+    this.classList.remove("auto-picked");
     renderPan();
     updateLatestHistory();
   });

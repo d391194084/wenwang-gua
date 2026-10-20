@@ -1,5 +1,5 @@
 // 文王聖卦離線快取：先回快取、背景更新；更新檔案後請調高版本號
-var CACHE = "wenwang-gua-v6";
+var CACHE = "wenwang-gua-v7";
 var FILES = [
   "./",
   "./index.html",
