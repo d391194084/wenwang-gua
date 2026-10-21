@@ -1938,6 +1938,10 @@
       ["回頭剋", "化絕", "化墓", "化退神", "化破", "化空"].forEach(function(t) { if (a.chgTags.indexOf(t) >= 0 && !(t === "化絕" && !a.jue)) why.push(t); });
       if (chouActive.some(function(c) { return ELEM_KE[c.el] === a.el; })) why.push("仇神動來剋");
       if (a.ruMu.length && a.score < 1) why.push("休囚入墓");
+      // 《卜筮正宗》第三問：原神休囚不動、被日月相剋，皆不能生用
+      if (!a.moving && !a.anDong && isWeakLv(a.level)) why.push("休囚不動");
+      var mEl0 = FIVE_ELEMENTS[timeInfo.monthZhi], dEl0 = FIVE_ELEMENTS[timeInfo.dayZhi];
+      if ((ELEM_KE[mEl0] === a.el || ELEM_KE[dEl0] === a.el) && !isStrongLv(a.level)) why.push("被日月相剋");
       return why;
     }
     var tanSheng = jiActive.length > 0 && yuanActive.some(function(y) { return damagedYuan(y).length === 0; });
@@ -1974,6 +1978,13 @@
           else favor.push("原神" + y.name + "發動生用神");
         });
       }
+      if (!yuanActive.length && !tanSheng) {
+        var weakYuan = yuan.filter(function(y) { return damagedYuan(y).length; });
+        if (weakYuan.length && weakYuan.length === yuan.length) {
+          against.push("原神" + weakYuan.map(function(y) { return y.name + "（" + damagedYuan(y).join("、") + "）"; }).join("、") + "，不能生用神，用神根蒂受傷");
+          vScore -= 0.5;
+        }
+      }
       if (!yuan.length && !focusIsFu) against.push("原神不上卦，用神少根");
       if (yongPick && yongPick.idx === gua.shi) { favor.push("用神持世，所問之事與自己有緣"); vScore += 0.5; }
       else if (focus && !focusIsFu) {
@@ -1999,7 +2010,7 @@
       if (focus.heBan) ills.push("合絆");
       if (focus.jue) ills.push("逢絕");
       if (focus.ke > 0) ills.push("受剋");
-      if (ills.length) push(sum, "卦中之病：" + focusLabel + ills.join("、") + "。「天機盡洩於有病之間，斷法總在於醫藥之處」，解病之時即應期（見下方應期參考）。", "note");
+      if (ills.length) push(sum, "卦中之病：" + focusLabel + ills.join("、") + "。「天機盡洩於有病之間，斷法總在於藥醫之處」，解病之時即應期（見下方應期參考）。", "note");
     }
 
     // ----- 卦象總覽 -----
@@ -2019,7 +2030,7 @@
     }
     var pattern;
     if (activeCount === 0) pattern = "盡靜：六爻安靜且無日沖，「靜者恆美」，以用神之病（空、合）找應期，沖動之日應事";
-    else if (activeCount === 6) pattern = "盡發：六爻皆動，「動者招咎」，變化大、多暗藏凶險";
+    else if (activeCount === 6) pattern = "盡發：六爻皆動，「動者常咎」，變化大、多暗藏凶險";
     else if (activeCount === 1) {
       var only = movingIdx.length ? movingIdx[0] : anIdx[0];
       pattern = "獨發：只有" + nm(only) + (movingIdx.length ? "發動" : "暗動") + "，是全卦焦點，獨發之爻常可作應期參考（吉凶仍看用神）";
@@ -2175,7 +2186,7 @@
       if (ELEM_GEN[yEl2] === sEl) rs.push("用神生世：事來就我，得之容易");
       else if (ELEM_KE[yEl2] === sEl) rs.push("用神剋世：事來就我（求財為「財來就我終須易」；占病災則為受其所傷）");
       else if (ELEM_GEN[sEl] === yEl2) rs.push("世生用神：我去求之，較費心力");
-      else if (ELEM_KE[sEl] === yEl2) rs.push("世剋用神：我去求之，「我去求財必是難」，世爻須旺才擔得起");
+      else if (ELEM_KE[sEl] === yEl2) rs.push("世剋用神：我去求之，「我去求財必是難」（《增刪卜易》原文作「我去尋財」），世爻須旺才擔得起");
       else rs.push("世與用神比和");
       push(sy, rs.join("；") + "。");
     }
@@ -2212,6 +2223,9 @@
       var hj = sec("三合局與三刑");
       combos.forEach(function(n) { push(hj, n.text, n.tone); });
       push(hj, "三刑、六害屬附加象意，不改吉凶；六害屢試無驗，一般不論。", "note");
+      if (combos.some(function(n) { return /寅巳申|丑戌未/.test(n.text); })) {
+        push(hj, "「恃勢」「無恩」的歸屬依課程講法；《三命通會》作寅巳申為無恩之刑、丑戌未為恃勢之刑，古書說法不一。", "note");
+      }
     }
 
     // ----- 六獸與神煞 -----
@@ -2346,6 +2360,9 @@
           if (damagedYuan(y).length) say("本來有人或條件可以幫忙，但這股助力本身出了問題，幫不太上。", "bad");
           else say("有人或條件正在幫你推動這件事（原神發動）。", "good");
         });
+      }
+      if (!yuanActive.length && !tanSheng && yuan.length && yuan.every(function(y) { return damagedYuan(y).length; })) {
+        say("幫這件事的力量本身很弱，靠不住，這件事比較要靠自己。", "bad");
       }
       if (!yuan.length && !focusIsFu) say("卦中看不到明顯的助力，這件事比較要靠自己。");
     }
@@ -2780,7 +2797,7 @@
       rule: [
         "欲問吉凶，研究用神生剋；要知禍福，須詳用忌（第 15 集）。",
         "用神旺相、有原神生、忌神不動或受制為吉；用神休囚、忌神旺動、原神受傷為凶（第 07、26 集）。",
-        "財來就我終須易，我去求財必是難：用神生剋沖世是事來就我，世去生剋用神是我去求（第 12 集）。"
+        "財來就我終須易，我去求財必是難（《增刪卜易》原文作「我去尋財必是難」）：用神生剋沖世是事來就我，世去生剋用神是我去求（第 12 集）。"
       ],
       pitfall: [
         "分數只是幫你整理，重點是能說出每一項為什麼加、為什麼減。",
@@ -2792,7 +2809,7 @@
     // 8. 應期
     steps.push({
       title: "斷應期：找病，病解之時就是應期",
-      goal: "「天機盡洩於有病之間，斷法總在於醫藥之處」：用神的病（空、破、合、墓、絕）就是線索，解病的日子就是應期。",
+      goal: "「天機盡洩於有病之間，斷法總在於藥醫之處」（《卜筮正宗》原文；課程講者念作「醫藥之處」）：用神的病（空、破、合、墓、絕）就是線索，解病的日子就是應期。",
       apply: secItems("應期參考"),
       rule: [
         "空待填實或沖空；破待實破、合破或出破；合待沖；沖待合；墓待沖；絕待生（第 12、27 集）。",
