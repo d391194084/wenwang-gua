@@ -1582,18 +1582,22 @@
   }
 
   // 「生產」是分娩還是工業生產（事類判斷與自動選用神共用），以「生產」所在的子句判斷：
+  // 0. 子句有分娩過程本身的字詞（產房、剖腹、陣痛、產期…）→ 分娩（「老婆在產房的生產進度」）
   // 1. 生產後面直接接工業名詞（生產線、生產排程…）→ 工業
-  // 2. 子句有分娩本身的證據（母子、剖腹、產期、寶寶…）→ 分娩（「老婆在工廠上班，生產時能母子平安嗎」）
+  // 2. 子句有其他分娩證據（母子、寶寶、胎…）→ 分娩（「老婆在工廠上班，生產時能母子平安嗎」）
   // 3. 子句有工業字詞（工廠、量產、出貨、工作、負責…）→ 工業（「老婆在工廠負責生產」：稱謂只說明是誰，不是分娩證據）
   // 4. 其他：子句有老婆、太太等稱謂，或生產接在句尾、標點、一般接續字（了、嗎、時、可以、安全、有沒有…）→ 分娩；接其他名詞 → 工業
   var PROD_NOUN_RE = /生產(線|力|鏈|部|業|商|廠|量|排程|流程|計畫|計劃|規劃|管理|成本|效率|設備|工具|製造|單位|部門|作業|系統|技術|基地|規模|能力|過剩|週期|周期|進度|目標|任務|人員|主管|品質|產品|數量|速度|環境)/;
-  var BIRTH_STRONG_RE = /孕婦|產婦|母子|母女|順產|難產|剖腹|自然產|產房|產期|產後|預產|坐月子|寶寶|嬰|胎|懷孕|陣痛|羊水/;
+  var BIRTH_EVENT_RE = /孕婦|產婦|順產|難產|剖腹|自然產|產房|產期|產後|預產|坐月子|懷孕|陣痛|羊水|破水|待產|接生|產檢/;
+  var BIRTH_STRONG_RE = /母子|母女|寶寶|嬰|胎/;
   var BIRTH_PERSON_RE = /老婆|太太|妻子|媳婦/;
   var INDUSTRY_RE = /工廠|產線|量產|製造|製程|出貨|訂單|產能|廠商|代工|批量|大量|自動化|貨|產品|商品|工作|上班|負責|部門|公司|單位/;
   function isBirthWord(q) {
     return q.split(/[，,。；;！!？?\s]+/).some(function(cl) {
       var k = cl.indexOf("生產");
-      if (k < 0 || PROD_NOUN_RE.test(cl)) return false;
+      if (k < 0) return false;
+      if (BIRTH_EVENT_RE.test(cl)) return true;
+      if (PROD_NOUN_RE.test(cl)) return false;
       if (BIRTH_STRONG_RE.test(cl)) return true;
       if (INDUSTRY_RE.test(cl)) return false;
       if (BIRTH_PERSON_RE.test(cl)) return true;
@@ -1608,12 +1612,15 @@
   // 同一子句裡動詞前面的主詞是「我」（「我很愛我的工作」「我想我應該…」），或受詞是「我們」時不算；
   // 「她愛我的程度」「我覺得她愛我」的主詞是她，仍算
   var OTHER_PERSON_RE = /他|她|對方|你|妳|老公|老婆|丈夫|太太|妻子|前任|前夫|前妻|男友|女友|男朋友|女朋友|朋友|情人|愛人|戀人|對象|別人|有人|那個人|這個人|那人|這人/;
+  // 「比他更、跟她一樣、像他那樣、對她、替他」這類比較或介系詞後面的人物只是對象，主詞仍是前面的我
+  var PREP_PERSON_RE = new RegExp("(比|跟|和|與|同|像|對|替|幫|為了|為)(" + OTHER_PERSON_RE.source + ")(一樣|一般|那樣|這樣|似的|那麼|這麼)?", "g");
   function loveVerbHit(q) {
     var re = /(愛|想|喜歡|在乎|聯絡)我(?!們)/g, m;
     while ((m = re.exec(q))) {
       var before = q.slice(0, m.index).split(/[，,。；;！!？?\s]/).pop();
       var at = before.lastIndexOf("我");
-      if (at >= 0 && !OTHER_PERSON_RE.test(before.slice(at + 1))) continue;
+      var rest = at >= 0 ? before.slice(at + 1).replace(PREP_PERSON_RE, "") : "";
+      if (at >= 0 && !OTHER_PERSON_RE.test(rest)) continue;
       return true;
     }
     return false;
@@ -4319,6 +4326,12 @@
         var end = m.index + m[0].length;
         if (q.slice(Math.max(0, m.index - 2), m.index) === "我是") continue;
         if (/^(介紹|推薦)/.test(q.slice(end)) || /^的?(介紹|推薦)/.test(q.slice(end))) continue;
+        // 比較對象不是所問之人（「我比同事更愛我的工作」「我跟同事一樣」）
+        var w0 = m[0];   // 疊字稱謂（哥哥、媽媽）整個一起看
+        var pre = q.slice(0, m.index), post = q.slice(end);
+        while (pre.slice(-w0.length) === w0) pre = pre.slice(0, -w0.length);
+        while (post.slice(0, w0.length) === w0) post = post.slice(w0.length);
+        if (/[比像]$/.test(pre) || (/[跟和與同]$/.test(pre) && /^(一樣|一般|那樣|似的)/.test(post))) continue;
         hits.push({ at: m.index, end: end, rule: p });
       }
     });
