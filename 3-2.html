@@ -1554,7 +1554,9 @@
       ["病", /病|疾|手術|開刀|住院|健康|身體|痊癒|失眠|疼痛|頭痛|牙痛|胃痛|感冒|發燒|癌|腫瘤|看醫生|就醫|醫治/],
       ["訟", /官司|訴訟|起訴|提告|被告|告(他|她|對方|我|人)|判決|判刑|仲裁|坐牢|牢獄|入獄|糾紛|犯罪|罪名|有罪|無罪/],
       ["情", LOVE_RE],
+      // 稱謂與「我和他」只在沒有其他主題時才當感情題（「女朋友出國」是出行、「我和他合作開店」是求財）
       ["情", otherTopic ? /(?!)/ : /老公|老婆|丈夫|妻子|太太/],
+      ["情", money || job || /出差|旅遊|旅行|出國|出遊|出門|搬家|病|身體|手術|考試|官司/.test(q) ? /(?!)/ : LOVE_WEAK_RE],
       ["尋", (money || job) && !namedItem ? /(?!)/ : /走失|失物|遺失|找回|尋人|尋物|下落|何時回|什麼時候回|回來|歸期|不見|弄丟|掉了|被偷|失竊|在哪/],
       ["行", /出差|出遊|旅遊|旅行|出國|出門|出行|搬家|搬寢室|搬宿舍|回老家|成行/],
       ["考", /考試|考上|考取|考到|考得|考過|上榜|放榜|筆試|國考|公職|公務員|成績|分數|學測|會考|錄取|期末考|期中考|段考|及格|檢定|多益|托福|雅思|比賽|得名/],
@@ -1570,7 +1572,9 @@
   }
 
   // 感情題的字詞（事類判斷與自動選用神共用）
-  var LOVE_RE = /婚|戀|感情|交往|復合|復婚|男友|女友|男朋友|女朋友|姻緣|桃花|正緣|另一半|脫單|曖昧|告白|表白|約會|相親|追求|外遇|小三|劈腿|分手|有結果|在一起|有未來|還愛|愛我|想我|心裡.{0,3}有我|在乎我|聯絡我|喜歡我|喜歡他|喜歡她|喜歡的人|(他|她)對我|我(跟|和|與)(他|她)|(他|她)(跟|和|與)我|(?<!合作|交易|投資)對象|緣份|緣分|冷戰|回到我身邊/;
+  var LOVE_RE = /婚|戀|感情|交往|復合|復婚|姻緣|桃花|正緣|脫單|曖昧|告白|表白|約會|相親|追求|外遇|小三|劈腿|分手|有結果|在一起|有未來|還愛|愛我|想我|心裡.{0,3}有我|在乎我|聯絡我|喜歡我|喜歡他|喜歡她|喜歡的人|緣份|緣分|冷戰|回到我身邊/;
+  // 只是稱謂或「我和他」：沒有其他主題時才算感情題
+  var LOVE_WEAK_RE = /男友|女友|男朋友|女朋友|另一半|(?<!合作|交易|投資)對象|(他|她)對我|我(跟|和|與)(他|她)|(他|她)(跟|和|與)我/;
 
   // 失物題：有遺失類字詞，而且說得出是什麼東西，或沒有提到任何人
   function isLostItem(q) {
@@ -2473,21 +2477,23 @@
 
     // ---------- 出行（第 74、75、77 集） ----------
     if (cat === "行") {
-      var me = sel !== "世" && onGua ? f : shi;   // 問別人出行時看用神那一爻
+      var me = sel !== "世" && f ? f : shi;   // 問別人出行時看用神那一爻（伏神也是當事人）
       var meName = me === shi ? "世爻" : "用神";
+      var selfTrip = me === shi;
+      if (!onGua && !selfTrip) note("用神伏藏：出行的人還沒動身或行程未定，等飛神被沖開、伏神出伏才走得成。");
       if ((me.riHe || me.heBan || me.yueHe) && !/搬/.test(q)) { r.against.push(meName + "被合：被事情絆住，難以成行（這條很常應驗）"); r.delta -= 1; }
       var KE_SHI = { "父母": "天氣、行李、交通延誤受阻，嚴重要防車禍", "兄弟": "防破財、受傷", "官鬼": "憂愁、疾病、災禍", "妻財": "因錢、因女人生事，或水土不服、飲食不潔", "子孫": "受孩子影響，或遊玩時有災" };
       var lo = Math.min(gua.shi, gua.ying), hi = Math.max(gua.shi, gua.ying);
       A.lines.forEach(function(a) {
-        if (!act(a) || a.idx === me.idx || !(hits(keBy(me), a) || chong(a, me))) return;
+        if (!act(a) || a.idx === me.idx || !(hits(keBy(me), a) || (onGua || selfTrip ? chong(a, me) : false))) return;   // 伏神不論動爻沖，只論實際受剋
         r.against.push(a.name + "動來沖剋" + meName + "：" + KE_SHI[a.rel] + (a.rel === "父母" && a.idx === 4 ? "（五爻父母是車，更要小心）" : "") +
           (a.idx > lo && a.idx < hi ? "；它在世應之間（間爻），也代表同行者拖累或路上阻隔" : ""));
         r.delta -= (a.rel === "父母" || a.rel === "官鬼") ? 1 : 0.5;
       });
-      if ((shi.rel === "子孫" && !broken(shi)) || (shi.moving && gua.lines[gua.shi].chgRelative === "子孫")) r.favor.push("子孫持世或世化子孫：一路順風、無憂");
+      if (selfTrip && ((shi.rel === "子孫" && !broken(shi)) || (shi.moving && gua.lines[gua.shi].chgRelative === "子孫"))) r.favor.push("子孫持世或世化子孫：一路順風、無憂");
       if (ying.kong || ying.yuePo || ying.riPo) { r.against.push("應爻（目的地）" + (ying.kong ? "旬空" : ying.yuePo ? "月破" : "日破") + "：到了目的地多有不順"); r.delta -= 0.5; }
-      if (shi.rel === "官鬼" && shi.kong) r.favor.push("官鬼持世而旬空：擔心的事不存在或減半");
-      if (shi.moving && YI_MA[SAN_HE_HEAD[dz]] === shi.branch) note("世爻臨驛馬又發動：很快就會出行。");
+      if (selfTrip && shi.rel === "官鬼" && shi.kong) r.favor.push("官鬼持世而旬空：擔心的事不存在或減半");
+      if (me.moving && YI_MA[SAN_HE_HEAD[dz]] === me.branch) note(meName + "臨驛馬又發動：很快就會出行。");
       if (/搬/.test(q)) note("搬家、搬寢室這類移動：世應誰被沖就是誰走，被合絆就留下。" + (c.activeCount === 0 && (shi.riHe || shi.yueHe) ? "靜卦中世爻被合，沒有爻沖開，多半不會動。" : ""));
       note("出行卦的反吟、伏吟只代表去了又回、改道繞路，屬不順，不算凶；六沖主東奔西跑，六合主順利。");
     }
@@ -2556,15 +2562,22 @@
       } else if (sel === "官鬼" || sel === "父母") {
         note("占" + (sel === "官鬼" ? "丈夫" : "長輩") + "的病：官鬼是" + (sel === "官鬼" ? "用神" : "原神") + "，宜旺不宜衰（衰代表免疫力、後勁不足），病改看忌神。");
       }
-      if (c.yuan.some(function(y) { return c.damagedYuan(y).length; })) note("原神（免疫力、抵抗力）受傷：多主神經、思想、頭部方面的毛病。");
+      var illSelf = sel === "世" && shi.rel === "官鬼";   // 反看：世爻就是病
+      if (!illSelf && c.yuan.some(function(y) { return c.damagedYuan(y).length; })) note("原神（免疫力、抵抗力）受傷：多主神經、思想、頭部方面的毛病。");
       var pt = sel === "世" ? shi : onGua ? f : null;
       if (pt) {
         var tg2 = trigramOf(gua, pt.idx);
         note("病位參考（象法，多個證據疊加才準）：" + pt.name + "在" + YAO_SHORT[pt.idx] + "（" + YAO_POS[pt.idx].body + "）；屬" + pt.el + "（" + ZHI_BODY[pt.el] + "）；所在" + tg2 + "卦（" + TRIGRAM_BODY[tg2] + "）；臨" + c.spirits[pt.idx] + "（" + SPIRIT_DISEASE[c.spirits[pt.idx]] + "）。");
-        keBy(pt).forEach(function(a) {
-          note("剋它的" + a.name + "：" + YAO_SHORT[a.idx] + "（" + YAO_POS[a.idx].body + "）、" + a.el + "（" + ZHI_BODY[a.el] + "），被剋之處就是病位。");
-        });
-        note("病何時好：取用神自己旺的日子（值日的" + pt.branch + "日）比取生它的日子更好。");
+        if (illSelf) {
+          var zsEl = Object.keys(ELEM_KE).filter(function(e) { return ELEM_KE[e] === shi.el; })[0];
+          var zsZhi = Object.keys(FIVE_ELEMENTS).filter(function(z) { return FIVE_ELEMENTS[z] === zsEl; });
+          note("病何時好：世爻就是病，取子孫（醫藥）值日的" + zsZhi.join("、") + "日，或沖官鬼的" + clashOf(shi.branch) + "日；官鬼值日的" + shi.branch + "日病勢反而較重。");
+        } else {
+          keBy(pt).forEach(function(a) {
+            note("剋它的" + a.name + "：" + YAO_SHORT[a.idx] + "（" + YAO_POS[a.idx].body + "）、" + a.el + "（" + ZHI_BODY[a.el] + "），被剋之處就是病位。");
+          });
+          note("病何時好：取用神自己旺的日子（值日的" + pt.branch + "日）比取生它的日子更好。");
+        }
       }
       note("疾病卦只作參考，身體不適請就醫並遵照醫囑。", "note");
     }
@@ -2674,7 +2687,8 @@
     }
     // 疾病自占、官鬼持世：子孫剋世是醫藥剋去病，不當忌神（第 41、84 集）
     var illness = cat === "病" && !!roles && roles.sel === "世" && !!focus && !focusIsFu && A.lines[gua.shi].rel === "官鬼";
-    var medicine = [];
+    // 反看時，實際剋到官鬼（世）的子孫是醫藥，不當阻力
+    var medicine = illness ? jiActive.filter(function(j) { return focus.actKeIdx.indexOf(j.idx) >= 0; }).map(function(j) { return j.idx; }) : [];
     // 實際剋到、生到用神的忌神、原神（依作用方向）
     var jiHit = focus ? jiActive.filter(function(j) { return focus.actKeIdx.indexOf(j.idx) >= 0 && medicine.indexOf(j.idx) < 0; }) : [];
     var yuanHit = focus ? yuanActive.filter(function(y) { return focus.actShengIdx.indexOf(y.idx) >= 0; }) : [];
@@ -2710,16 +2724,18 @@
       if (focus.useless) vScore = Math.min(vScore, -3.5);
     }
     // 重內輕外（第 28、64、65、89 集）：自身變化（第一層）> 卦中動爻（第二層）> 日月（第三層）
+    var innerCap = false;   // 第一層的凶（自身化廢、有效回頭剋）要保留到最後，貪生忘剋與各類加分不能救回
     if (focus && !focus.useless) {
       var hasHS = focus.chgTags.indexOf("回頭生") >= 0, hasHK = focus.chgTags.indexOf("回頭剋") >= 0;
       if (!focusIsFu && focus.fei && focus.fei.length) {
         against.push("重內輕外：" + focusLabel + "自身化廢（" + focus.fei.join("、") + "，第一層），用神失去作用，事難成");
         vScore = Math.min(vScore, -1.6);
+        innerCap = true;
       }
       else if (hasHS) { if (vScore < 1) { favor.push("重內輕外：" + focusLabel + "自身化回頭生（第一層），勝過日月與動爻的不利"); vScore = 1; } }
-      else if (hasHK) { if (vScore > -1.6) { against.push("重內輕外：" + focusLabel + "自身化回頭剋（第一層），日月再旺也以凶論"); vScore = -1.6; } }
+      else if (hasHK) { innerCap = true; if (vScore > -1.6) { against.push("重內輕外：" + focusLabel + "自身化回頭剋（第一層），日月再旺也以凶論"); vScore = -1.6; } }
       else if (focus.chgTags.indexOf("化進神") < 0) {
-        if (focus.mdScore >= 1 && focus.actKe.length - medicine.length > focus.actSheng.length && vScore > -1.6) {
+        if (focus.mdScore >= 1 && focus.actKe.length > focus.actSheng.length && vScore > -1.6) {
           against.push("重內輕外：" + focusLabel + "雖得日月之旺，但被" + focus.actKe.join("、") + "所剋；卦中動爻（第二層）重於日月（第三層），以被剋論");
           vScore = -1.6;
         } else if (focus.mdScore < 0 && focus.actSheng.length > focus.actKe.length && vScore < 1) {
@@ -2756,7 +2772,7 @@
         }
       }
       if (!yuan.length && !focusIsFu) against.push("原神不上卦，用神少根");
-      if (yongPick && yongPick.idx === gua.shi) { favor.push("用神持世，所問之事與自己有緣"); vScore += 0.5; }
+      if (yongPick && yongPick.idx === gua.shi) { if (!illness) { favor.push("用神持世，所問之事與自己有緣"); vScore += 0.5; } }
       else if (focus && !focusIsFu) {
         var shiEl = A.lines[gua.shi].el;
         if (ELEM_GEN[focus.el] === shiEl || ZHI_HE[focus.branch] === A.lines[gua.shi].branch) { favor.push("用神生合世爻，事來就我"); vScore += 0.5; }
@@ -2774,8 +2790,10 @@
       !/新工作|下一份|找到.{0,6}工作|換工作/.test(qText);
     // 自占疾病而官鬼持世：世爻就是病，鬼旺病重、鬼衰病輕，先把用神面的分數反過來（第 84 集）
     if (illness) {
-      neutral.unshift("自占疾病而官鬼持世：世爻就是病，病越旺越不好，越衰越好；下面有利、不利各條是就這一爻本身而言，整體傾向已反轉");
+      neutral.unshift("自占疾病而官鬼持世：世爻就是病，病越旺越不好，越衰越好；下面的有利、不利已改從病人的角度排列（「用神」指官鬼，也就是病）");
       vScore = -vScore;
+      var swap = favor; favor = against; against = swap;
+      medicine.forEach(function(i) { favor.push("子孫" + A.lines[i].name + "（醫藥）動來剋官鬼（病）：有利康復"); });
     }
     var cr = categoryRules({
       gua: gua, A: A, roles: roles, cat: cat, q: qText, focus: focus, focusIsFu: focusIsFu, fuInfo: fuInfo, yongPick: yongPick,
@@ -2796,6 +2814,8 @@
     // 用神無用（真空、真破、無用伏神等）時，專門斷法的下限不能把它拉回吉
     var focusUseless = !!focus && (focus.useless || (focusIsFu && fuInfo.fu.verdict.useless));
     if (focusUseless && !illness && !cr.keepUseless) vScore = Math.min(vScore, -3.5);
+    // 用神自身化廢或有效回頭剋（第一層）：其他加分不能救回；疾病、離職反看與改以他爻為準時不套
+    if (innerCap && !illness && !quitJob && cr.replace === null && !cr.keepUseless) vScore = Math.min(vScore, -1.6);
     // 辭職、離職反著看（第 64 集）
     if (quitJob && focus) {
       var zsKe = focus.actKeIdx.some(function(i) { return A.lines[i].rel === "子孫"; });
@@ -2954,11 +2974,21 @@
       };
       if (!yuan.length) {
         var fuYuan = A.lines.filter(function(a) { return a.fuA && gua.lines[a.idx].fu.relative === roles.names["原"]; });
-        push(yj, "原神" + roles.names["原"] + "不上卦" + (fuYuan.length ? "，伏於" + fuYuan[0].name + "之下（" + fuYuan[0].fuA.verdict.text + "）" : "") + "，用神根基較弱。", "bad");
+        push(yj, "原神" + roles.names["原"] + "不上卦" + (fuYuan.length ? "，伏於" + fuYuan[0].name + "之下（" + fuYuan[0].fuA.verdict.text + "）" : "") + (illness ? "，病少了來源。" : "，用神根基較弱。"), illness ? "good" : "bad");
       }
+      if (illness) push(yj, "自占疾病而官鬼持世：以下的用神就是病。原神生病（助長病情），忌神子孫剋病（醫藥），所以好壞與一般相反。", "note");
       yuan.forEach(function(a) {
         var d = damagedYuan(a);
         var t = roleLine(a, "原");
+        if (illness) {
+          if (a.heBan) t += "。原神被日辰合絆，暫不能生病。";
+          else if (yuanHit.indexOf(a) >= 0 && !d.length) t += "。原神動來生官鬼，病有助力，病勢加重。";
+          else if (d.length) t += "。原神" + d.join("、") + "，生病之力弱，對康復有利。";
+          else if (active(a)) t += "。原神雖動，但沒有生到官鬼。";
+          else t += "。原神安靜，對病助力有限。";
+          push(yj, t, yuanHit.indexOf(a) >= 0 && !d.length ? "bad" : d.length ? "good" : "");
+          return;
+        }
         if (a.heBan) t += "。原神動而被日辰合絆，暫不能生用神，待沖開之" + clashOf(a.branch) + "日。";
         else if (active(a) && !d.length && yuanHit.indexOf(a) < 0) t += "。原神雖動，但作用方向在他處（" + (A.actors.filter(function(x) { return x.idx === a.idx; })[0] || { aimText: "他爻" }).aimText + "），沒有生到用神。";
         else if (active(a) && !d.length) t += "。原神動來生用神，" + (focus && isStrongLv(focus.level) ? "用神旺上加旺，吉更倍。" : "用神有根，衰弱、空伏之時待時而起。");
@@ -2969,6 +2999,15 @@
       ji.forEach(function(a) {
         var t = roleLine(a, "忌");
         var weakJi = a.kongType.indexOf("真空") === 0 || a.yuePo || a.riPo || a.ruMu.length || a.chgTags.indexOf("回頭剋") >= 0 || a.chgTags.indexOf("化退神") >= 0;
+        if (illness) {
+          if (medicine.indexOf(a.idx) >= 0) t += weakJi ? "。子孫（醫藥）動來剋官鬼，但本身受制，藥力較弱。" : "。子孫（醫藥）動來剋官鬼（病），醫藥對症，有利康復。";
+          else if (tanJi.indexOf(a) >= 0) t += "。子孫（醫藥）貪生原神，藥力轉去生病源，效果打折。";
+          else if (a.heBan) t += "。子孫（醫藥）被日辰合絆，暫時使不上力。";
+          else if (active(a)) t += "。子孫（醫藥）雖動，但沒有剋到官鬼。";
+          else t += "。子孫（醫藥）安靜，醫藥之力尚未發動。";
+          push(yj, t, medicine.indexOf(a.idx) >= 0 && !weakJi ? "good" : tanJi.indexOf(a) >= 0 ? "bad" : "");
+          return;
+        }
         if (a.heBan) {
           t += "。忌神動而被日辰合絆，暫不能剋用神；沖開之" + clashOf(a.branch) + "日需留意。";
         } else if (active(a) && jiHit.indexOf(a) < 0) {
@@ -2983,10 +3022,10 @@
       });
       chou.forEach(function(a) {
         var t = roleLine(a, "仇");
-        if (active(a)) t += "。仇神發動，剋原神、生忌神，間接不利用神。";
-        push(yj, t, active(a) ? "bad" : "");
+        if (active(a)) t += illness ? "。仇神發動，剋原神、生子孫（醫藥），間接有利康復。" : "。仇神發動，剋原神、生忌神，間接不利用神。";
+        push(yj, t, active(a) ? (illness ? "good" : "bad") : "");
       });
-      if (!ji.length) push(yj, "忌神" + roles.names["忌"] + "不上卦，用神少一重剋制。", "good");
+      if (!ji.length) push(yj, illness ? "子孫（醫藥）不上卦，缺少剋病的力量。" : "忌神" + roles.names["忌"] + "不上卦，用神少一重剋制。", illness ? "bad" : "good");
     }
 
     // ----- 世應 -----
@@ -3092,7 +3131,13 @@
 
     // ----- 應期 -----
     var yq = sec("應期參考");
-    if (focus) yingQiNotes(focus, focusLabel, focusIsFu).forEach(function(n) { push(yq, n.text, n.tone); });
+    if (illness) {
+      // 世爻就是病：用神的應期是病勢起伏之時，好轉看子孫（醫藥）值日或沖官鬼之日
+      var zsEl = Object.keys(ELEM_KE).filter(function(e) { return ELEM_KE[e] === focus.el; })[0];
+      var zsZhi = Object.keys(FIVE_ELEMENTS).filter(function(z) { return FIVE_ELEMENTS[z] === zsEl; });
+      push(yq, "病好轉的時機：子孫（醫藥）值日的" + zsZhi.join("、") + "日，或沖官鬼的" + clashOf(focus.branch) + "日", "good");
+      yingQiNotes(focus, focusLabel, focusIsFu).forEach(function(n) { push(yq, "病勢的應期（官鬼就是病，這些日子病勢較明顯）：" + n.text, "bad"); });
+    } else if (focus) yingQiNotes(focus, focusLabel, focusIsFu).forEach(function(n) { push(yq, n.text, n.tone); });
     if (focusIsFu && !fuInfo.fu.useless) push(yq, "伏神出伏：沖開飛神之" + clashOf(fuInfo.fly.branch) + "日，或飛神逢空之時");
     if (activeCount === 1) {
       var key = movingIdx.length ? movingIdx[0] : anIdx[0];
@@ -3154,7 +3199,23 @@
       var who = roles.sel === "世" ? "代表你自己的「世爻」" : roles.sel === "應" ? "代表對方的「應爻」" : "「" + roles.sel + "」";
       say("卦裡用" + who + "來代表這件事" + (REL_MEANING[roles.sel] ? "（" + (roles.sel === "世" || roles.sel === "應" ? "它" : roles.sel) + "可以代表：" + REL_MEANING[roles.sel] + "）" : "") + "。");
     }
-    if (focus) {
+    if (illness) {
+      var ill = focus;
+      say("病勢：" + { "旺": "病勢很重", "偏旺": "病勢偏重", "不旺不衰": "病勢普通", "偏衰": "病勢偏輕", "衰": "病勢很輕" }[ill.level] + "。", isStrongLv(ill.level) ? "bad" : isWeakLv(ill.level) ? "good" : "");
+      if (ill.kongType.indexOf("真空") === 0 || (ill.poType && ill.poType.indexOf("假破") !== 0)) say("代表病的爻落空或受到衝擊，病勢不容易成形。", "good");
+      if (ill.muType) say("病被「收住」了，病情拖延、不明朗，要等被沖開的日子才看得清楚。");
+      if (ill.moving) {
+        var ict = ill.chgTags;
+        if (ict.indexOf("回頭生") >= 0 || ict.indexOf("化進神") >= 0) say("病勢有加重的趨勢，要多留意。", "bad");
+        if (ict.indexOf("回頭剋") >= 0 || ict.indexOf("化退神") >= 0) say("病勢正在減退，有好轉的跡象。", "good");
+      }
+      if (tanSheng) say("醫藥的力量被分散去生病源，效果打折，要留意治療方式。", "bad");
+      else {
+        if (medicine.length) say("有醫藥或治療的力量正在剋制病情（子孫剋官鬼）。", "good");
+        if (yuanHit.some(function(y) { return !damagedYuan(y).length; })) say("有因素正在助長病情（原神生官鬼），例如勞累、飲食或作息，要留意。", "bad");
+      }
+    }
+    if (focus && !illness) {
       var fname = roles ? "這件事" : "你自己";
       if (focusIsFu) {
         say("代表這件事的爻沒有直接出現在卦上，而是藏在別的爻底下，表示事情還沒浮上檯面。" +
@@ -3186,7 +3247,7 @@
         else if (ct.indexOf("化沖") >= 0) say("事情會反反覆覆、來回變化。");
       }
     }
-    if (roles) {
+    if (roles && !illness) {
       if (tanSheng) {
         say("原本扯後腿的力量，反而轉去幫助你的助力，壞事變好事（貪生忘剋）。", "good");
       } else {
@@ -3203,7 +3264,7 @@
     }
     var shiPlain = { "旺": "狀態很好、很有信心", "偏旺": "狀態不錯", "不旺不衰": "狀態普通", "偏衰": "狀態偏弱、比較沒把握", "衰": "狀態很差、力不從心" }[shiA.level];
     // 沒選用神時上面已經以世爻說明過自己，不再重複
-    if (roles) say("你自己目前" + shiPlain + (shiA.kong ? "，但心裡還有些猶豫、還沒完全定下來" : "") + "。");
+    if (roles && !illness) say("你自己目前" + shiPlain + (shiA.kong ? "，但心裡還有些猶豫、還沒完全定下來" : "") + "。");
     var relPlain = [];
     if (ZHI_HE[shiA.branch] === yingA.branch) relPlain.push("你和對方關係融洽、容易談得來");
     if (isClash(shiA.branch, yingA.branch)) relPlain.push("你和對方容易意見不合");
@@ -3212,7 +3273,7 @@
     else if (ELEM_KE[yingA.el] === shiA.el) relPlain.push("壓力主要來自對方或外在環境");
     else if (ELEM_KE[shiA.el] === yingA.el) relPlain.push("你比較能掌握對方或局面");
     if (relPlain.length) say(relPlain.join("；") + "。");
-    if (yongPick && yongPick.idx === gua.shi) {
+    if (yongPick && yongPick.idx === gua.shi && !illness) {
       say("這件事就落在你自己身上，跟你很有緣。", "good");
     } else if (focus && !focusIsFu && yongPick) {
       if (ELEM_GEN[focus.el] === shiA.el || ELEM_KE[focus.el] === shiA.el) say("這件事會主動找上你，比較容易得到。", "good");
@@ -4183,7 +4244,7 @@
     { re: /(有|會有|是否有|會不會有|有沒有)官司|官非|吃上官司/, value: "官鬼", why: "問有無官非取官鬼" },
     { re: /在什麼方向|在哪個方向|往哪個方向|往哪裡|什麼方位|哪個方位|在哪裡|在哪|人在|下落|去向|行蹤|失聯|離家|走失|失蹤|有沒有出國|出國了|還在這裡|還在不在|在不在|還在嗎|回來了|何時回|什麼時候回|幾時回|會回來|何日歸|何日來|何時來|歸期|何日回/, value: "行" },
     { re: /坐車|搭車|搭機|班機|出遊|旅程|旅遊|旅行|出國|出行|出門|出差|避亂|避難|安危/, value: "世", why: "自身出行看世爻" },
-    { re: /^(?!.*(面試|口試)).*(應聘|應徵|投履歷|履歷|簡歷|錄取|錄用|筆試|考試|考上|考取|考到|及格|期末考|期中考|上榜|放榜|榜單|國考|高普考|檢定)/, value: "父母", why: "考試、應聘、錄取取父母（成績、錄取通知），兼看官鬼（名次、面試）" },
+    { re: /^(?!.*(面試|口試)).*(應聘|應徵|投履歷|履歷|簡歷|錄取|錄用|筆試|考試|考上|考取|考到|考過|考得|及格|期末考|期中考|上榜|放榜|榜單|國考|高普考|檢定)/, value: "父母", why: "考試、應聘、錄取取父母（成績、錄取通知），兼看官鬼（名次、面試）" },
     { re: /面試|口試|求職|副業|教書|兼差|升職|晉升|轉正|辭呈|辭職|離職|調職|調動|比賽|得名|名次/, value: "官鬼", why: "在職、升職、面試、離職、名次取官鬼" },
     { re: /成績|分數|總分|門檻|(破|達到|超過)\d+|\d+分以上|托福|多益|GRE|雅思|段考|基測|學測|會考|論文|課程|教材|dvd|DVD|補習|讀書|念書|學業|升學/, value: "父母", why: "成績、文章、教材取父母" },
     { re: /租約|合約|合同|契約|簽約|文件|文書|簽證|綠卡|居留|保單|執照|證照/, value: "父母", why: "合約、證件、文書取父母" },
