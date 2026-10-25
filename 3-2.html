@@ -1596,8 +1596,13 @@
   // 孕產的時間背景（懷孕期間、坐完月子、產後、產假結束…）：所問有工作字詞時先拿掉，不讓它蓋過工作主題
   var BIRTH_BG_RE = /(懷孕|懷胎|孕)(期間|中|時|的時候|後)|坐完?月子(結束|後|完|期間|時)?|產後|產假(結束|後|期間|中)?/g;
   var WORK_TOPIC_RE = /工作|上班|職位|職場|職務|升職|升遷|晉升|加薪|面試|求職|轉職|調動|調職|事業|公司|工廠|產線|生產線|排程|負責/;
+  var WORK_NEG_RE = /(不用|不必|不需要?|沒有?|沒在|不再|停止|暫停|請假不)去?(上班|工作)/g;
   function birthTopic(q, direct) {
-    var t = WORK_TOPIC_RE.test(q) ? q.replace(BIRTH_BG_RE, "") : q;
+    // 逐子句看：工作字詞和孕產背景在同一子句（「老婆懷孕期間在工廠負責排程」）才拿掉背景；
+    // 工作在另一子句或被否定（「老婆已請假不用上班，坐月子會順利嗎」）時，孕產仍是所問的主題
+    var t = q.split(/([，,。；;！!？?\s]+)/).map(function(cl) {
+      return WORK_TOPIC_RE.test(cl.replace(WORK_NEG_RE, "")) ? cl.replace(BIRTH_BG_RE, "") : cl;
+    }).join("");
     return direct.test(t) || isBirthWord(t);
   }
   function isBirthWord(q) {
@@ -1621,15 +1626,17 @@
   // 同一子句裡動詞前面的主詞是「我」（「我很愛我的工作」「我想我應該…」），或受詞是「我們」時不算；
   // 「她愛我的程度」「我覺得她愛我」的主詞是她，仍算
   var OTHER_PERSON_RE = /他|她|對方|你|妳|老公|老婆|丈夫|太太|妻子|前任|前夫|前妻|男友|女友|男朋友|女朋友|朋友|情人|愛人|戀人|對象|別人|有人|那個人|這個人|那人|這人/;
-  // 「我比他更、我跟她一樣、我替他」這類比較或介系詞片語緊接在主詞「我」之後（中間只能有副詞）時，裡面的人物只是對象，主詞仍是我。
-  // 不在這個位置的字不當介系詞，所以「我認同她愛我」「我以為她愛我」的她仍是主詞
-  var PREP_PERSON_RE = new RegExp("^(?:個人|本人|自己|也|都|還|又|一直|真的|其實|確實|始終|向來|總是|從來|現在|以前|已經|可能)*(?:比|跟|和|與|同|像|對|替|幫|為了|為)(?:" + OTHER_PERSON_RE.source + ")(?:一樣|一般|那樣|這樣|似的|那麼|這麼)?");
+  // 比較結構「比他更、跟她一樣、像他那樣」：人物後面接更、還、也、一樣、那樣等比較詞時，人物只是比較對象，在子句任何位置都拿掉
+  //（「我只是比她更愛我的工作」）；「認同她愛我」的「同她」後面接的是愛，不是比較詞，所以她仍是主詞
+  var COMPARE_PERSON_RE = new RegExp("(?:比|跟|和|與|同|像)(?:" + OTHER_PERSON_RE.source + ")(?=更|還|也|都|一樣|一般|那樣|這樣|似的|那麼|這麼|多|少)", "g");
+  // 對、替、幫、為等介系詞片語只認緊接主詞「我」之後（中間只能有副詞）的那一個，「以為她、認為她」不算
+  var PREP_PERSON_RE = new RegExp("^(?:個人|本人|自己|也|都|還|又|一直|真的|其實|確實|始終|向來|總是|從來|現在|以前|已經|可能|只是|應該|還是|就是|也是|一定|好像)*(?:對|替|幫|為了|為)(?:" + OTHER_PERSON_RE.source + ")");
   function loveVerbHit(q) {
     var re = /(愛|想|喜歡|在乎|聯絡)我(?!們)/g, m;
     while ((m = re.exec(q))) {
       var before = q.slice(0, m.index).split(/[，,。；;！!？?\s]/).pop();
       var at = before.lastIndexOf("我");
-      var rest = at >= 0 ? before.slice(at + 1).replace(PREP_PERSON_RE, "") : "";
+      var rest = at >= 0 ? before.slice(at + 1).replace(COMPARE_PERSON_RE, "").replace(PREP_PERSON_RE, "") : "";
       if (at >= 0 && !OTHER_PERSON_RE.test(rest)) continue;
       return true;
     }
