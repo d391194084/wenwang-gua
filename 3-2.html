@@ -2860,7 +2860,9 @@
       var still = [0, 1, 2, 3, 4, 5].filter(function(i) { return movingIdx.indexOf(i) < 0 && anIdx.indexOf(i) < 0; })[0];
       pattern = "獨靜：只有" + nm(still) + "安靜，常以獨靜之爻定應期";
     } else pattern = activeCount + " 爻發動（含暗動）" + (activeCount >= 4 ? "，卦爻競發，勢必翻騰，事多變動" : "，以動爻與用神的生剋為斷");
-    if (activeCount && A.blocked.length) pattern += "（其中 " + A.blocked.length + " 爻化廢、被合絆或入日墓，不能生剋他爻）";
+    // 只算上面爻數裡的明動爻（入日墓的暗動本來就不算在爻數內）
+    var stuck = movingIdx.filter(function(i) { return A.lines[i].heBan || (A.lines[i].fei && A.lines[i].fei.length); }).length;
+    if (stuck) pattern += "（其中 " + stuck + " 爻化廢或被合絆，不能生剋他爻）";
     push(ov, pattern);
 
     function relText(kind) {
@@ -3255,7 +3257,7 @@
       var re = /([子丑寅卯辰巳午未申酉戌亥](?:、[子丑寅卯辰巳午未申酉戌亥])*)日/g, m;
       while ((m = re.exec(it.text))) m[1].split("、").forEach(function(z) { if (dayZhis.indexOf(z) < 0) dayZhis.push(z); });
     });
-    if (focus && focus.useless) say("時間上：這件事目前看不到明確的好轉時機。", "bad");
+    if (focusUseless) say("時間上：這件事目前看不到明確的好轉時機。", "bad");
     else if (dayZhis.length) say("可能有變化或結果的日子：" + dayZhis.slice(0, 4).map(nextDay).sort(function(a, b) { return a.d - b.d; }).map(function(x) { return x.text; }).join("、") + "。若是長期的事，則看相同地支的月份或年份。");
     say("以上是依六爻規則推算的參考，實際還要配合你自己的狀況判斷。", "note");
     sections.unshift(plain);
