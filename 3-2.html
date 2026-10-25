@@ -1547,21 +1547,31 @@
     var namedItem = LOST_RE.test(q) && YONG_ITEMS.some(function(it) { return it.re.test(q); });   // 明說遺失了什麼東西
     var money = /錢|款項|貨款|資金|投資|股|基金|回本|借|欠|債|貸|生意|開店/.test(q);
     var job = /工作|上班|職位|職場|升職|升遷|晉升|面試|求職|轉職|調動|事業|應聘|應徵|公司/.test(q);
-    // 配偶字詞只在沒有其他主題時才當感情題（「老公的工作」是工作題）
-    var otherTopic = money || job || /出差|旅遊|旅行|出國|病|身體|手術|考試|回來|何時回|什麼時候回|在哪|下落|走失|官司/.test(q);
+    var T = {
+      胎: /懷孕|懷上|受孕|有孕|(?<!輪|備|爆)胎|求子|生產|出生|預產|流產|坐月子|生小孩|有孩子|生孩子|子女緣/,
+      病: /病|疾|手術|開刀|住院|健康|身體|痊癒|失眠|疼痛|頭痛|牙痛|胃痛|感冒|發燒|癌|腫瘤|看醫生|就醫|醫治/,
+      訟: /官司|訴訟|起訴|提告|被告|告(他|她|對方|我|人)|判決|判刑|仲裁|坐牢|牢獄|入獄|糾紛|犯罪|罪名|有罪|無罪/,
+      尋: /走失|失物|遺失|找回|尋人|尋物|下落|何時回|什麼時候回|回來|歸期|不見|弄丟|掉了|被偷|失竊|在哪/,
+      行: /出差|出遊|旅遊|旅行|出國|出門|出行|搬家|搬寢室|搬宿舍|回老家|成行/,
+      考: /考試|考上|考取|考到|考得|考過|上榜|放榜|筆試|國考|公職|公務員|成績|分數|學測|會考|錄取|期末考|期中考|段考|及格|檢定|多益|托福|雅思|比賽|得名/,
+      名: /工作|上班|職位|職場|職務|辭職|離職|在職|求職|轉職|升職|升遷|晉升|面試|功名|官(?!司|非)|調動|調職|事業|應聘|應徵/,
+      財: /財|錢|投資|生意|股|薪|收入|買賣|借|債|業績|開店|回本/
+    };
+    // 稱謂、「我和他」只在沒有其他主題時才當感情題（「女朋友出國」是出行、「男朋友考得好嗎」是考試）；
+    // 其他主題直接用下面各事類的同一組字詞判斷，配偶字詞另把「回來、在哪」等行人字詞也當成其他主題
+    var otherTopic = money || job || ["胎", "病", "訟", "行", "考", "名", "財"].some(function(k) { return T[k].test(q); });
     var rules = [
-      ["胎", /懷孕|懷上|受孕|有孕|(?<!輪|備|爆)胎|求子|生產|出生|預產|流產|坐月子|生小孩|有孩子|生孩子|子女緣/],
-      ["病", /病|疾|手術|開刀|住院|健康|身體|痊癒|失眠|疼痛|頭痛|牙痛|胃痛|感冒|發燒|癌|腫瘤|看醫生|就醫|醫治/],
-      ["訟", /官司|訴訟|起訴|提告|被告|告(他|她|對方|我|人)|判決|判刑|仲裁|坐牢|牢獄|入獄|糾紛|犯罪|罪名|有罪|無罪/],
+      ["胎", T.胎],
+      ["病", T.病],
+      ["訟", T.訟],
       ["情", LOVE_RE],
-      // 稱謂與「我和他」只在沒有其他主題時才當感情題（「女朋友出國」是出行、「我和他合作開店」是求財）
-      ["情", otherTopic ? /(?!)/ : /老公|老婆|丈夫|妻子|太太/],
-      ["情", money || job || /出差|旅遊|旅行|出國|出遊|出門|搬家|病|身體|手術|考試|官司/.test(q) ? /(?!)/ : LOVE_WEAK_RE],
-      ["尋", (money || job) && !namedItem ? /(?!)/ : /走失|失物|遺失|找回|尋人|尋物|下落|何時回|什麼時候回|回來|歸期|不見|弄丟|掉了|被偷|失竊|在哪/],
-      ["行", /出差|出遊|旅遊|旅行|出國|出門|出行|搬家|搬寢室|搬宿舍|回老家|成行/],
-      ["考", /考試|考上|考取|考到|考得|考過|上榜|放榜|筆試|國考|公職|公務員|成績|分數|學測|會考|錄取|期末考|期中考|段考|及格|檢定|多益|托福|雅思|比賽|得名/],
-      ["名", /工作|上班|職位|職場|職務|辭職|離職|在職|求職|轉職|升職|升遷|晉升|面試|功名|官(?!司|非)|調動|調職|事業|應聘|應徵/],
-      ["財", /財|錢|投資|生意|股|薪|收入|買賣|借|債|業績|開店|回本/]
+      ["情", otherTopic || T.尋.test(q) ? /(?!)/ : /老公|老婆|丈夫|妻子|太太/],
+      ["情", otherTopic ? /(?!)/ : LOVE_WEAK_RE],
+      ["尋", (money || job) && !namedItem ? /(?!)/ : T.尋],
+      ["行", T.行],
+      ["考", T.考],
+      ["名", T.名],
+      ["財", T.財]
     ];
     for (var k = 0; k < rules.length; k++) if (rules[k][1].test(q)) return rules[k][0];
     // 沒有事類字詞時才依用神補：問人、天氣、小偷不補
@@ -3136,7 +3146,9 @@
       var zsEl = Object.keys(ELEM_KE).filter(function(e) { return ELEM_KE[e] === focus.el; })[0];
       var zsZhi = Object.keys(FIVE_ELEMENTS).filter(function(z) { return FIVE_ELEMENTS[z] === zsEl; });
       push(yq, "病好轉的時機：子孫（醫藥）值日的" + zsZhi.join("、") + "日，或沖官鬼的" + clashOf(focus.branch) + "日", "good");
-      yingQiNotes(focus, focusLabel, focusIsFu).forEach(function(n) { push(yq, "病勢的應期（官鬼就是病，這些日子病勢較明顯）：" + n.text, "bad"); });
+      if (focus.useless) push(yq, "代表病的官鬼無用（" + [focus.kongType, focus.poType, focus.muType, focus.riPo ? "日破" : ""].filter(Boolean).join("、") + "）：病勢難以成形、不易加重" +
+        (focus.muType ? "；但世爻也代表你自己，入墓時仍要留意精神體力" : ""), "good");
+      else yingQiNotes(focus, focusLabel, focusIsFu).forEach(function(n) { push(yq, "病勢的應期（官鬼就是病，這些日子病勢較明顯）：" + n.text, "bad"); });
     } else if (focus) yingQiNotes(focus, focusLabel, focusIsFu).forEach(function(n) { push(yq, n.text, n.tone); });
     if (focusIsFu && !fuInfo.fu.useless) push(yq, "伏神出伏：沖開飛神之" + clashOf(fuInfo.fly.branch) + "日，或飛神逢空之時");
     if (activeCount === 1) {
@@ -3202,8 +3214,11 @@
     if (illness) {
       var ill = focus;
       say("病勢：" + { "旺": "病勢很重", "偏旺": "病勢偏重", "不旺不衰": "病勢普通", "偏衰": "病勢偏輕", "衰": "病勢很輕" }[ill.level] + "。", isStrongLv(ill.level) ? "bad" : isWeakLv(ill.level) ? "good" : "");
-      if (ill.kongType.indexOf("真空") === 0 || (ill.poType && ill.poType.indexOf("假破") !== 0)) say("代表病的爻落空或受到衝擊，病勢不容易成形。", "good");
-      if (ill.muType) say("病被「收住」了，病情拖延、不明朗，要等被沖開的日子才看得清楚。");
+      if (ill.useless) say("代表病的官鬼無用，病勢難以成形、不易加重。", "good");
+      else {
+        if (ill.kongType.indexOf("真空") === 0 || (ill.poType && ill.poType.indexOf("假破") !== 0)) say("代表病的爻落空或受到衝擊，病勢不容易成形。", "good");
+        if (ill.muType) say("病被「收住」了，病情拖延、不明朗，要等被沖開的日子才看得清楚。");
+      }
       if (ill.moving) {
         var ict = ill.chgTags;
         if (ict.indexOf("回頭生") >= 0 || ict.indexOf("化進神") >= 0) say("病勢有加重的趨勢，要多留意。", "bad");
@@ -3318,7 +3333,7 @@
       var re = /([子丑寅卯辰巳午未申酉戌亥](?:、[子丑寅卯辰巳午未申酉戌亥])*)日/g, m;
       while ((m = re.exec(it.text))) m[1].split("、").forEach(function(z) { if (dayZhis.indexOf(z) < 0) dayZhis.push(z); });
     });
-    if (focusUseless) say("時間上：這件事目前看不到明確的好轉時機。", "bad");
+    if (focusUseless && !illness) say("時間上：這件事目前看不到明確的好轉時機。", "bad");   // 疾病反看時官鬼無用是病難成形，好轉日期照列
     else if (dayZhis.length) say("可能有變化或結果的日子：" + dayZhis.slice(0, 4).map(nextDay).sort(function(a, b) { return a.d - b.d; }).map(function(x) { return x.text; }).join("、") + "。若是長期的事，則看相同地支的月份或年份。");
     say("以上是依六爻規則推算的參考，實際還要配合你自己的狀況判斷。", "note");
     sections.unshift(plain);
