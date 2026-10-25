@@ -1593,16 +1593,28 @@
   var BIRTH_STRONG_RE = /母子|母女|寶寶|嬰|胎|產期|預產|懷孕|產檢/;
   var BIRTH_PERSON_RE = /老婆|太太|妻子|媳婦|產後|坐月子/;   // 稱謂與產後、坐月子只說明是誰、什麼時候，有工業字詞時不算分娩
   var INDUSTRY_RE = /工廠|產線|量產|製造|製程|出貨|訂單|產能|廠商|代工|批量|大量|自動化|貨|產品|商品|工作|上班|負責|部門|公司|單位/;
-  // 孕產的時間背景（懷孕期間、坐完月子、產後、產假結束…）：所問有工作字詞時先拿掉，不讓它蓋過工作主題
+  // 孕產時間背景只在所問為工作時排除；工作僅為否定或已交接的背景時，保留孕產主題。
   var BIRTH_BG_RE = /(懷孕|懷胎|孕)(期間|中|時|的時候|後)|坐完?月子(結束|後|完|期間|時)?|產後|產假(結束|後|期間|中)?/g;
   var WORK_TOPIC_RE = /工作|上班|職位|職場|職務|升職|升遷|晉升|加薪|面試|求職|轉職|調動|調職|事業|公司|工廠|產線|生產線|排程|負責/;
   var WORK_NEG_RE = /(不用|不必|不需要?|沒有?|沒在|不再|停止|暫停|請假不)去?(上班|工作)/g;
+  var WORK_DONE_RE = /(?:工作|職務)(?:都|均)?(?:已經|已)(?:全部|全數|都|均)?(?:交接|移交)(?:完成|完|好了|好)?/g;
+  var WORK_PENDING_RE = /(?:交接|移交)(?:了|完|好|完成)?(?:一半|部分|一部[分份])|(?:還|仍)(?:要|需|須|得|在|會).{0,4}(?:工作|上班|協助|處理|完成|交接)/;
+  function hasWorkTopic(cl) {
+    var t = cl.replace(WORK_NEG_RE, "");
+    // 部分交接或仍須協助不等於工作結束，不能把尚在進行的工作當成背景。
+    return WORK_TOPIC_RE.test(WORK_PENDING_RE.test(t) ? t : t.replace(WORK_DONE_RE, ""));
+  }
   function birthTopic(q, direct) {
-    // 逐子句看：工作字詞和孕產背景在同一子句（「老婆懷孕期間在工廠負責排程」）才拿掉背景；
-    // 工作在另一子句或被否定（「老婆已請假不用上班，坐月子會順利嗎」）時，孕產仍是所問的主題
-    var t = q.split(/([，,。；;！!？?\s]+)/).map(function(cl) {
-      return WORK_TOPIC_RE.test(cl.replace(WORK_NEG_RE, "")) ? cl.replace(BIRTH_BG_RE, "") : cl;
-    }).join("");
+    var clauses = q.split(/[，,。；;！!？?\s]+/).filter(function(cl) { return !!cl; });
+    var t = clauses.map(function(cl, i) {
+      // 「老婆懷孕期間，回工廠工作」的時間開頭可以跨一個分隔符；
+      // 「工作已交接，坐月子期間能平安嗎」的後句有獨立問題，不是時間開頭。
+      var bg = cl.match(BIRTH_BG_RE), tail = bg && bg[bg.length - 1];
+      var timeIntro = tail && cl.slice(-tail.length) === tail && /(?:期間|時候|時|中|後|結束)$/.test(tail) &&
+        !/能否|是否|會不會|能不能|可否|順不順|順利|平安|健康|安全/.test(cl);
+      var workNext = timeIntro && i + 1 < clauses.length && hasWorkTopic(clauses[i + 1]);
+      return hasWorkTopic(cl) || workNext ? cl.replace(BIRTH_BG_RE, "") : cl;
+    }).join("，");
     return direct.test(t) || isBirthWord(t);
   }
   function isBirthWord(q) {
@@ -1627,8 +1639,19 @@
   // 「她愛我的程度」「我覺得她愛我」的主詞是她，仍算
   var OTHER_PERSON_RE = /他|她|對方|你|妳|老公|老婆|丈夫|太太|妻子|前任|前夫|前妻|男友|女友|男朋友|女朋友|朋友|情人|愛人|戀人|對象|別人|有人|那個人|這個人|那人|這人/;
   // 比較結構「比他更、跟她一樣、像他那樣」：人物後面接更、還、也、一樣、那樣等比較詞時，人物只是比較對象，在子句任何位置都拿掉
-  //（「我只是比她更愛我的工作」）；「認同她愛我」的「同她」後面接的是愛，不是比較詞，所以她仍是主詞
-  var COMPARE_PERSON_RE = new RegExp("(?:比|跟|和|與|同|像)(?:" + OTHER_PERSON_RE.source + ")(?=更|還|也|都|一樣|一般|那樣|這樣|似的|那麼|這麼|多|少)", "g");
+  //（「我只是比她更愛我的工作」）；比較詞不能從認同、贊同、附和、想像等複合詞中間開始匹配，
+  // 否則「我認同她也愛我」會因「同她也」而把真正的主詞刪掉。
+  var COMPARE_PERSON_RE = new RegExp("(比|跟|和|與|同|像)(?:" + OTHER_PERSON_RE.source + ")(?=更|還|也|都|一樣|一般|那樣|這樣|似的|那麼|這麼|多|少)", "g");
+  function stripComparisonPeople(text) {
+    return text.replace(COMPARE_PERSON_RE, function(hit, prep, at) {
+      var prefix = text.slice(0, at), after = text.slice(at + hit.length);
+      if (prep === "同" && /[認贊赞]$/.test(prefix)) return hit;
+      if (prep === "和" && /[附應]$/.test(prefix)) return hit;
+      // 「想像她也愛我」保留她；「想＋像她一樣愛我的工作」則有明確的比較後綴。
+      if (prep === "像" && /想$/.test(prefix) && !/^(?:一樣|一般|那樣|這樣|似的|那麼|這麼)/.test(after)) return hit;
+      return "";
+    });
+  }
   // 對、替、幫、為等介系詞片語只認緊接主詞「我」之後（中間只能有副詞）的那一個，「以為她、認為她」不算
   var PREP_PERSON_RE = new RegExp("^(?:個人|本人|自己|也|都|還|又|一直|真的|其實|確實|始終|向來|總是|從來|現在|以前|已經|可能|只是|應該|還是|就是|也是|一定|好像)*(?:對|替|幫|為了|為)(?:" + OTHER_PERSON_RE.source + ")");
   function loveVerbHit(q) {
@@ -1636,7 +1659,7 @@
     while ((m = re.exec(q))) {
       var before = q.slice(0, m.index).split(/[，,。；;！!？?\s]/).pop();
       var at = before.lastIndexOf("我");
-      var rest = at >= 0 ? before.slice(at + 1).replace(COMPARE_PERSON_RE, "").replace(PREP_PERSON_RE, "") : "";
+      var rest = at >= 0 ? stripComparisonPeople(before.slice(at + 1)).replace(PREP_PERSON_RE, "") : "";
       if (at >= 0 && !OTHER_PERSON_RE.test(rest)) continue;
       return true;
     }
