@@ -1002,14 +1002,288 @@ fixtures.push(
  {id:'REVIEW-W2',q:'老婆懷孕期間工作已移交但仍須協助，會順利嗎',sel:'妻財',cat:'名'},
  {id:'REVIEW-W3',q:'老婆的工作已經全部交接坐月子期間能平安嗎',sel:'子孫',cat:'胎'}
 );
+fixtures.push(...[
+  {
+    "id": "V12-A1",
+    "q": "我喜歡上了一個人，有機會嗎",
+    "gender": "女",
+    "sel": "官鬼",
+    "cat": "情"
+  },
+  {
+    "id": "V12-A2",
+    "q": "我喜歡上了一個人，有機會嗎",
+    "gender": "男",
+    "sel": "妻財",
+    "cat": "情"
+  },
+  {
+    "id": "V12-A3",
+    "q": "他是不是比較喜歡別人",
+    "gender": "女",
+    "sel": "官鬼",
+    "cat": "情"
+  },
+  {
+    "id": "V12-B1",
+    "q": "我喜歡的人也喜歡我嗎",
+    "gender": "女",
+    "sel": "官鬼",
+    "cat": "情"
+  },
+  {
+    "id": "V12-B2",
+    "q": "我暗戀的人對我有意思嗎",
+    "gender": "女",
+    "sel": "官鬼",
+    "cat": "情"
+  },
+  {
+    "id": "V12-B3",
+    "q": "我暗戀的人對我有意思嗎",
+    "gender": "男",
+    "sel": "妻財",
+    "cat": "情"
+  },
+  {
+    "id": "V12-C1",
+    "q": "我會被裁員嗎",
+    "gender": "男",
+    "sel": "官鬼",
+    "cat": "名"
+  },
+  {
+    "id": "V12-C2",
+    "q": "我會被資遣嗎",
+    "gender": "男",
+    "sel": "官鬼",
+    "cat": "名"
+  },
+  {
+    "id": "V12-C3",
+    "q": "會被開除嗎",
+    "gender": "男",
+    "sel": "官鬼",
+    "cat": "名"
+  },
+  {
+    "id": "V12-C4",
+    "q": "試用期能過嗎",
+    "gender": "男",
+    "sel": "官鬼",
+    "cat": "名"
+  },
+  {
+    "id": "V12-C5",
+    "q": "我何時能遇到真命天子",
+    "gender": "女",
+    "sel": "官鬼",
+    "cat": "情"
+  },
+  {
+    "id": "V12-C6",
+    "q": "兒子考大學能上第一志願嗎",
+    "gender": "男",
+    "sel": "父母",
+    "cat": "考"
+  },
+  {
+    "id": "V12-K1",
+    "q": "我很喜歡這份工作，能轉正嗎",
+    "gender": "男",
+    "sel": "官鬼",
+    "cat": "名"
+  },
+  {
+    "id": "V12-K2",
+    "q": "我喜歡我的工作，能升職嗎",
+    "gender": "男",
+    "sel": "官鬼",
+    "cat": "名"
+  },
+  {
+    "id": "V12-K3",
+    "q": "我比她更喜歡我的工作，能升職嗎",
+    "gender": "男",
+    "sel": "官鬼",
+    "cat": "名"
+  },
+  {
+    "id": "V12-K4",
+    "q": "他還愛我嗎",
+    "gender": "女",
+    "sel": "官鬼",
+    "cat": "情"
+  },
+  {
+    "id": "V12-K5",
+    "q": "公司會不會裁員",
+    "gender": "男",
+    "sel": "官鬼",
+    "cat": "名"
+  },
+  {
+    "id": "V12-K6",
+    "q": "兒子會考成績好嗎",
+    "gender": "男",
+    "sel": "父母",
+    "cat": "考"
+  },
+  {
+    "id": "V12-X0",
+    "q": "我愛上了他，有機會嗎",
+    "gender": "女",
+    "sel": "官鬼",
+    "cat": "情"
+  },
+  {
+    "id": "V12-X1",
+    "q": "我對她有好感，有機會嗎",
+    "gender": "男",
+    "sel": "妻財",
+    "cat": "情"
+  },
+  {
+    "id": "V12-X2",
+    "q": "她讓我心動，有機會嗎",
+    "gender": "男",
+    "sel": "妻財",
+    "cat": "情"
+  },
+  {
+    "id": "V12-X3",
+    "q": "我暗戀的人也愛我嗎",
+    "gender": "女",
+    "sel": "官鬼",
+    "cat": "情"
+  },
+  {
+    "id": "V12-X4",
+    "q": "我何時能遇到真命天女",
+    "gender": "男",
+    "sel": "妻財",
+    "cat": "情"
+  },
+  {
+    "id": "V12-X5",
+    "q": "我會被解僱嗎",
+    "gender": "男",
+    "sel": "官鬼",
+    "cat": "名"
+  },
+  {
+    "id": "V12-X6",
+    "q": "我會被炒魷魚嗎",
+    "gender": "男",
+    "sel": "官鬼",
+    "cat": "名"
+  },
+  {
+    "id": "V12-X7",
+    "q": "試用期結束能轉正嗎",
+    "gender": "男",
+    "sel": "官鬼",
+    "cat": "名"
+  },
+  {
+    "id": "V12-X8",
+    "q": "女兒考高中能上第一志願嗎",
+    "gender": "男",
+    "sel": "父母",
+    "cat": "考"
+  },
+  {
+    "id": "V12-X9",
+    "q": "我考大學能上第一志願嗎",
+    "gender": "女",
+    "sel": "父母",
+    "cat": "考"
+  },
+  {
+    "id": "V12-X10",
+    "q": "我志願去公司上班會順利嗎",
+    "gender": "男",
+    "sel": "官鬼",
+    "cat": "名"
+  },
+  {
+    "id": "V12-X11",
+    "q": "我的資遣費會順利入帳嗎",
+    "gender": "男",
+    "sel": "妻財",
+    "cat": "財"
+  },
+  {
+    "id": "V12-X12",
+    "q": "我愛上了這份工作，能升職嗎",
+    "gender": "男",
+    "sel": "官鬼",
+    "cat": "名"
+  },
+  {
+    "id": "V12-X13",
+    "q": "我對這份工作有好感，能轉正嗎",
+    "gender": "男",
+    "sel": "官鬼",
+    "cat": "名"
+  },
+  {
+    "id": "V12-X14",
+    "q": "這個產品讓我心動，投資能賺錢嗎",
+    "gender": "男",
+    "sel": "妻財",
+    "cat": "財"
+  },
+  {
+    "id": "V12-X15",
+    "q": "我喜歡上這份工作，能升職嗎",
+    "gender": "男",
+    "sel": "官鬼",
+    "cat": "名"
+  },
+  {
+    "id": "V12-X16",
+    "q": "我喜歡上了別人的工作，能升職嗎",
+    "gender": "男",
+    "sel": "官鬼",
+    "cat": "名"
+  },
+  {
+    "id": "V12-X17",
+    "q": "我喜歡別人的工作，能升職嗎",
+    "gender": "男",
+    "sel": "官鬼",
+    "cat": "名"
+  },
+  {
+    "id": "V12-X18",
+    "q": "我喜歡的人也喜歡我嗎",
+    "gender": "",
+    "sel": "",
+    "cat": "情"
+  }
+]);
+fixtures.push(
+ {id:'V12-R1',q:'我的另一半出國會順利嗎',gender:'男',sel:'妻財',cat:'行'},
+ {id:'V12-R2',q:'我們夫妻出國旅行會順利嗎',gender:'男',sel:'妻財',cat:'行'},
+ {id:'V12-R3',q:'另一半考試能通過嗎',gender:'男',sel:'妻財',cat:'考'},
+ {id:'V12-R4',q:'我愛的人考試能通過嗎',gender:'男',sel:'父母',cat:'考'},
+ {id:'V12-R5',q:'我喜歡你們公司的工作，應徵能上嗎',gender:'男',sel:'父母',cat:'名'},
+ {id:'V12-R6',q:'我喜歡上他們公司的工作，能應徵上嗎',gender:'男',sel:'父母',cat:'名'},
+ {id:'V12-R7',q:'我愛他人的工作，能升職嗎',gender:'男',sel:'官鬼',cat:'名'},
+ {id:'V12-R8',q:'我試用期的筆試能及格嗎',gender:'男',sel:'父母',cat:'考'},
+ {id:'V12-R9',q:'試用期內的考試能及格嗎',gender:'男',sel:'父母',cat:'考'},
+ {id:'V12-R10',q:'我對一個人有好感，有機會嗎',gender:'男',sel:'妻財',cat:'情'},
+ {id:'V12-R11',q:'我對某個人心動，有機會嗎',gender:'男',sel:'妻財',cat:'情'}
+);
 const records=[];let failures=0;
 for(const f of fixtures){
- const rt=load(raw,f.gender||'男');
- const inferred=rt.env.inferYong(f.q,f.gender||'男'),sel=inferred?.value||'';
+ const rt=load(raw,f.gender??'男');
+ const inferred=rt.env.inferYong(f.q,f.gender??'男'),sel=inferred?.value||'';
  const x=run(rt,{state:0,date:'2026-01-15T12:00:00+08:00',q:f.q,sel});
  const pass=sel===f.sel&&x.d.cat===f.cat&&Number.isFinite(x.d.vScore);
  if(!pass)failures++;
- records.push({id:f.id,q:f.q,gender:f.gender||'男',actual:{sel,cat:x.d.cat,score:x.d.vScore},expected:{sel:f.sel,cat:f.cat},pass});
+ records.push({id:f.id,q:f.q,gender:f.gender??'男',actual:{sel,cat:x.d.cat,score:x.d.vScore},expected:{sel:f.sel,cat:f.cat},pass});
 }
 console.log(JSON.stringify({sourceHash:hash,tested:records.length,failures,records},null,2));
 process.exitCode=failures?1:0;
