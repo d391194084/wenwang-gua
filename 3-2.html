@@ -1562,7 +1562,7 @@
       kong: timeInfo.xunKong.indexOf(branch) >= 0, yuePo: false, riPo: false, anDong: false,
       heBan: false, chongSan: false, riHe: false, yueHe: false, ruMu: [], jue: false,
       stage: stageOf(el, dz), chgTags: [], fuYin: false, kongType: "", poType: "", muType: "",
-      mdScore: 0, actSheng: [], actKe: [], poRescue: "", dayKe: false
+      mdScore: 0, actSheng: [], actKe: [], actShengIdx: [], actKeIdx: [], poRescue: "", dayKe: false
     };
     function add(text, delta, kind) {
       a.parts.push({ text: text, delta: delta });
@@ -1652,7 +1652,7 @@
           var anWhy = opt.anDong !== undefined ? opt.anDong : anDongReason(branch, opt.actors);
           if (anWhy) {
             a.anDong = true;
-            add("被日辰" + dz + "沖動：" + anWhy + "，靜爻逢日沖為暗動，能生剋他爻", 0.5, "");
+            add("被日辰" + dz + "沖動：" + anWhy + (opt.idx === -1 ? "，伏神逢日沖短期可沖起（伏神不能生剋他爻）" : "，靜爻逢日沖為暗動，能生剋他爻"), 0.5, "");
           } else {
             a.riPo = true;
             add("日破（月令休囚、無動爻生、不旬空的靜爻被日辰" + dz + "所沖）", -2, "");
@@ -1685,10 +1685,10 @@
       }
       if (rel === "生") {
         if (avoid) { a.shengAvoided++; a.parts.push({ text: act.label + "生之，但旬空之爻旬內不受生剋，出空後得其生", delta: 0 }); }
-        else { a.actSheng.push(act.label); if (act.moving && !a.poRescue) a.poRescue = "得動爻生"; add(act.label + "生之", 1, "生"); }
+        else { a.actSheng.push(act.label); a.actShengIdx.push(act.idx); if (act.moving && !a.poRescue) a.poRescue = "得動爻生"; add(act.label + "生之", 1, "生"); }
       } else if (rel === "剋") {
         if (avoid) a.parts.push({ text: act.label + "剋之，但旬空之爻旬內不受生剋", delta: 0 });
-        else { a.actKe.push(act.label); add(act.label + "剋之", -1.5, "剋"); }
+        else { a.actKe.push(act.label); a.actKeIdx.push(act.idx); add(act.label + "剋之", -1.5, "剋"); }
       }
       if (!a.moving && MU[el] === act.branch) {
         a.ruMu.push("入" + act.label + "之墓");
@@ -1704,8 +1704,10 @@
       var huiSheng = tags.indexOf("回頭生") >= 0;
       // 變爻旬空、月破、日破或被日合，回頭剋暫時剋不到（第 27、71、78、94 集）
       var cbKong = timeInfo.xunKong.indexOf(cb) >= 0;
+      var selfStrong = lineStrength(branch).strong || branch === mz;
       var cbStop = cbKong ? "旬空" : ZHI_HE[dz] === cb ? "被日辰合絆" : isClash(cb, mz) ? "月破" :
         (isClash(cb, dz) && !lineStrength(cb).strong) ? "日破" : "";
+      if (!cbStop && tags.indexOf("回頭剋") >= 0 && selfStrong && chgScore(cb) < 0) cbStop = "休囚而本爻旺相";
       tags.forEach(function(t, k) {
         if (t === "回頭生") add("化出" + zhiWithEl(cb) + "回頭生", 1.5, "生");
         else if (t === "回頭剋" && cbStop) {
@@ -1714,8 +1716,11 @@
         }
         else if (t === "回頭剋") add("化出" + zhiWithEl(cb) + "回頭剋（剋神最近，殺傷力大）", -2, "剋");
         else if (t === "化進神") add("化進神（" + branch + "→" + cb + "）" + (a.yuePo ? "；本爻月破，出月才進" : ""), 1, "");
-        else if (t === "化退神") add("化退神（" + branch + "→" + cb + "）", -1, "");
-        else if (t === "化合" && (isClash(cb, dz) || isClash(cb, mz))) add("化合，但變爻" + cb + "被" + (isClash(cb, dz) ? "日辰" : "月建") + "沖，合中帶沖，絆住之意解除", 0.5, "");
+        else if (t === "化退神") {
+          if (selfStrong) add("化退神（" + branch + "→" + cb + "），但旺相不化退：短期仍有力，長期才退", -0.5, "");
+          else add("化退神（" + branch + "→" + cb + "）", -1, "");
+        }
+        else if (t === "化合" && (isClash(cb, dz) || isClash(cb, mz))) add("化合，但變爻" + cb + "被" + (isClash(cb, dz) ? "日辰" : "月建") + "沖，合中帶沖，絆住之意解除", 0, "");
         else if (t === "化合") add("化合（回頭合）", 0.5, "");
         else if (t === "化沖") add("化沖（爻反吟，反覆不定）", -0.5, "");
         else if (t === "化空") add("化空（動而化空，非真空，待填實）", -0.5, "");
@@ -2033,7 +2038,7 @@
         n.tone = "";
       });
     }
-    if (notes.length) notes.push({ text: "局成之後當一個整體看，不再拆開論局內各爻的生剋（第 23 集）。", tone: "note" });
+    if (notes.length) notes.push({ text: "局成之後當一個整體看，不再拆開論局內各爻的生剋（第 23 集）；局的力量不另計入分數，請綜合判斷。", tone: "note" });
     return notes;
   }
 
@@ -2102,7 +2107,7 @@
   // 各類占事的專門斷法與靜卦斷法（安易芳《六爻中級課程》第 40–96 集）
   // 回傳要併入總斷的有利、不利、現況，分數調整（delta、cap 上限、floor 下限、replace 改以此分數為準），以及說明與白話
   function categoryRules(c) {
-    var r = { favor: [], against: [], neutral: [], delta: 0, cap: null, floor: null, replace: null, effort: false, advice: "", notes: [], plain: [] };
+    var r = { favor: [], against: [], neutral: [], delta: 0, cap: null, floor: null, replace: null, effort: false, advice: "", verdictText: "", notes: [], plain: [] };
     var gua = c.gua, A = c.A, f = c.focus, shi = c.shiA, ying = c.yingA, q = c.q, cat = c.cat;
     var mz = timeInfo.monthZhi, dz = timeInfo.dayZhi;
     function note(t, tone) { r.notes.push({ text: t, tone: tone || "" }); }
@@ -2120,6 +2125,10 @@
       return cands.sort(function(x, y) { return y.score - x.score; })[0] || null;
     }
     function odd(a) { return a.moving || a.anDong || a.kong || a.yuePo || a.riPo || a.ruMu.length > 0; }
+    // 實際生、剋某爻的作用者（依唯一作用方向）
+    function shengBy(t) { return t.actShengIdx.map(function(i) { return A.lines[i]; }); }
+    function keBy(t) { return t.actKeIdx.map(function(i) { return A.lines[i]; }); }
+    function hits(list, a) { return list.some(function(x) { return x.idx === a.idx; }); }
     function broken(a) { return a.kongType.indexOf("真空") === 0 || a.poType.indexOf("真破") === 0 || a.riPo || (a.ruMu.length > 0 && isWeakLv(a.level)) || a.jue; }
     function placeText(a) {
       var tg = trigramOf(gua, a.idx);
@@ -2152,22 +2161,23 @@
       var ttl = "靜卦（自占）";
       if (yongIsShi) {
         var yu = c.yuan;
-        if (!yu.length) { r.against.push(ttl + "用神持世，但原神不上卦：直接斷凶"); cap(-1.6); }
-        else if (yu.some(function(y) { return !(y.kong || y.yuePo || y.riPo || y.ruMu.length); })) { r.favor.push(ttl + "用神持世，原神上卦又不空破墓：吉"); floor(1); }
+        if (!yu.length) { r.against.push(ttl + "用神持世，但原神不上卦：直接斷凶"); cap(-3.1); }
+        else if (yu.some(function(y) { return !(y.kong || y.yuePo || y.riPo || y.ruMu.length); })) { r.favor.push(ttl + "用神持世，原神上卦又不空破墓：有利"); floor(1); }
         else r.neutral.push(ttl + "用神持世，原神上卦但空破墓：要等解空、解破、出墓才吉");
       } else if (ke(shi, f)) {
         if (shi.kong || shi.yuePo) r.neutral.push(ttl + "忌神持世（世剋用神），但世爻" + (shi.kong ? "旬空" : "月破") + "：暫時剋不到，短期吉、長期凶");
-        else { r.against.push(ttl + "忌神持世（世剋用神）：你和這件事討厭的東西在一起，通常斷凶"); cap(-1.6); }
+        else { r.against.push(ttl + "忌神持世（世剋用神）：你和這件事討厭的東西在一起，多半不成"); cap(-1.6); }
       } else if (gen(f, shi)) {
-        if (f.score > 0 && !shi.kong && !shi.yuePo && !shi.ruMu.length) { r.favor.push(ttl + "用神生世，用神旺、世爻不空破墓：不費力就成，吉"); floor(1); }
-        else { r.against.push(ttl + "用神生世，但" + (f.score <= 0 ? "用神不旺" : "世爻空破墓") + "，生不到：凶"); cap(-1.6); }
+        if (f.score > 0 && !shi.kong && !shi.yuePo && !shi.ruMu.length) { r.favor.push(ttl + "用神生世，用神旺、世爻不空破墓：不費力就成，有利"); floor(1); }
+        else { r.against.push(ttl + "用神生世，但" + (f.score <= 0 ? "用神不旺" : "世爻空破墓") + "，生不到：不利"); cap(-1.6); }
       } else if (ke(f, shi)) {
-        var exc = (cat === "財" && !/長期|長久/.test(q)) || (cat === "尋" && !LOST_RE.test(q)) || (cat === "病" && shi.rel === "官鬼" && f.rel === "子孫");
-        if (exc) r.favor.push(ttl + "用神剋世，但屬例外（短期求財是財來尋我、行人剋世是很快到、子孫剋官鬼持世是剋去病）：吉");
-        else { r.against.push(ttl + "用神剋世：通常斷凶"); cap(-1.6); }
+        var exc = (cat === "財" && !/長期|長久/.test(q)) || (cat === "尋" && !LOST_RE.test(q)) || (cat === "病" && shi.rel === "官鬼" && f.rel === "子孫") ||
+          (cat === "考" && isStrongLv(f.level));
+        if (exc) r.favor.push(ttl + "用神剋世，但屬例外（短期求財是財來尋我、行人剋世是很快到、子孫剋官鬼持世是剋去病、考試用神旺仍能過）：有利");
+        else { r.against.push(ttl + "用神剋世：多半不利"); cap(-1.6); }
       } else if (gen(shi, f)) {
-        if (f.score > 0 && shi.score >= 0 && !shi.kong && !shi.yuePo) { r.favor.push(ttl + "世生用神（原神持世），用神旺、世爻不衰不空破：吉"); floor(1); }
-        else { r.against.push(ttl + "世生用神，但" + (f.score <= 0 ? "用神不旺" : "世爻衰或空破") + "：凶"); cap(-1.6); }
+        if (f.score > 0 && shi.score >= 0 && !shi.kong && !shi.yuePo) { r.favor.push(ttl + "世生用神（原神持世），用神旺、世爻不衰不空破：有利"); floor(1); }
+        else { r.against.push(ttl + "世生用神，但" + (f.score <= 0 ? "用神不旺" : "世爻衰或空破") + "：不利"); cap(-1.6); }
       }
       if (ying.kongType.indexOf("真空") === 0) note("應爻真空：所測之事多半不成。");
       note("靜卦專門斷法只用於自占（代占的靜卦按一般理法看）；靜爻之間不互相生剋，世與用神的關係代表狀態。");
@@ -2179,8 +2189,8 @@
         var others = f.actSheng.filter(function(lb) { return lb.indexOf(YAO_SHORT[gua.shi] + shi.rel) !== 0; });
         if (others.length) { r.against.push("他爻動來生用神（" + others.join("、") + "）：感情卦主有他人來與對方相好，不以生為吉"); r.delta -= others.length; }
       }
-      var xiong = ofRel("兄弟").filter(function(a) { return act(a) && a.idx !== gua.shi && (gen(a, f) || ke(a, f)); });
-      if (xiong.length && sel !== "兄弟") { r.against.push("兄弟（競爭者）" + xiong.map(function(a) { return a.name; }).join("、") + "發動作用於用神，不論生剋都不吉"); r.delta -= 0.5; }
+      var xiong = shengBy(f).concat(keBy(f)).filter(function(a) { return a.rel === "兄弟" && a.idx !== gua.shi; });
+      if (xiong.length && sel !== "兄弟") { r.against.push("兄弟（競爭者）" + uniq(xiong.map(function(a) { return a.name; })).join("、") + "發動作用於用神，不論生剋都不吉"); r.delta -= 0.5; }
       if (c.tanSheng) { r.neutral.push("感情卦不能用動爻接續相生斷吉，貪生忘剋的加分不計"); r.delta -= 1.5; }
       if (c.activeCount >= 4) { r.against.push("感情卦宜靜，" + c.activeCount + " 爻亂動，多不成"); r.delta -= 1; }
       if (onGua && !yongIsShi && ke(f, shi) && isStrongLv(f.level)) { r.against.push("用神旺而剋世：對方挑剔、想控制你，越旺越不好"); r.delta -= 1; }
@@ -2239,7 +2249,7 @@
         if (isStrongLv(shi.level) || shi.anDong || shi.moving) r.favor.push("財剋世而世爻有力：辛苦一點能得財");
         else { r.against.push("財剋世而世爻衰：反為財所累"); r.delta -= 1; }
       }
-      if (onGua && act(f) && f.idx !== gua.ying && (gen(f, ying) || he(f, ying)) && !(gen(f, shi) || he(f, shi))) {
+      if (onGua && act(f) && !yongIsShi && f.idx !== gua.ying && (hits(shengBy(ying), f) || he(f, ying)) && !(hits(shengBy(shi), f) || he(f, shi))) {
         r.against.push("財動去生合應爻、不生合世：無情卦，有財也是別人的"); cap(-1.6);
       }
       if (/合作|合夥|加盟|要債|討債|追債|欠|借|還錢|轉讓|頂讓|收款|貨款|客戶|退款|退費|賠償/.test(q)) {
@@ -2248,7 +2258,7 @@
         if (ying.yuePo || ying.riPo) yi.push(["應爻破：對方能力有問題", -1]);
         if (ying.ruMu.length) yi.push(["應爻入墓：對方逃避，可能欺騙", -1]);
         if (ying.jue) yi.push(["應爻逢絕：對方絕情", -0.5]);
-        if (act(ying) && (chong(ying, shi) || ke(ying, shi))) yi.push(["應爻動來沖剋世：對方不利於你", -1]);
+        if (act(ying) && (chong(ying, shi) || hits(keBy(shi), ying))) yi.push(["應爻動來沖剋世：對方不利於你", -1]);
         if (gen(ying, shi) || he(ying, shi)) yi.push(["應爻生合世：對方有意願", 0.5]);
         yi.forEach(function(p) { (p[1] > 0 ? r.favor : r.against).push("求他人之財看應爻：" + p[0]); r.delta += p[1]; });
         if (!yi.length) r.neutral.push("求他人之財看應爻：" + ying.name + "「" + ying.level + "」，沒有明顯的空破墓絕");
@@ -2290,10 +2300,8 @@
     if (cat === "名") {
       if (shi.rel === "子孫" && sel === "官鬼" && !c.quit) { r.against.push("子孫持世：工作前景、升職不利（子孫是剝官之神）"); r.delta -= 1; }
       if (sel === "官鬼" && onGua && act(f) && !yongIsShi && !c.quit) {
-        var toXiong = ofRel("兄弟").some(function(a) { return gen(f, a); });
-        var toYing = gen(f, ying) && f.idx !== gua.ying;
-        if ((toYing || toXiong) && !gen(f, shi)) { r.against.push("官鬼動去生" + (toYing ? "應爻" : "兄弟") + "：工作機會給了別人（無情）"); r.delta -= 1; }
-        if (ke(f, shi)) { r.against.push("官鬼動來剋世：壓力大，難以勝任"); r.delta -= 0.5; }
+        if (f.idx !== gua.ying && hits(shengBy(ying), f) && !hits(shengBy(shi), f)) { r.against.push("官鬼動去生應爻：工作機會給了別人（無情）"); r.delta -= 1; }
+        if (hits(keBy(shi), f)) { r.against.push("官鬼動來剋世：壓力大，難以勝任"); r.delta -= 0.5; }
       }
       if (shi.rel === "官鬼") note("工作卦中官鬼持世：已在職者主職位在身；沒有工作的人才主心中憂慮。");
       if (/薪|待遇|收入|加薪|工資|高薪/.test(q) && sel !== "妻財") {
@@ -2319,8 +2327,8 @@
         }
       }
       if (onGua && !yongIsShi) {
-        if (c.activeCount === 0 && ke(f, shi) && isStrongLv(f.level)) r.favor.push("靜卦中用神剋世而用神旺：仍論能過");
-        if (f.moving && ke(f, shi)) { r.against.push("用神動來剋世：不吉"); r.delta -= 1; }
+        if (c.activeCount === 0 && !selfAsk && ke(f, shi) && isStrongLv(f.level)) r.favor.push("靜卦中用神剋世而用神旺：仍論能過");
+        if (f.moving && hits(keBy(shi), f)) { r.against.push("用神動來剋世：不吉"); r.delta -= 1; }
       }
       if (/孩子|兒子|女兒|小孩|小朋友/.test(q)) {
         var zs = bestOf("子孫");
@@ -2364,6 +2372,7 @@
         note("可能的出生日（應期很靈活，不一定照公式走）：" + uniq(bd).join("、") + "。");
         if (isClash(f.branch, dz)) note("子孫被日辰沖：胎產卦論「沖動、生得快」，不論凶。", "good");
         r.advice = "產期以上面列的日子為參考，一切以醫院的安排為準。";
+        r.verdictText = "應期卦（只看產期，不論吉凶）";
       } else if (askChild) {
         if (broken(f) || (onGua && (f.kong || f.yuePo))) { r.against.push("子孫空破墓絕：難有孩子"); cap(-3.1); }
         else if (!onGua) r.neutral.push("子孫伏藏安靜：要等比較久");
@@ -2371,7 +2380,7 @@
         if (f.riPo) note("子孫日破：等於天天被沖，這種卦沒有應期，不要硬斷。");
         var pos2 = A.lines[1];
         if (pos2.kong || pos2.yuePo || pos2.riPo || pos2.actKe.length) note("二爻（胎位、生殖區）" + (pos2.kong ? "旬空" : pos2.yuePo ? "月破" : pos2.riPo ? "日破" : "受動爻剋") + "：不易懷孕的病根可能在這裡。");
-        if (onGua && act(A.lines[5]) && ke(A.lines[5], f)) note("上爻（祖上）動來剋子孫：多半不是自身能改變的原因。");
+        if (onGua && hits(keBy(f), A.lines[5])) note("上爻（祖上）動來剋子孫：多半不是自身能改變的原因。");
         if (A.lines.some(function(a) { return a.yuePo && a.idx !== f.idx; })) note("月破代表過去的事，可以用來推斷過去發生過的事。");
         note("問哪一年有孩子，可參考子孫的胎、養、長生之年（" + shiftZhi(CHANG_SHENG[f.el], 10) + "、" + shiftZhi(CHANG_SHENG[f.el], 11) + "、" + CHANG_SHENG[f.el] + "），但不絕對。");
       } else {
@@ -2397,7 +2406,7 @@
       var KE_SHI = { "父母": "天氣、行李、交通延誤受阻，嚴重要防車禍", "兄弟": "防破財、受傷", "官鬼": "憂愁、疾病、災禍", "妻財": "因錢、因女人生事，或水土不服、飲食不潔", "子孫": "受孩子影響，或遊玩時有災" };
       var lo = Math.min(gua.shi, gua.ying), hi = Math.max(gua.shi, gua.ying);
       A.lines.forEach(function(a) {
-        if (!act(a) || a.idx === gua.shi || !(ke(a, shi) || chong(a, shi))) return;
+        if (!act(a) || a.idx === gua.shi || !(hits(keBy(shi), a) || chong(a, shi))) return;
         r.against.push(a.name + "動來沖剋世：" + KE_SHI[a.rel] + (a.rel === "父母" && a.idx === 4 ? "（五爻父母是車，更要小心）" : "") +
           (a.idx > lo && a.idx < hi ? "；它在世應之間（間爻），也代表同行者拖累或路上阻隔" : ""));
         r.delta -= (a.rel === "父母" || a.rel === "官鬼") ? 1 : 0.5;
@@ -2425,7 +2434,7 @@
         if (shi.rel === "子孫") r.favor.push("子孫持世：無憂");
         if (A.lines.some(function(a) { return a.moving && c.roles.lineRoles[a.idx] === "忌" && gua.lines[a.idx].chgRelative === sel; })) r.favor.push("忌神化出用神：論吉");
         if (onGua) {
-          if (f.ruMu.length && (f.riHe || f.yueHe || f.heBan) && !isStrongLv(f.level)) { r.against.push("用神衰而入墓又被合（關進墓裡再鎖上）：最忌"); r.delta -= 1.5; }
+          if (f.ruMu.length && (f.riHe || f.yueHe || f.heBan) && isWeakLv(f.level)) { r.against.push("用神衰而入墓又被合（關進墓裡再鎖上）：最忌"); r.delta -= 1.5; }
           if (f.moving && gua.lines[f.idx].chgRelative === "官鬼" && sel !== "官鬼" && sel !== "父母") { r.against.push("用神化官鬼：不吉"); r.delta -= 0.5; }
           if (c.spirits[f.idx] === "白虎" && (f.ke > 0 || f.chgTags.indexOf("回頭剋") >= 0)) { r.against.push("用神臨白虎又受剋：安危堪憂"); r.delta -= 1; }
           if (f.actSheng.length) r.favor.push("有動爻來生用神：在外有人照顧");
@@ -2447,7 +2456,7 @@
           var zWeak = !zisun.length || zisun.every(function(a) { return isWeakLv(a.level) || a.kong || a.yuePo; });
           if (gui.some(function(a) { return isStrongLv(a.level); }) && zWeak) note("官鬼（小偷）旺、子孫（警方）衰：警方難有作為。");
           if (gui.filter(act).length >= 2) note("官鬼兩現又發動：可能不只一人作案。");
-          if (zisun.some(function(a) { return act(a) && gui.some(function(g) { return ke(a, g); }); }) || gui.some(function(g) { return g.moving && gua.lines[g.idx].chgRelative === "子孫"; })) {
+          if (gui.some(function(g) { return keBy(g).some(function(a) { return a.rel === "子孫"; }); }) || gui.some(function(g) { return g.moving && gua.lines[g.idx].chgRelative === "子孫"; })) {
             r.favor.push("子孫（警方）發動剋官鬼：小偷容易被抓，宜報案");
           }
           if (onGua && gui.some(function(g) { return he(f, g); })) note("用神與官鬼相合：東西被小偷拿走。");
@@ -2466,10 +2475,10 @@
           if (isStrongLv(shi.level)) { r.against.push("官鬼（病）持世又旺：病纏在身、較重"); r.delta -= 1; }
           else if (shi.kong || isWeakLv(shi.level)) r.favor.push("官鬼持世但衰或空：病不重");
           else note("官鬼持世：病纏在身，不易斷根；鬼不旺，尚可。");
-          if (ofRel("子孫").some(function(a) { return act(a) && ke(a, shi); })) r.favor.push("子孫（醫藥）動來剋官鬼持世：剋去身上的病");
+          if (keBy(shi).some(function(a) { return a.rel === "子孫"; })) r.favor.push("子孫（醫藥）動來剋官鬼持世：剋去身上的病");
         }
         gui2.forEach(function(a) {
-          if (act(a) && a.idx !== gua.shi && (ke(a, shi) || chong(a, shi))) { r.against.push(a.name + "（病）發動來沖剋世爻：大忌"); r.delta -= 1; }
+          if (act(a) && a.idx !== gua.shi && (hits(keBy(shi), a) || chong(a, shi))) { r.against.push(a.name + "（病）發動來沖剋世爻：大忌"); r.delta -= 1; }
         });
       } else if (sel === "官鬼" || sel === "父母") {
         note("占" + (sel === "官鬼" ? "丈夫" : "長輩") + "的病：官鬼是" + (sel === "官鬼" ? "用神" : "原神") + "，宜旺不宜衰（衰代表免疫力、後勁不足），病改看忌神。");
@@ -2479,7 +2488,7 @@
       if (pt) {
         var tg2 = trigramOf(gua, pt.idx);
         note("病位參考（象法，多個證據疊加才準）：" + pt.name + "在" + YAO_SHORT[pt.idx] + "（" + YAO_POS[pt.idx].body + "）；屬" + pt.el + "（" + ZHI_BODY[pt.el] + "）；所在" + tg2 + "卦（" + TRIGRAM_BODY[tg2] + "）；臨" + c.spirits[pt.idx] + "（" + SPIRIT_DISEASE[c.spirits[pt.idx]] + "）。");
-        A.lines.filter(function(a) { return act(a) && ke(a, pt); }).forEach(function(a) {
+        keBy(pt).forEach(function(a) {
           note("剋它的" + a.name + "：" + YAO_SHORT[a.idx] + "（" + YAO_POS[a.idx].body + "）、" + a.el + "（" + ZHI_BODY[a.el] + "），被剋之處就是病位。");
         });
         note("病何時好：取用神自己旺的日子（值日的" + pt.branch + "日）比取生它的日子更好。");
@@ -2500,16 +2509,16 @@
       }
       ofRel("官鬼").forEach(function(g) {
         if (!act(g)) return;
-        if (gen(g, shi)) r.favor.push("官鬼（法官）" + g.name + "生世：法官向著你");
-        else if (gen(g, ying) || ke(g, shi)) { r.against.push("官鬼（法官）" + g.name + (ke(g, shi) ? "剋世" : "生應") + "：法官向著對方，難以打贏"); r.delta -= 0.5; }
+        if (hits(shengBy(shi), g)) r.favor.push("官鬼（法官）" + g.name + "生世：法官向著你");
+        else if (hits(shengBy(ying), g) || hits(keBy(shi), g)) { r.against.push("官鬼（法官）" + g.name + (hits(keBy(shi), g) ? "剋世" : "生應") + "：法官向著對方，難以打贏"); r.delta -= 0.5; }
       });
       var gl2 = ofRel("官鬼");
       if (gl2.length >= 2) note("官鬼兩現：可能多次開庭或多審。");
       if (!gl2.length || gl2.every(broken)) note("官鬼不現或破敗：法院可能不受理或推拖。");
-      ofRel("父母").forEach(function(a) { if (act(a) && ke(a, shi)) { r.against.push("父母（證據）" + a.name + "剋世：證據對你不利"); r.delta -= 0.5; } });
+      keBy(shi).forEach(function(a) { if (a.rel === "父母") { r.against.push("父母（證據）" + a.name + "剋世：證據對你不利"); r.delta -= 0.5; } });
       var cai3 = ofRel("妻財");
       if (cai3.length && cai3.every(function(a) { return a.kong || a.yuePo || a.riPo; })) note("妻財（訴訟理由）空破：理由不足，也主破財。");
-      if (cai3.some(function(a) { return act(a) && ke(a, shi); })) note("財剋世在官司中取「理由不足」或「自己出訴訟費、破財」，不取得財。");
+      if (keBy(shi).some(function(a) { return a.rel === "妻財"; })) note("財剋世在官司中取「理由不足」或「自己出訴訟費、破財」，不取得財。");
       if (gen(shi, ying) || gen(ying, shi) || he(shi, ying)) note("世應相生相合：有庭外和解的可能。");
       if (shi.branch !== ying.branch && SAN_XING.some(function(g) { return g.indexOf(shi.branch) >= 0 && g.indexOf(ying.branch) >= 0; })) note("世應相刑：沒有和解的可能。");
       if (gua.mainRel) {
@@ -2581,7 +2590,11 @@
       if (a.yuePo) why.push("月破");
       if (a.riPo) why.push("日破");
       if (a.kongType.indexOf("真空") === 0) why.push("真空");
-      ["回頭剋", "化絕", "化墓", "化退神", "化破", "化空"].forEach(function(t) { if (a.chgTags.indexOf(t) >= 0 && !(t === "化絕" && !a.jue)) why.push(t); });
+      ["回頭剋", "化絕", "化墓", "化退神", "化破", "化空"].forEach(function(t) {
+        if (a.chgTags.indexOf(t) < 0 || (t === "化絕" && !a.jue)) return;
+        if (t === "化退神" && (lineStrength(a.branch).strong || a.branch === timeInfo.monthZhi)) return;   // 旺相不化退
+        why.push(t);
+      });
       if (chouActive.some(function(c) { return ELEM_KE[c.el] === a.el; })) why.push("仇神動來剋");
       if (a.ruMu.length && isWeakLv(a.level)) why.push("休囚入墓");
       // 《卜筮正宗》第三問：原神休囚不動、被日月相剋，皆不能生用
@@ -2697,6 +2710,8 @@
     var verdict = vScore >= 2.5 ? "吉" : vScore >= 1 ? "偏吉" : vScore > -1.5 ? "平（成敗參半，看後續變化）" : vScore > -3 ? "偏凶（阻礙較多）" : "凶";
     if (cr.effort && vScore > -3 && vScore < 1) verdict = "平（需努力，有機會）";
     var vTone = vScore >= 1 ? "good" : vScore > -1.5 ? "" : "bad";
+    if (verdict === "平（需努力，有機會）") vTone = "";
+    if (cr.verdictText) { verdict = cr.verdictText; vTone = ""; }
 
     var sum = sec("總斷");
     if (!roles) push(sum, "尚未選擇用神，以下以世爻代表自身概略判斷；在「所問」旁選擇用神，分析會以用神為主。", "note");
@@ -2745,6 +2760,7 @@
       var still = [0, 1, 2, 3, 4, 5].filter(function(i) { return movingIdx.indexOf(i) < 0 && anIdx.indexOf(i) < 0; })[0];
       pattern = "獨靜：只有" + nm(still) + "安靜，常以獨靜之爻定應期";
     } else pattern = activeCount + " 爻發動（含暗動）" + (activeCount >= 4 ? "，卦爻競發，勢必翻騰，事多變動" : "，以動爻與用神的生剋為斷");
+    if (activeCount && A.blocked.length) pattern += "（其中 " + A.blocked.length + " 爻化廢、被合絆或入日墓，不能生剋他爻）";
     push(ov, pattern);
 
     function relText(kind) {
@@ -2968,7 +2984,7 @@
       });
       push(ss, s.name + "在" + s.zhis.split("").join("、") + "：" + (on.length ? on.join("；") : "不上卦") + "。" + s.note + "。");
     });
-    push(ss, "「吉凶神煞之多端，何如生剋制化之一理」：六獸神煞附吉則吉、附凶則凶，吉凶仍以用神生剋為準。", "note");
+    push(ss, "「吉凶神煞之多端，何如生剋制化之一理」：六獸神煞附吉則吉、附凶則凶，吉凶仍以用神生剋為準（例外：胎產、尋人卦中用神臨白虎又受剋會扣分）。", "note");
 
     // ----- 應期 -----
     var yq = sec("應期參考");
@@ -3117,8 +3133,9 @@
     say("結論：" + (cr.advice || advice), vTone);
 
     // 應期換成實際日期：從起卦日起算 60 天內，最近的那一天
-    var baseDay = castTime || new Date();
     var ziAt23 = getRadio("ziMode") === "23";
+    var baseDay = new Date((castTime || new Date()).getTime());
+    if (ziAt23 && baseDay.getHours() >= 23) baseDay.setDate(baseDay.getDate() + 1);   // 23 點後已換到下一個日柱
     var nextDay = function(zhi) {
       for (var d = 0; d < 60; d++) {
         var day = new Date(baseDay.getFullYear(), baseDay.getMonth(), baseDay.getDate() + d, 12);
