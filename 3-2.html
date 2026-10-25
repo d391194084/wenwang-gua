@@ -1263,17 +1263,26 @@
   }
 
   // 爻支的旬空、月破與日沖（靜爻分暗動、日破）
-  function branchFlags(branch, isStatic) {
+  function branchFlags(branch, isStatic, idx) {
     var flags = [];
     if (!timeInfo) return flags;
     if (timeInfo.xunKong.indexOf(branch) >= 0) flags.push({ cls: "flag-kong", text: "空" });
     if (isClash(branch, timeInfo.monthZhi)) flags.push({ cls: "flag-po", text: "月破" });
     if (isClash(branch, timeInfo.dayZhi)) {
       if (!isStatic) flags.push({ cls: "flag-chong", text: "日沖" });
-      else if (anDongReason(branch, currentMovers())) flags.push({ cls: "flag-chong", text: "暗動" });
+      else if (idx !== undefined && currentAssess() ? currentAssess().lines[idx].anDong : anDongReason(branch, currentMovers())) flags.push({ cls: "flag-chong", text: "暗動" });
       else flags.push({ cls: "flag-po", text: "日破" });
     }
     return flags;
+  }
+
+  // 六爻滿時的整卦評估（暗動以分析引擎的結果為準）；卦、時間、用神沒變就沿用
+  var assessCache = { key: "", A: null };
+  function currentAssess() {
+    if (yaos.length < 6 || !timeInfo) return null;
+    var key = yaos.map(function(y) { return y.yangCount; }).join("") + "|" + timeInfo.monthZhi + timeInfo.dayGZ + "|" + document.getElementById("yongShen").value;
+    if (assessCache.key !== key) assessCache = { key: key, A: assessGua(analyzeGua()) };
+    return assessCache.A;
   }
 
   // 排盤上能生剋他爻的動爻（未化廢、未被日辰合絆），用來判斷暗動
@@ -1322,8 +1331,8 @@
     return tags.length ? "〔" + tags.map(function(f) { return f.text; }).join("・") + "〕" : "";
   }
 
-  function flagsHtml(branch, isStatic) { return tagsHtml(branchFlags(branch, isStatic)); }
-  function flagsText(branch, isStatic) { return tagsText(branchFlags(branch, isStatic)); }
+  function flagsHtml(branch, isStatic, idx) { return tagsHtml(branchFlags(branch, isStatic, idx)); }
+  function flagsText(branch, isStatic, idx) { return tagsText(branchFlags(branch, isStatic, idx)); }
 
   // 飛神（本卦該爻）與伏神的生剋
   function flyFuRelation(flyEl, fuEl) {
@@ -1637,13 +1646,14 @@
         }
       }
       if (a.stage === "絕") {
-        a.jue = true;
         if (dayGen && mScore >= 1.5) {
-          a.parts.push({ text: "日辰" + dz + "為絕地，但本爻旺相，論生不論絕", delta: 0 });
+          a.parts.push({ text: "日辰" + dz + "為絕地，但本爻旺相，論生不論絕", delta: 0 });   // 得救，不標逢絕
         } else if (dayGen) {
+          a.jue = true;
           add("日辰" + dz + "為絕地，本爻休囚，論絕不論生（取消日生）", -2.5, "剋");
           a.sheng--;
         } else {
+          a.jue = true;
           add("絕於日辰" + dz, -1, "");
         }
       }
@@ -1690,7 +1700,7 @@
         if (avoid) a.parts.push({ text: act.label + "剋之，但旬空之爻旬內不受生剋", delta: 0 });
         else { a.actKe.push(act.label); a.actKeIdx.push(act.idx); add(act.label + "剋之", -1.5, "剋"); }
       }
-      if (!a.moving && MU[el] === act.branch) {
+      if (!a.moving && !a.anDong && MU[el] === act.branch) {   // 暗動如同明動，不入動爻之墓（第 29 集酉金暗動仍生世）
         a.ruMu.push("入" + act.label + "之墓");
         add("入" + act.label + "之墓（靜爻入動爻墓）", -1, "");
       }
@@ -1794,12 +1804,17 @@
       if (hf.why.length) { blocked.push(label + "化廢（" + hf.why.join("、") + "），不能生剋他爻"); continue; }
       movers.push({ idx: i, branch: ln.branch, el: ln.element, label: label, moving: true });
     }
-    var actors = movers.slice(), anWhy = [];
+    // 暗動候選：旬空、月令有氣不需生源；「得動爻生」要等作用方向定了，確認真的生到才成立
+    var anWhy = [], anDonors = [], cands = [];
     for (var s = 0; s < 6; s++) {
       var sl = gua.lines[s];
-      anWhy.push("");
+      anWhy.push(""); anDonors.push([]);
       if (yaos[s].isChanging) continue;
-      var why = anDongReason(sl.branch, movers);
+      var why = anDongReason(sl.branch, []);
+      if (!why && isClash(sl.branch, dz)) {
+        anDonors[s] = movers.filter(function(m) { return ELEM_GEN[m.el] === sl.element; });
+        if (anDonors[s].length) why = "月令雖衰，但得" + anDonors[s][0].label + "生";
+      }
       if (!why && !isClash(sl.branch, dz) && (lineStrength(sl.branch).strong || sl.branch === mz)) {
         var hitBy = movers.filter(function(m) { return isClash(m.branch, sl.branch); })[0];
         if (hitBy) why = "被" + hitBy.label + "沖動，旺相靜爻逢動爻沖，短期論暗動";
@@ -1808,7 +1823,7 @@
       if (!why) continue;
       var lb = YAO_SHORT[s] + sl.relative + sl.branch + "暗動";
       if (stageOf(sl.element, dz) === "墓") { blocked.push(lb + "入日墓，暫失生剋之權"); continue; }
-      actors.push({ idx: s, branch: sl.branch, el: sl.element, label: lb, moving: false });
+      cands.push({ idx: s, branch: sl.branch, el: sl.element, label: lb, moving: false });
     }
 
     // 作用方向：先動後靜（動動相連，只論相生）、先用神後世爻、有生則生、無生則剋
@@ -1819,6 +1834,7 @@
       yongIdx = roles.yongLines.slice();
     }
     var shiEl = gua.lines[gua.shi].element;
+    function setAims(actors) {
     actors.forEach(function(act) {
       var isYongLine = yongIdx.indexOf(act.idx) >= 0;
       // 動爻之間相合（含剋合）以合論，不論生剋（第 80 集）；生合仍論相生
@@ -1840,6 +1856,28 @@
         act.aim = { kind: canGen ? "gen" : "ke" }; act.aimText = canGen ? "所生之爻（有生則生）" : "所剋之爻";
       }
     });
+    }
+    // 反覆計算到穩定：靠生源成立的暗動，生源的作用方向必須真的落在它身上
+    var actors = movers.slice(), noDonor = {};
+    for (var round = 0; round < 12; round++) {
+      actors = movers.concat(cands.filter(function(c) { return !noDonor[c.idx]; }));
+      setAims(actors);
+      var nextNoDonor = {};
+      cands.forEach(function(c) {
+        var d = anDonors[c.idx];
+        if (d.length) {
+          var real = d.filter(function(m) {
+            return actors.indexOf(m) >= 0 && aimHits(m, { idx: c.idx, isYong: !!roles && roles.lineRoles[c.idx] === "用", isShi: c.idx === gua.shi }, "生");
+          })[0];
+          if (real) anWhy[c.idx] = "月令雖衰，但得" + real.label + "生";
+          else nextNoDonor[c.idx] = true;
+        }
+      });
+      var same = JSON.stringify(nextNoDonor) === JSON.stringify(noDonor);
+      noDonor = nextNoDonor;
+      if (same) break;
+    }
+    cands.forEach(function(c) { if (noDonor[c.idx]) anWhy[c.idx] = ""; });   // 生源轉去生別爻，不成暗動
 
     var lines = [];
     for (var j = 0; j < 6; j++) {
@@ -2475,7 +2513,10 @@
           if (isStrongLv(shi.level)) { r.against.push("官鬼（病）持世又旺：病纏在身、較重"); r.delta -= 1; }
           else if (shi.kong || isWeakLv(shi.level)) r.favor.push("官鬼持世但衰或空：病不重");
           else note("官鬼持世：病纏在身，不易斷根；鬼不旺，尚可。");
-          if (keBy(shi).some(function(a) { return a.rel === "子孫"; })) r.favor.push("子孫（醫藥）動來剋官鬼持世：剋去身上的病");
+          if (c.medicine.length) {
+            r.favor.push("子孫（醫藥）動來剋官鬼持世：剋去身上的病（不以受剋論，改以得助論）");
+            r.delta += 2.5 * c.medicine.length;   // 抵銷受剋的 −1.5，再比照得生 +1
+          }
         }
         gui2.forEach(function(a) {
           if (act(a) && a.idx !== gua.shi && (hits(keBy(shi), a) || chong(a, shi))) { r.against.push(a.name + "（病）發動來沖剋世爻：大忌"); r.delta -= 1; }
@@ -2603,7 +2644,16 @@
       if ((ELEM_KE[mEl0] === a.el || ELEM_KE[dEl0] === a.el) && !isStrongLv(a.level)) why.push("被日月相剋");
       return why;
     }
-    var tanSheng = jiActive.length > 0 && yuanActive.some(function(y) { return damagedYuan(y).length === 0; });
+    // 疾病自占、官鬼持世：子孫剋世是醫藥剋去病，不當忌神（第 41、84 集）
+    var medicine = (cat === "病" && roles && roles.sel === "世" && focus && !focusIsFu && A.lines[gua.shi].rel === "官鬼") ?
+      focus.actKeIdx.filter(function(i) { return A.lines[i].rel === "子孫"; }) : [];
+    // 實際剋到、生到用神的忌神、原神（依作用方向）
+    var jiHit = focus ? jiActive.filter(function(j) { return focus.actKeIdx.indexOf(j.idx) >= 0 && medicine.indexOf(j.idx) < 0; }) : [];
+    var yuanHit = focus ? yuanActive.filter(function(y) { return focus.actShengIdx.indexOf(y.idx) >= 0; }) : [];
+    // 貪生忘剋：忌神真的生到原神，原神又真的生到用神
+    var tanSheng = jiActive.some(function(j) {
+      return yuanHit.some(function(y) { return damagedYuan(y).length === 0 && y.actShengIdx.indexOf(j.idx) >= 0; });
+    });
 
     // ----- 總斷 -----
     var favor = [], against = [], neutral = [];
@@ -2640,7 +2690,7 @@
       else if (hasHS) { if (vScore < 1) { favor.push("重內輕外：" + focusLabel + "自身化回頭生（第一層），勝過日月與動爻的不利"); vScore = 1; } }
       else if (hasHK) { if (vScore > -1.6) { against.push("重內輕外：" + focusLabel + "自身化回頭剋（第一層），日月再旺也以凶論"); vScore = -1.6; } }
       else if (focus.chgTags.indexOf("化進神") < 0 && !tanSheng) {
-        if (focus.mdScore >= 1 && focus.actKe.length > focus.actSheng.length && vScore > -1.6) {
+        if (focus.mdScore >= 1 && focus.actKe.length - medicine.length > focus.actSheng.length && vScore > -1.6) {
           against.push("重內輕外：" + focusLabel + "雖得日月之旺，但被" + focus.actKe.join("、") + "所剋；卦中動爻（第二層）重於日月（第三層），以被剋論");
           vScore = -1.6;
         } else if (focus.mdScore < 0 && focus.actSheng.length > focus.actKe.length && vScore < 1) {
@@ -2651,16 +2701,22 @@
     }
     if (roles) {
       if (tanSheng) {
-        var anTong = yuanActive.filter(function(y) { return !y.moving && damagedYuan(y).length === 0; }).length > 0;
+        var anTong = yuanHit.filter(function(y) { return !y.moving && damagedYuan(y).length === 0; }).length > 0;
         favor.push("忌神與原神同動，貪生忘剋，接續相生" + (anTong ? "（原神暗動通關）" : ""));
         vScore += 1.5;
       }
-      else if (jiActive.length) against.push("忌神" + jiActive.map(function(a) { return a.name + (a.moving ? "發動" : "暗動"); }).join("、") + "來剋用神");
+      else if (jiHit.length) against.push("忌神" + jiHit.map(function(a) { return a.name + (a.moving ? "發動" : "暗動"); }).join("、") + "來剋用神");
+      if (!tanSheng) {
+        jiActive.forEach(function(j) {
+          if (jiHit.indexOf(j) < 0 && medicine.indexOf(j.idx) < 0) neutral.push("忌神" + j.name + "雖動，但作用方向在他處，沒有剋到用神");
+        });
+      }
       if (yuanActive.length && !tanSheng) {
         yuanActive.forEach(function(y) {
           var d = damagedYuan(y);
           if (d.length) against.push("原神" + y.name + "雖動，但" + d.join("、") + "，生之無力");
-          else favor.push("原神" + y.name + "發動生用神");
+          else if (yuanHit.indexOf(y) >= 0) favor.push("原神" + y.name + "發動生用神");
+          else neutral.push("原神" + y.name + "雖動，但作用方向在他處，沒有生到用神");
         });
       }
       if (!yuanActive.length && !tanSheng) {
@@ -2677,7 +2733,7 @@
         if (ELEM_GEN[focus.el] === shiEl || ZHI_HE[focus.branch] === A.lines[gua.shi].branch) { favor.push("用神生合世爻，事來就我"); vScore += 0.5; }
       }
       // 仇忌同動，用神遭殃（第 19 集）
-      if (!tanSheng && jiActive.length && chouActive.some(function(ch) { return jiActive.some(function(j) { return ELEM_GEN[ch.el] === j.el; }); })) {
+      if (!tanSheng && chouActive.some(function(ch) { return jiHit.some(function(j) { return j.actShengIdx.indexOf(ch.idx) >= 0; }); })) {
         against.push("仇忌同動：仇神生忌神、忌神剋用神，用神遭殃"); vScore -= 1;
       }
     }
@@ -2688,7 +2744,7 @@
     var cr = categoryRules({
       gua: gua, A: A, roles: roles, cat: cat, q: qText, focus: focus, focusIsFu: focusIsFu, fuInfo: fuInfo, yongPick: yongPick,
       shiA: A.lines[gua.shi], yingA: A.lines[gua.ying], spirits: spirits, activeCount: activeCount, active: active,
-      yuan: yuan, damagedYuan: damagedYuan, tanSheng: tanSheng, quit: quitJob,
+      yuan: yuan, damagedYuan: damagedYuan, tanSheng: tanSheng, quit: quitJob, medicine: medicine,
       auto: document.getElementById("yongShen").classList.contains("auto-picked")
     });
     neutral = neutral.concat(cr.neutral);
@@ -2858,24 +2914,28 @@
         var d = damagedYuan(a);
         var t = roleLine(a, "原");
         if (a.heBan) t += "。原神動而被日辰合絆，暫不能生用神，待沖開之" + clashOf(a.branch) + "日。";
+        else if (active(a) && !d.length && yuanHit.indexOf(a) < 0) t += "。原神雖動，但作用方向在他處（" + (A.actors.filter(function(x) { return x.idx === a.idx; })[0] || { aimText: "他爻" }).aimText + "），沒有生到用神。";
         else if (active(a) && !d.length) t += "。原神動來生用神，" + (focus && isStrongLv(focus.level) ? "用神旺上加旺，吉更倍。" : "用神有根，衰弱、空伏之時待時而起。");
         else if (d.length) t += "。原神" + d.join("、") + "，用神根蒂受傷，「不惟無益，而反有損」。";
         else t += "。原神安靜，生力有限。";
-        push(yj, t, active(a) && !d.length ? "good" : d.length ? "bad" : "");
+        push(yj, t, yuanHit.indexOf(a) >= 0 && !d.length ? "good" : d.length ? "bad" : "");
       });
       ji.forEach(function(a) {
         var t = roleLine(a, "忌");
         var weakJi = a.kongType.indexOf("真空") === 0 || a.yuePo || a.riPo || a.ruMu.length || a.chgTags.indexOf("回頭剋") >= 0 || a.chgTags.indexOf("化退神") >= 0;
         if (a.heBan) {
           t += "。忌神動而被日辰合絆，暫不能剋用神；沖開之" + clashOf(a.branch) + "日需留意。";
+        } else if (medicine.indexOf(a.idx) >= 0) {
+          t += "。子孫（醫藥）剋官鬼持世，是剋去身上的病，不以忌神論。";
+        } else if (active(a) && jiHit.indexOf(a) < 0) {
+          t += tanSheng ? "。忌神雖動，但原神同動，忌神貪生原神而忘剋用神，轉為接續相生。" : "。忌神雖動，但作用方向在他處，沒有剋到用神。";
         } else if (active(a)) {
-          t += tanSheng ? "。忌神雖動，但原神同動，忌神貪生原神而忘剋用神，轉為接續相生。" :
-            weakJi ? "。忌神雖動，但本身受制，剋力減弱。" : "。忌神" + (a.moving ? "發動" : "暗動") + "剋用神，是卦中主要阻力" + (a.moving ? "。" : "（暗中作梗）。");
+          t += weakJi ? "。忌神雖動，但本身受制，剋力減弱。" : "。忌神" + (a.moving ? "發動" : "暗動") + "剋用神，是卦中主要阻力" + (a.moving ? "。" : "（暗中作梗）。");
           if (a.stage === "長生") t += "忌神長生於日，禍來不小。";
         } else {
           t += weakJi ? "。忌神受制（空、破、墓或受剋），不能傷用，為吉。" : "。忌神安靜，不直接傷用神。";
         }
-        push(yj, t, active(a) && !tanSheng && !weakJi ? "bad" : weakJi || tanSheng ? "good" : "");
+        push(yj, t, jiHit.indexOf(a) >= 0 && !weakJi ? "bad" : medicine.indexOf(a.idx) >= 0 || (jiHit.indexOf(a) >= 0 && weakJi) || tanSheng || (!active(a) && weakJi) ? "good" : "");
       });
       chou.forEach(function(a) {
         var t = roleLine(a, "仇");
@@ -2997,8 +3057,8 @@
       var st5 = [0, 1, 2, 3, 4, 5].filter(function(i) { return movingIdx.indexOf(i) < 0 && anIdx.indexOf(i) < 0; })[0];
       push(yq, "獨靜之爻" + nm(st5) + "：其值日之" + A.lines[st5].branch + "日或逢沖之" + clashOf(A.lines[st5].branch) + "日可作參考");
     }
-    if (jiActive.length && !tanSheng) {
-      push(yq, "需留意：忌神" + jiActive.map(function(a) { return a.name; }).join("、") + "值日（" + uniq(jiActive.map(function(a) { return a.branch; })).join("、") + "日）力量最強，" +
+    if (jiHit.length && !tanSheng) {
+      push(yq, "需留意：忌神" + jiHit.map(function(a) { return a.name; }).join("、") + "值日（" + uniq(jiHit.map(function(a) { return a.branch; })).join("、") + "日）力量最強，" +
         (focus ? "或" + focusLabel + "被沖之" + clashOf(focus.branch) + "日" : ""), "bad");
     }
     push(yq, "近事以日、時論，遠事以月、年論；吉事解病之時應吉，凶事病發之時應凶。", "note");
@@ -3085,10 +3145,10 @@
       if (tanSheng) {
         say("原本扯後腿的力量，反而轉去幫助你的助力，壞事變好事（貪生忘剋）。", "good");
       } else {
-        if (jiActive.length) say("有一股阻力正在主動妨礙這件事（忌神發動），要留意人事或環境的干擾。", "bad");
+        if (jiHit.length) say("有一股阻力正在主動妨礙這件事（忌神發動），要留意人事或環境的干擾。", "bad");
         yuanActive.forEach(function(y) {
           if (damagedYuan(y).length) say("本來有人或條件可以幫忙，但這股助力本身出了問題，幫不太上。", "bad");
-          else say("有人或條件正在幫你推動這件事（原神發動）。", "good");
+          else if (yuanHit.indexOf(y) >= 0) say("有人或條件正在幫你推動這件事（原神發動）。", "good");
         });
       }
       if (!yuanActive.length && !tanSheng && yuan.length && yuan.every(function(y) { return damagedYuan(y).length; })) {
@@ -3135,13 +3195,14 @@
     // 應期換成實際日期：從起卦日起算 60 天內，最近的那一天
     var ziAt23 = getRadio("ziMode") === "23";
     var baseDay = new Date((castTime || new Date()).getTime());
-    if (ziAt23 && baseDay.getHours() >= 23) baseDay.setDate(baseDay.getDate() + 1);   // 23 點後已換到下一個日柱
+    var shifted = ziAt23 && baseDay.getHours() >= 23;
+    if (shifted) baseDay.setDate(baseDay.getDate() + 1);   // 23 點後已換到下一個日柱，那一天不是起卦的國曆日
     var nextDay = function(zhi) {
       for (var d = 0; d < 60; d++) {
         var day = new Date(baseDay.getFullYear(), baseDay.getMonth(), baseDay.getDate() + d, 12);
         var lun = Solar.fromDate(day).getLunar();
         var gz = ziAt23 ? lun.getDayInGanZhiExact() : lun.getDayInGanZhiExact2();
-        if (gz.charAt(1) === zhi) return { d: d, text: (day.getMonth() + 1) + "/" + day.getDate() + (d === 0 ? "（起卦當天，" : "（") + zhi + "日）" };
+        if (gz.charAt(1) === zhi) return { d: d, text: (day.getMonth() + 1) + "/" + day.getDate() + (d === 0 ? (shifted ? "（起卦的日柱，" : "（起卦當天，") : "（") + zhi + "日）" };
       }
       return { d: 99, text: zhi + "日" };
     };
@@ -3929,7 +3990,7 @@
       var relCell, chgCell;
       if (gua) {
         var ln = gua.lines[i];
-        relCell = ln.relative + ln.branch + ln.element + flagsHtml(ln.branch, !yao.isChanging);
+        relCell = ln.relative + ln.branch + ln.element + flagsHtml(ln.branch, !yao.isChanging, i);
         if (ln.fu) {
           var fuYong = roles && roles.fuYong.indexOf(i) >= 0;
           relCell += '<span class="cell-sub fu-line">伏 ' + ln.fu.relative + ln.fu.branch + ln.fu.element +
@@ -4295,7 +4356,7 @@
       var sym = y.isYang ? "▅▅▅▅▅" : "▅▅　▅▅";
       var mk = y.mark ? (" " + y.mark) : "　";
       var row = spirits[i] + "　" + YAO_SHORT[i] + "　" + sym + mk + "　" + ln.relative + ln.branch + ln.element +
-        flagsText(ln.branch, !y.isChanging) + "　" + tag;
+        flagsText(ln.branch, !y.isChanging, i) + "　" + tag;
       if (y.isChanging) {
         row += "　→　" + ln.chgRelative + ln.chgBranch + ln.chgElement + tagsText(changeTags(ln.branch, ln.chgBranch));
       }
