@@ -1572,6 +1572,91 @@
     return match;
   }
 
+  // 明確事件結果先於背景名詞；人物本人為所問時仍保留六親。分類由選用神與事類共用。
+  var INTENT_EXAM_RE = /統測|英檢|路考|複試|推甄|被二一|考私中|考得上|交換學生|學校分發/;
+  var INTENT_JOB_RE = /跳槽|續聘|二面|三面|外派|升(?:課長|組長|店長|科長)|調到[^，,。；;]{1,8}部|公務員分發/;
+  var INTENT_MONEY_RE = /理賠(?:金額|金|款)|退稅|年終|分紅|股利|紅利|卡費|工程款|加班費|訂金|資金|款項/;
+  var INTENT_HEALTH_RE = /頭暈|咳嗽|肺炎|開完刀|受傷|復健|病|身體|健康|康復|痊癒/;
+  function questionIntent(q) {
+    q = (q || "").replace(/以(?:父母|兄弟|子孫|妻財|官鬼)為用/g, "").replace(/^[，,\s]+/, "");
+    if (!q) return null;
+    var clauses = q.split(/[，,。；;]/).filter(function(t) { return t.trim(); });
+    if (!clauses.length) return null;
+    var main = clauses[clauses.length - 1].trim();
+    var person = personRule(q.replace(/育嬰假/g, ""));
+    // 尾句明示另一事件時，前句只提供人物／情境，不提供事件關鍵字。
+    var explicitMain = INTENT_HEALTH_RE.test(main) || /工作|上班|面試|錄取|職缺|款|錢|入帳|合約|文件|資料|手續|護照|可信|可靠|誠意|興趣|裝潢|套房|續約|稿子|稿件/.test(main);
+    var eventContext = explicitMain ? main : q;
+    function result(value, cat, why) { return { value: value, cat: cat, why: why }; }
+    function unknown(cat) { return { value: "", cat: cat, why: "請先確認所問人物的身分或手動選用神，再判斷吉凶", requiresConfirmation: true }; }
+    function actor(text, fallback) {
+      var p = personRule(text);
+      if (p) return p.value;
+      if (/^我(?:的|自己|本人|最近|能|會|身體|病)/.test(text.trim())) return "世";
+      if (clauses.length > 1 && /^(?:他|她)(?!人)/.test(clauses[0].trim())) {
+        var antecedent = personRule(clauses.slice(0, -1).join("，"));
+        if (!antecedent) return "";
+      }
+      if (/^(?:他|她)(?!人)/.test(text.trim())) {
+        var prior = personRule(clauses.slice(0, -1).join("，"));
+        return prior ? prior.value : "";
+      }
+      if (YONG_OTHERS.re.test(text)) return "應";
+      return fallback;
+    }
+    var travel = /開車|騎(?:機)?車|自駕|駕車|搭船|搭飛機|搭機|搭車|通勤|轉機|出行/.exec(q);
+    if (travel && /平安|安全|順利|小心|出事|趕得上|趕上/.test(main) && !/維修|故障|煞車|車況|修車|保養/.test(main) &&
+      !/賺|費用|退款|理賠|投資|買|賣|錄取|工作結果/.test(main)) {
+      var subject = clauses.length > 1 && /我|他|她|媽媽|爸爸|朋友|哥|弟|姐|妹|對方/.test(main) ? main : q.slice(0, travel.index);
+      var av = actor(subject, "世");
+      return av ? result(av, "行", "主問出行平安或行程，不以車輛或天氣背景取用") : unknown("行");
+    }
+    if (/(?:下雨|下雪|降雨|放晴|晴天)[嗎呢？?。\s]*$/.test(main)) {
+      return result(/放晴|晴天/.test(main) ? "妻財" : "父母", "", "主問天氣，活動或婚禮只是背景");
+    }
+    var lawTopic = /官司|訴訟|判決|判刑|起訴|提告|被[^，,。；;]{0,12}告|告[^，,。；;]{0,8}房東/.test(q);
+    if (lawTopic && /判決|判刑|勝訴|敗訴|勝算|申訴|會贏|能贏/.test(main)) {
+      var accused = /被|要告|提告|起訴/.exec(q), legalSubject = accused ? q.slice(0, accused.index) : main;
+      if (/^我(?:跟|和|與)/.test(legalSubject)) legalSubject = "我";
+      var lv = actor(legalSubject, "世");
+      return lv ? result(lv, "訟", "主問訴訟結果，對手與押金等背景不代替主體") : unknown("訟");
+    }
+    var docGoal = /(?:申請書|合約|合同|契約|公文|文件|資料|信函|證件|護照|健保卡|手續)[^，,。；;]{0,16}(?:拿到|收到|寄到|下來|核准|辦|順|補|通過)/.test(eventContext);
+    if (docGoal || /(?:房|屋|土地).{0,8}過戶/.test(q) && /手續|順|通過/.test(main)) return result("父母", "", "主問文件、證件或過戶手續，保留文書取法");
+    var counterpart = /客戶|代理商|合作方|投資人|供應商|對方|那個人|這個人|此人|仲介|對手/.test(q);
+    if (counterpart && /可靠|可信|值得信任|有沒有誠意|有沒有興趣|有興趣|會不會投|留得住|態度|講的是真的|實力強|有什麼來意/.test(main)) return result("應", "", "主問對方的誠意、可靠性或意願，取應看對方");
+    if (/撐得過去|最近還好|最近好不好|還好嗎/.test(main) && person) return result(person.value, "", "主問人物近況，生意或欠債只是背景");
+    var moneyGoal = /拿|領|發|撥|入帳|繳|回本|還|退|分到|多少|多不多|多久|什麼時候|何時/.test(main);
+    var otherOutcome = /應徵|錄取|職缺|工作|上班|面試|申請書|合約|文件/.test(main);
+    if (!otherOutcome && (INTENT_MONEY_RE.test(q) && moneyGoal || /借給/.test(q) && /還/.test(main) || /(?:黃金|白銀).{0,12}賣/.test(q) ||
+      /續抱|持股|解套|套牢/.test(q) || /投資/.test(q) && /進場|獲利|回本|賺/.test(main) ||
+      /賣得到[一二三四五六七八九十百千萬兩0-9]|售價|賣價/.test(main))) return result("妻財", "財", "主問款項、資金或投資財物結果，取妻財");
+    if (/年終/.test(q) && /有沒有|會不會|多少/.test(main)) return result("妻財", "財", "主問年終款項取妻財");
+    var exam = INTENT_EXAM_RE.test(eventContext), application = /投[^，,。；;]{0,16}職缺|職缺[^，,。；;]{0,12}回覆/.test(eventContext);
+    if (exam || application) {
+      var childExam = /孩子|兒子|女兒|小孩|小朋友/.test(q);
+      return result(childExam || !person ? "父母" : person.value, application ? "名" : "考", "主問入學、考試學業或應聘回覆，依既有考試與人物政策取用");
+    }
+    if (INTENT_JOB_RE.test(eventContext) || /^我(?:的)?(?:工作|上班)/.test(main) && /順|會|能|如何/.test(main) || /育嬰假/.test(q) && /回得去|回原單位|復職/.test(main)) {
+      return result(/^我(?:的)?(?:工作|上班)/.test(main) ? "官鬼" : person ? person.value : "官鬼", "名", "主問職務、任用或回原單位，育嬰假等只是背景");
+    }
+    var bodyGoal = /好|恢復|康復|要緊|嚴重|肺炎|復原/.test(main);
+    if (/治療|醫生.{0,8}(?:看得好|治得好|能治)/.test(main) && !/工作|公司|上班/.test(main)) return result("子孫", "病", "主問醫藥治療或治療後效果取子孫");
+    if (INTENT_HEALTH_RE.test(q) && bodyGoal && !/工作|上班|費用|退款|賠償|考試/.test(main)) {
+      var hv = actor(main, person ? person.value : "世");
+      return hv ? result(hv, "病", "主問本人或親友病況，醫院背景不等於問醫藥效用") : unknown("病");
+    }
+    if (/治療|醫生/.test(q) && /有效|療效/.test(main) && !/工作|公司|上班/.test(main)) return result("子孫", "病", "主問醫藥治療效用取子孫");
+    if (/裝潢|套房|續約|稿子|稿件/.test(eventContext) && !/投資|獲利|賺|錢/.test(main)) return result("父母", "", "主問房屋或文書稿件取父母");
+    var romance = /暗戀|告白|聯誼|娶我|嫁給我|前任.*回頭|命中注定/.test(q) || !person && (LOVE_TEST.test(q) || LOVE_WEAK_RE.test(q));
+    if (romance && !lawTopic && !/工作|上班|升職|升遷|晉升|轉正|考試|學業|欠錢|還錢|貸款|生病|出國|賺|錢|生意|合夥|投資/.test(main)) {
+      if (person && person.value !== "兄弟") return result(person.value, "情", "明示親友或伴侶時，保留所問人物的六親");
+      if (!person || /喜歡的|暗戀的/.test(q)) return { kind: "romance", cat: "情", why: "主問感情對象或感情意願" };
+    }
+    if (!person && (/^(?:他|她)(?:最近|生病|還|會|能|的)/.test(q) || /(?:支持|看好)的候選人/.test(q))) return unknown("");
+    return null;
+  }
+
   // 只抽取明確的結果主問；用神、事類、分析共用，原輸入仍保留在畫面。
   function focusedQuestion(q) {
     var named = /以(?:父母|兄弟|子孫|妻財|官鬼)為用/.exec(q);
@@ -1648,7 +1733,10 @@
   // 依所問文字與用神判斷事類，用來調整沖合、進退等象義
   function questionCategory(sel) {
     var q = effectiveQuestion(document.getElementById("question").value).replace(/以(?:父母|兄弟|子孫|妻財|官鬼)為用/g, "").replace(/^[，,\s]+/, "");
-    var namedItem = LOST_RE.test(q) && YONG_ITEMS.some(function(it) { return it.re.test(q); });   // 明說遺失了什麼東西
+    var namedItem = lostQuestion(q) && YONG_ITEMS.some(function(it) { return it.re.test(q); });
+    if (namedItem) return "尋";
+    var intent = questionIntent(q);
+    if (intent && intent.cat !== undefined) return intent.cat;
     var money = /錢|款項|貨款|資金|投資|股|基金|回本|借|欠|債|貸|生意|開店/.test(q);
     var job = JOB_STATUS_RE.test(q) || /工作|上班|職位|職場|升職|升遷|晉升|面試|求職|轉職|調動|事業|應聘|應徵|公司/.test(q);
     var T = {
@@ -1786,7 +1874,7 @@
 
   // 失物題：有遺失類字詞，而且說得出是什麼東西，或沒有提到任何人
   function isLostItem(q) {
-    return LOST_RE.test(q) && (YONG_ITEMS.some(function(it) { return it.re.test(q); }) || !personRule(q));
+    return lostQuestion(q) && (YONG_ITEMS.some(function(it) { return it.re.test(q); }) || !personRule(q));
   }
 
   // 單一地支在月建、日辰、動爻、變爻之下的旺衰（逐項計分，正為生扶、負為剋洩）
@@ -2845,7 +2933,20 @@
   }
 
   // 組出完整分析：{ verdict, sections:[{title, items:[{text, tone}], table}] }
+  function pendingYongRule() {
+    var q = document.getElementById("question").value.trim();
+    if (!q || document.getElementById("yongShen").value) return null;
+    var rule = inferYong(q, getRadio("gender"));
+    return rule && rule.requiresConfirmation ? rule : null;
+  }
+
+  function pendingYongHtml(rule) {
+    return '<div class="ana-verdict ana-mid">待確認用神</div><p class="setting-note">' + escapeHtml(rule.why) + '。目前不判吉凶或應期；請在「所問」旁選擇用神後再分析。</p>';
+  }
+
   function buildDetailedAnalysis(gua) {
+    var pending = pendingYongRule();
+    if (pending) return { verdict: "待確認用神", tone: "", requiresConfirmation: true, sections: [{ title: "先確認所問人物與用神", items: [{ text: pending.why + "。目前不判吉凶或應期；手動選擇用神後再分析。", tone: "note" }] }] };
     var A = assessGua(gua);
     var roles = computeRoles(gua);
     var cat = questionCategory(roles ? roles.sel : "");
@@ -3752,6 +3853,7 @@
   }
 
   function teachingSteps(gua) {
+    if (pendingYongRule()) return [];
     var A = assessGua(gua);
     var roles = computeRoles(gua);
     var cat = questionCategory(roles ? roles.sel : "");
@@ -4025,6 +4127,8 @@
   }
 
   function teachingHtml(gua) {
+    var pending = pendingYongRule();
+    if (pending) return pendingYongHtml(pending);
     var steps = teachingSteps(gua);
     var html = '<div class="teach-intro">建議先自己照下面的步驟想一遍，再點開「練習」看答案，最後到「詳細分析」對照。每一步都以你這一卦的實際爻位示範，括號中的集數是《六爻神卦整理》課程出處。</div>';
     steps.forEach(function(s, n) {
@@ -4052,6 +4156,8 @@
   /* ---------- 解卦：用白話說明卦辭、爻辭的意思，吉凶沿用詳細分析 ---------- */
 
   function jieguaHtml(gua) {
+    var pending = pendingYongRule();
+    if (pending) return pendingYongHtml(pending);
     var m = (typeof JIEGUA !== "undefined") && JIEGUA[gua.mainName];
     if (!m) return '<p class="setting-note">解卦資料沒有載入，請重新整理頁面後再試。</p>';
     var c = gua.hasMoving ? JIEGUA[gua.chgName] : null;
@@ -4546,9 +4652,15 @@
   var YONG_ITEMS = [
     { re: /身分證|身份證|駕照|證件|護照|健保卡|公文|存證信函|印章|文件|資料|機車|腳踏車|電動車|汽車|車子|單車/, value: "父母", why: "證件、文書、車輛取父母" },
     { re: { test: function(t) { return /貓|狗|寵物|牠|鳥|動物/.test(t) || extraPetTopic(t); } }, value: "子孫", why: "寵物取子孫" },
-    { re: /項鍊|戒指|戒子|首飾|珠寶|耳環|手錶|錢包|皮包|包包|現金|錢|\d+元|消費券|眼鏡|手機|鑰匙|耳機|平板|信用卡|悠遊卡|包裹|寄物|行李|家具|桌|椅|東西|物品/, value: "妻財", why: "失物取妻財（一切使用之財物）" }
+    { re: /項鍊|戒指|戒子|首飾|珠寶|耳環|手錶|錢包|皮包|包包|現金|錢|\d+元|消費券|眼鏡|手機|筆電|筆記型電腦|鑰匙|耳機|平板|信用卡|悠遊卡|包裹|寄物|行李|家具|桌|椅|東西|物品/, value: "妻財", why: "失物取妻財（一切使用之財物）" }
   ];
-  var LOST_RE = /尋物|遺失|掉了|弄丟|丟了|丟掉|不見|飛走|找回|找得回|找的回|尋找|找到|找得到|被偷|失竊|在哪|哪兒|哪裡|收到哪/;
+  var LOST_RE = /尋物|遺失|掉了|弄丟|丟了|丟掉|不見|飛走|找不到|找回|找得回|找的回|尋找|找到|找得到|被偷|失竊|在哪|哪兒|哪裡|收到哪/;
+  function lostQuestion(q) {
+    // 新增的「找不到」僅用於失物；尋職句中的手機公司等只是背景。
+    if (LOST_RE.test(q.replace(/找不到/g, ""))) return true;
+    var main = q.split(/[，,。；;]/).pop();
+    return /找不到/.test(q) && !/工作|上班|職缺|求職|面試|錄取/.test(main);
+  }
 
   // 人物：value 為「情男」「情女」表示感情對象（依性別再判斷）
   var YONG_PEOPLE = [
@@ -4559,9 +4671,9 @@
     { re: /員工|下屬|部屬|外勞|僕|小廝|婢|雇員|雇用|保母|保姆|幫傭/, value: "妻財", why: "員工、僕役取妻財（我驅使之人）" },
     { re: /老公|丈夫|(?<=^|我|我的|我家|她|她的|她家|你的|妳的)先生|前夫|未婚夫|男友|男朋友|夫君|占夫|夫病|夫在/, value: "官鬼", why: "問丈夫、男友取官鬼" },
     { re: /上司|老闆|主管|長官|賊|小偷|盜|流兵/, value: "官鬼", why: "上司、賊盜取官鬼" },
-    { re: /哥|弟|姊|姐姐|妹|兄|堂姊|堂妹|表姊|表妹|朋友|好友|閨蜜|同學|同事|室友/, value: "兄弟", why: "問兄弟姊妹、朋友取兄弟" },
+    { re: /哥|弟|姊|姐姐|妹|兄|堂姊|堂妹|表姊|表妹|朋友|好友|閨蜜|同學|同事|室友|麻吉/, value: "兄弟", why: "問兄弟姊妹、朋友取兄弟" },
   ];
-  var YONG_OTHERS = { re: /鄰居|對方|賣家|賣方|買家|買方|合夥人|廠商|廠家|對手|陌生人|老鄉|代表|這個人|此人|某人|網友|這人/, value: "應", why: "對方、他人取應爻" };
+  var YONG_OTHERS = { re: /鄰居|對方|賣家|賣方|買家|買方|合夥人|廠商|廠家|對手|陌生人|老鄉|代表|那個人|這個人|此人|某人|網友|這人/, value: "應", why: "對方、他人取應爻" };
   var ASKER_AFTER = /^(.{0,8}?)(預測|想問|要問|問|占|卜|求測)/;
 
   function invitationIntent(q) {
@@ -4667,7 +4779,7 @@
     if (gender === "女") return { value: "官鬼", why: "感情，女占取官鬼" };
     if (/女孩|女生|女方|女子|女人/.test(q)) return { value: "妻財", why: "問女方取妻財" };
     if (/男孩|男生|男方|男子|男人/.test(q)) return { value: "官鬼", why: "問男方取官鬼" };
-    return { value: "", why: "感情要看問卦者性別：到「設定」選擇性別後會自動選（男占取妻財、女占取官鬼）" };
+    return { value: "", requiresConfirmation: true, why: "感情要看問卦者性別：到「設定」選擇性別後會自動選（男占取妻財、女占取官鬼）" };
   }
 
   // 行蹤、方位：問東西看是什麼東西；問自己取世爻；身分不明的他人取應爻
@@ -4689,10 +4801,10 @@
       var female = /女生|女性|[（(]女[）)]/.test(head), male = /男生|男性|[（(]男[）)]/.test(head);
       var pronoun = /^(她|他)(?:的|自己|何時|什麼時候|和|跟|與)/.exec(tail);
       if (pronoun) { female = female || pronoun[1] === "她"; male = male || pronoun[1] === "他"; }
-      if (female && male) return { value: "", why: "朋友本人的性別描述不一致，請確認或手動選用神" };
+      if (female && male) return { value: "", requiresConfirmation: true, why: "朋友本人的性別描述不一致，請確認或手動選用神" };
       var actualGender = female ? "女" : male ? "男" : "";
       var result = loveRule(tail, actualGender);
-      if (!actualGender && !result.value) return { value: "", why: "這是朋友本人的感情問題，請確認朋友性別或對象後手動選用神" };
+      if (!actualGender && !result.value) return { value: "", requiresConfirmation: true, why: "這是朋友本人的感情問題，請確認朋友性別或對象後手動選用神" };
       return { value: result.value, why: "朋友是本題問事者：" + result.why };
     }
     var pair = new RegExp("我(?:和|跟|與)" + friend + "(?!的)|" + friend + "(?:和|跟|與)我");
@@ -4707,10 +4819,18 @@
     if (!q) return null;
     var named = /以(父母|兄弟|子孫|妻財|官鬼)為用/.exec(q);
     if (named) return { value: named[1], why: "所問已註明用神" };
-    if (lostTag || LOST_RE.test(q)) {
+    if (lostTag || lostQuestion(q)) {
       for (var i = 0; i < YONG_ITEMS.length; i++) if (YONG_ITEMS[i].re.test(q)) return YONG_ITEMS[i];
     }
     var g = gender;
+    YONG_STEPS.some(function(st) { if (st.gender && st.re.test(q)) { if (!g) g = st.gender; return true; } return false; });
+    var intent = questionIntent(q);
+    if (intent) {
+      if (intent.kind !== "romance") return intent;
+      var proxy = friendLoveRule(q, g), romantic = proxy || loveRule(q, g);
+      if (!romantic.value) romantic.requiresConfirmation = true;
+      return romantic;
+    }
     for (var k = 0; k < YONG_STEPS.length; k++) {
       var st = YONG_STEPS[k], r;
       if (st.people) {
@@ -4734,9 +4854,9 @@
   var yongManual = false;   // 使用者自己選過用神
   var yongAutoNote = "";    // 顯示在所問下方的自動判斷說明
 
-  function autoPickYong() {
+  function autoPickYong(resolvePending) {
     var sel = document.getElementById("yongShen");
-    if (yongManual || yaos.length >= 6) return;
+    if (yongManual || yaos.length >= 6 && !(resolvePending && !sel.value)) return;
     var rule = inferYong(document.getElementById("question").value.trim(), getRadio("gender"));
     if (rule && rule.value) {
       sel.value = rule.value;
@@ -4993,8 +5113,9 @@
   document.querySelectorAll('input[name="gender"]').forEach(function(el) {
     el.addEventListener("change", function() {
       saveSettings();
-      autoPickYong();
+      autoPickYong(true);
       renderPan();
+      updateLatestHistory();
     });
   });
   document.getElementById("question").addEventListener("input", function() {

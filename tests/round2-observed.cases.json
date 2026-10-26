@@ -1,0 +1,1914 @@
+[
+  {
+    "id": "R2-001",
+    "q": "這個月業績獎金能不能順利發下來",
+    "gender": "",
+    "sel": "妻財",
+    "originalExpected": "妻財",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-002",
+    "q": "上週跟主管吵架，這個月獎金會不會被扣",
+    "gender": "",
+    "sel": "妻財",
+    "originalExpected": "妻財",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-003",
+    "q": "手上那張台積電要不要續抱到年底",
+    "gender": "",
+    "sel": "妻財",
+    "originalExpected": "妻財",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-004",
+    "q": "最近想開始定期定額買ETF，會賺嗎",
+    "gender": "",
+    "sel": "妻財",
+    "originalExpected": "妻財",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-005",
+    "q": "借給同學的三萬塊他什麼時候會還",
+    "gender": "",
+    "sel": "妻財",
+    "originalExpected": "妻財",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-006",
+    "q": "今年的退稅多久會入帳",
+    "gender": "",
+    "sel": "妻財",
+    "originalExpected": "妻財",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-007",
+    "q": "上個月車禍，保險理賠金能拿到多少",
+    "gender": "",
+    "sel": "妻財",
+    "originalExpected": "妻財",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-008",
+    "q": "公司今年有沒有年終",
+    "gender": "",
+    "sel": "妻財",
+    "originalExpected": "妻財",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-009",
+    "q": "年底調薪有望嗎",
+    "gender": "",
+    "sel": "妻財",
+    "originalExpected": "妻財",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-010",
+    "q": "跟會的錢會不會被倒",
+    "gender": "",
+    "sel": "妻財",
+    "originalExpected": "妻財",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-011",
+    "q": "比特幣現在進場可以嗎",
+    "gender": "",
+    "sel": "妻財",
+    "originalExpected": "妻財",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-012",
+    "q": "夜市擺攤這週末生意好不好",
+    "gender": "",
+    "sel": "妻財",
+    "originalExpected": "妻財",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-013",
+    "q": "網拍那批庫存清得掉嗎",
+    "gender": "",
+    "sel": "妻財",
+    "originalExpected": "妻財",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-014",
+    "q": "進口咖啡豆下個月會不會漲價",
+    "gender": "",
+    "sel": "妻財",
+    "originalExpected": "妻財",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-015",
+    "q": "合夥的店今年分紅能分到嗎",
+    "gender": "",
+    "sel": "妻財",
+    "originalExpected": "妻財",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-016",
+    "q": "卡費這個月繳得出來嗎",
+    "gender": "",
+    "sel": "妻財",
+    "originalExpected": "妻財",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-017",
+    "q": "客戶拖了三個月的貨款收得回來嗎",
+    "gender": "",
+    "sel": "妻財",
+    "originalExpected": "妻財",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-018",
+    "q": "手上的黃金現在賣掉划算嗎",
+    "gender": "",
+    "sel": "妻財",
+    "originalExpected": "妻財",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-019",
+    "q": "投資朋友的飲料店會不會賠錢",
+    "gender": "",
+    "sel": "妻財",
+    "originalExpected": "妻財",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-020",
+    "q": "二手相機放網路上賣，賣得到一萬五嗎",
+    "gender": "",
+    "sel": "妻財",
+    "originalExpected": "妻財",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-021",
+    "q": "基金套牢半年了，今年會回本嗎",
+    "gender": "",
+    "sel": "妻財",
+    "originalExpected": "妻財",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-022",
+    "q": "工程款什麼時候撥下來",
+    "gender": "",
+    "sel": "妻財",
+    "originalExpected": "妻財",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-023",
+    "q": "我今年財運如何",
+    "gender": "",
+    "sel": "妻財",
+    "originalExpected": "妻財",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-024",
+    "q": "前男友欠我的錢要得回來嗎",
+    "gender": "",
+    "sel": "妻財",
+    "originalExpected": "妻財",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-025",
+    "q": "這檔股票今年配息會比去年多嗎",
+    "gender": "",
+    "sel": "妻財",
+    "originalExpected": "妻財",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-026",
+    "q": "做團購這個月能賺多少",
+    "gender": "",
+    "sel": "妻財",
+    "originalExpected": "妻財",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-027",
+    "q": "加盟的手搖店資金能回本嗎",
+    "gender": "",
+    "sel": "妻財",
+    "originalExpected": "妻財",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-028",
+    "q": "被詐騙匯出去的錢追得回來嗎",
+    "gender": "",
+    "sel": "妻財",
+    "originalExpected": "妻財",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-029",
+    "q": "上個月的加班費會補發嗎",
+    "gender": "",
+    "sel": "妻財",
+    "originalExpected": "妻財",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-030",
+    "q": "房子賣掉價錢能到兩千萬嗎",
+    "gender": "",
+    "sel": "妻財",
+    "originalExpected": "妻財",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-031",
+    "q": "預售屋的訂金退得回來嗎",
+    "gender": "",
+    "sel": "妻財",
+    "originalExpected": "妻財",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-032",
+    "q": "這期大樂透可以買嗎",
+    "gender": "",
+    "sel": "妻財",
+    "originalExpected": "妻財",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-033",
+    "q": "三節獎金今年會不會縮水",
+    "gender": "",
+    "sel": "妻財",
+    "originalExpected": "妻財",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-034",
+    "q": "下週二的面試會不會上",
+    "gender": "",
+    "sel": "官鬼",
+    "originalExpected": "官鬼",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-035",
+    "q": "試用期快滿了，能不能順利轉正",
+    "gender": "",
+    "sel": "官鬼",
+    "originalExpected": "官鬼",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-036",
+    "q": "公司傳出要裁員，我會被裁嗎",
+    "gender": "",
+    "sel": "官鬼",
+    "originalExpected": "官鬼",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-037",
+    "q": "今年升課長有希望嗎",
+    "gender": "",
+    "sel": "官鬼",
+    "originalExpected": "官鬼",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-038",
+    "q": "想離職去新創，現在離開好嗎",
+    "gender": "",
+    "sel": "官鬼",
+    "originalExpected": "官鬼",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-039",
+    "q": "這份工作我能做得長久嗎",
+    "gender": "",
+    "sel": "官鬼",
+    "originalExpected": "官鬼",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-040",
+    "q": "被調去高雄分公司，在那邊工作會順嗎",
+    "gender": "",
+    "sel": "官鬼",
+    "originalExpected": "官鬼",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-041",
+    "q": "明天口試好緊張，能過嗎",
+    "gender": "",
+    "sel": "官鬼",
+    "originalExpected": "官鬼",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-042",
+    "q": "約聘到期了，能續聘嗎",
+    "gender": "",
+    "sel": "官鬼",
+    "originalExpected": "官鬼",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-043",
+    "q": "外商二面結果如何",
+    "gender": "",
+    "sel": "官鬼",
+    "originalExpected": "官鬼",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-044",
+    "q": "我在公司的位置穩不穩",
+    "gender": "",
+    "sel": "官鬼",
+    "originalExpected": "官鬼",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-045",
+    "q": "育嬰假結束後回得去原單位嗎",
+    "gender": "",
+    "sel": "官鬼",
+    "originalExpected": "官鬼",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-046",
+    "q": "資遣名單會有我嗎",
+    "gender": "",
+    "sel": "官鬼",
+    "originalExpected": "官鬼",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-047",
+    "q": "想調到業務部，調得過去嗎",
+    "gender": "",
+    "sel": "官鬼",
+    "originalExpected": "官鬼",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-048",
+    "q": "學長內推的那家公司面試順利嗎",
+    "gender": "",
+    "sel": "官鬼",
+    "originalExpected": "官鬼",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-049",
+    "q": "年後跳槽是好主意嗎",
+    "gender": "",
+    "sel": "官鬼",
+    "originalExpected": "官鬼",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-050",
+    "q": "被記了一支警告，工作會不會保不住",
+    "gender": "",
+    "sel": "官鬼",
+    "originalExpected": "官鬼",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-051",
+    "q": "派遣轉正職有機會嗎",
+    "gender": "",
+    "sel": "官鬼",
+    "originalExpected": "官鬼",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-052",
+    "q": "主管說要給我升職，是真的嗎",
+    "gender": "",
+    "sel": "官鬼",
+    "originalExpected": "官鬼",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-053",
+    "q": "明年會不會被外派",
+    "gender": "",
+    "sel": "官鬼",
+    "originalExpected": "官鬼",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-054",
+    "q": "今天去面試的那家，拿得到這份工作嗎",
+    "gender": "",
+    "sel": "官鬼",
+    "originalExpected": "官鬼",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-055",
+    "q": "老闆最近一直找我麻煩，工作還保得住嗎",
+    "gender": "",
+    "sel": "官鬼",
+    "originalExpected": "官鬼",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-056",
+    "q": "兼職外送這份差事做得下去嗎",
+    "gender": "",
+    "sel": "官鬼",
+    "originalExpected": "官鬼",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-057",
+    "q": "新工作報到第一週順不順",
+    "gender": "",
+    "sel": "官鬼",
+    "originalExpected": "官鬼",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-058",
+    "q": "投了十幾份履歷都沒回音，最近會有消息嗎",
+    "gender": "",
+    "sel": "父母",
+    "originalExpected": "父母",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-059",
+    "q": "上週應徵的行政職會錄取嗎",
+    "gender": "",
+    "sel": "父母",
+    "originalExpected": "父母",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-060",
+    "q": "錄取通知什麼時候會寄來",
+    "gender": "",
+    "sel": "父母",
+    "originalExpected": "父母",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-061",
+    "q": "在104投的那個工程師職缺會有回覆嗎",
+    "gender": "",
+    "sel": "父母",
+    "originalExpected": "父母",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-062",
+    "q": "公職報名資料寄出去了，資格審查會過嗎",
+    "gender": "",
+    "sel": "父母",
+    "originalExpected": "父母",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-063",
+    "q": "明天統測數學能考好嗎",
+    "gender": "",
+    "sel": "父母",
+    "originalExpected": "父母",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-064",
+    "q": "這次多益能不能過800",
+    "gender": "",
+    "sel": "父母",
+    "originalExpected": "父母",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-065",
+    "q": "研究所推甄有機會上嗎",
+    "gender": "",
+    "sel": "父母",
+    "originalExpected": "父母",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-066",
+    "q": "兒子明年會考成績如何",
+    "gender": "",
+    "sel": "父母",
+    "originalExpected": "父母",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-067",
+    "q": "女兒申請交換學生會通過嗎",
+    "gender": "",
+    "sel": "父母",
+    "originalExpected": "父母",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-068",
+    "q": "駕照路考這次過得了嗎",
+    "gender": "",
+    "sel": "父母",
+    "originalExpected": "父母",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-069",
+    "q": "高普考今年能上榜嗎",
+    "gender": "",
+    "sel": "父母",
+    "originalExpected": "父母",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-070",
+    "q": "期末報告分數會不會很低",
+    "gender": "",
+    "sel": "父母",
+    "originalExpected": "父母",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-071",
+    "q": "證照考第三次了，這次能過嗎",
+    "gender": "",
+    "sel": "父母",
+    "originalExpected": "父母",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-072",
+    "q": "學測國文作文能拿高分嗎",
+    "gender": "",
+    "sel": "父母",
+    "originalExpected": "父母",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-073",
+    "q": "模擬考成績會進步嗎",
+    "gender": "",
+    "sel": "父母",
+    "originalExpected": "父母",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-074",
+    "q": "小孩想考私中，考得上嗎",
+    "gender": "",
+    "sel": "父母",
+    "originalExpected": "父母",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-075",
+    "q": "護理師國考會過嗎",
+    "gender": "",
+    "sel": "父母",
+    "originalExpected": "父母",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-076",
+    "q": "轉學考有機會考上台大嗎",
+    "gender": "",
+    "sel": "父母",
+    "originalExpected": "父母",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-077",
+    "q": "期中考物理會不會被當",
+    "gender": "",
+    "sel": "父母",
+    "originalExpected": "父母",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-078",
+    "q": "英檢中高級複試能過嗎",
+    "gender": "",
+    "sel": "父母",
+    "originalExpected": "父母",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-079",
+    "q": "這學期會不會被二一",
+    "gender": "",
+    "sel": "父母",
+    "originalExpected": "父母",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-080",
+    "q": "雅思寫作能拿到6.5嗎",
+    "gender": "",
+    "sel": "父母",
+    "originalExpected": "父母",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-081",
+    "q": "跟女友交往三年，明年能結婚嗎",
+    "gender": "男",
+    "sel": "妻財",
+    "originalExpected": "妻財",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-082",
+    "q": "暗戀的女同事對我有沒有意思",
+    "gender": "男",
+    "sel": "妻財",
+    "originalExpected": "妻財",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-083",
+    "q": "女朋友最近很冷淡，會不會想分手",
+    "gender": "男",
+    "sel": "妻財",
+    "originalExpected": "妻財",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-084",
+    "q": "女友出國念書，遠距離撐得過去嗎",
+    "gender": "男",
+    "sel": "妻財",
+    "originalExpected": "妻財",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-085",
+    "q": "交友軟體認識的那個女生會繼續聊下去嗎",
+    "gender": "男",
+    "sel": "妻財",
+    "originalExpected": "妻財",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-086",
+    "q": "懷疑女朋友手機裡有別人",
+    "gender": "男",
+    "sel": "妻財",
+    "originalExpected": "妻財",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-087",
+    "q": "前女友還有可能復合嗎",
+    "gender": "男",
+    "sel": "妻財",
+    "originalExpected": "妻財",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-088",
+    "q": "今年有桃花嗎",
+    "gender": "男",
+    "sel": "妻財",
+    "originalExpected": "妻財",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-089",
+    "q": "相親認識的女生值得繼續交往嗎",
+    "gender": "男",
+    "sel": "妻財",
+    "originalExpected": "妻財",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-090",
+    "q": "老婆最近常常很晚回家，是不是外面有人",
+    "gender": "男",
+    "sel": "妻財",
+    "originalExpected": "妻財",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-091",
+    "q": "跟太太冷戰一週了，關係能修復嗎",
+    "gender": "男",
+    "sel": "妻財",
+    "originalExpected": "妻財",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-092",
+    "q": "喜歡的學妹會答應我的告白嗎",
+    "gender": "男",
+    "sel": "妻財",
+    "originalExpected": "妻財",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-093",
+    "q": "這次聯誼能遇到對的人嗎",
+    "gender": "男",
+    "sel": "妻財",
+    "originalExpected": "妻財",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-094",
+    "q": "下個月求婚會成功嗎",
+    "gender": "男",
+    "sel": "妻財",
+    "originalExpected": "妻財",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-095",
+    "q": "男朋友會不會跟我求婚",
+    "gender": "女",
+    "sel": "官鬼",
+    "originalExpected": "官鬼",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-096",
+    "q": "老公是不是有小三",
+    "gender": "女",
+    "sel": "官鬼",
+    "originalExpected": "官鬼",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-097",
+    "q": "曖昧對象到底喜不喜歡我",
+    "gender": "女",
+    "sel": "官鬼",
+    "originalExpected": "官鬼",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-098",
+    "q": "分手兩個月了，他還會回來嗎",
+    "gender": "女",
+    "sel": "官鬼",
+    "originalExpected": "官鬼",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-099",
+    "q": "我的正緣什麼時候出現",
+    "gender": "女",
+    "sel": "官鬼",
+    "originalExpected": "官鬼",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-100",
+    "q": "男友說要冷靜一下，我們會分手嗎",
+    "gender": "女",
+    "sel": "官鬼",
+    "originalExpected": "官鬼",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-101",
+    "q": "老公最近對我很冷淡，婚姻還有救嗎",
+    "gender": "女",
+    "sel": "官鬼",
+    "originalExpected": "官鬼",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-102",
+    "q": "網聊的那個男生是真心的嗎",
+    "gender": "女",
+    "sel": "官鬼",
+    "originalExpected": "官鬼",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-103",
+    "q": "男朋友是不是劈腿了",
+    "gender": "女",
+    "sel": "官鬼",
+    "originalExpected": "官鬼",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-104",
+    "q": "今年能脫單嗎",
+    "gender": "女",
+    "sel": "官鬼",
+    "originalExpected": "官鬼",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-105",
+    "q": "跟前夫還有可能復合嗎",
+    "gender": "女",
+    "sel": "官鬼",
+    "originalExpected": "官鬼",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-106",
+    "q": "我跟學長這段感情有結果嗎",
+    "gender": "女",
+    "sel": "官鬼",
+    "originalExpected": "官鬼",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-107",
+    "q": "他說年底要娶我，靠得住嗎",
+    "gender": "女",
+    "sel": "官鬼",
+    "originalExpected": "官鬼",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-108",
+    "q": "最近胸口悶悶的，身體有沒有大礙",
+    "gender": "",
+    "sel": "世",
+    "originalExpected": "世",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-109",
+    "q": "下週要開刀，手術會平安嗎",
+    "gender": "",
+    "sel": "世",
+    "originalExpected": "世",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-110",
+    "q": "我的失眠什麼時候會好",
+    "gender": "",
+    "sel": "世",
+    "originalExpected": "世",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-111",
+    "q": "健檢有幾項指數偏高，身體會不會有大問題",
+    "gender": "",
+    "sel": "世",
+    "originalExpected": "世",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-112",
+    "q": "腰痛一個月了，多久能好",
+    "gender": "",
+    "sel": "世",
+    "originalExpected": "世",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-113",
+    "q": "這陣子老是頭暈，要緊嗎",
+    "gender": "",
+    "sel": "世",
+    "originalExpected": "世",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-114",
+    "q": "我今年身體健康嗎",
+    "gender": "",
+    "sel": "世",
+    "originalExpected": "世",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-115",
+    "q": "確診後咳嗽一直沒好，會不會變肺炎",
+    "gender": "",
+    "sel": "世",
+    "originalExpected": "世",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-116",
+    "q": "膝蓋開完刀，能恢復正常走路嗎",
+    "gender": "",
+    "sel": "世",
+    "originalExpected": "世",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-117",
+    "q": "看了好幾家醫院都找不出原因，我的病會好嗎",
+    "gender": "",
+    "sel": "世",
+    "originalExpected": "世",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-118",
+    "q": "吃中藥調理有沒有效",
+    "gender": "",
+    "sel": "子孫",
+    "originalExpected": "子孫",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-119",
+    "q": "這家診所的醫生看得好我的病嗎",
+    "gender": "",
+    "sel": "子孫",
+    "originalExpected": "子孫",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-120",
+    "q": "今年要不要打流感疫苗",
+    "gender": "",
+    "sel": "子孫",
+    "originalExpected": "子孫",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-121",
+    "q": "換這款降血壓的藥會比較好嗎",
+    "gender": "",
+    "sel": "子孫",
+    "originalExpected": "子孫",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-122",
+    "q": "剛驗到懷孕，這胎會平安嗎",
+    "gender": "",
+    "sel": "子孫",
+    "originalExpected": "子孫",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-123",
+    "q": "試管這次能成功懷孕嗎",
+    "gender": "",
+    "sel": "子孫",
+    "originalExpected": "子孫",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-124",
+    "q": "預產期快到了，生產順利嗎",
+    "gender": "",
+    "sel": "子孫",
+    "originalExpected": "子孫",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-125",
+    "q": "我下半年整體運勢如何",
+    "gender": "",
+    "sel": "世",
+    "originalExpected": "世",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-126",
+    "q": "最近諸事不順，是不是卡到什麼",
+    "gender": "",
+    "sel": "世",
+    "originalExpected": "世",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-127",
+    "q": "明年本命年，會不會不平安",
+    "gender": "",
+    "sel": "世",
+    "originalExpected": "世",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-128",
+    "q": "媽媽最近血壓很高，會不會有危險",
+    "gender": "",
+    "sel": "父母",
+    "originalExpected": "父母",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-129",
+    "q": "爸爸住院了，什麼時候能出院",
+    "gender": "",
+    "sel": "父母",
+    "originalExpected": "父母",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-130",
+    "q": "阿嬤失智越來越嚴重，今年平安嗎",
+    "gender": "",
+    "sel": "父母",
+    "originalExpected": "父母",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-131",
+    "q": "外公的手術順利嗎",
+    "gender": "",
+    "sel": "父母",
+    "originalExpected": "父母",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-132",
+    "q": "哥哥欠了一堆債，他撐得過去嗎",
+    "gender": "",
+    "sel": "兄弟",
+    "originalExpected": "兄弟",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-133",
+    "q": "妹妹跟她男友的婚事會成嗎",
+    "gender": "",
+    "sel": "兄弟",
+    "originalExpected": "兄弟",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-134",
+    "q": "姊姊在國外工作順不順",
+    "gender": "",
+    "sel": "兄弟",
+    "originalExpected": "兄弟",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-135",
+    "q": "弟弟最近都不回家，他在外面還好嗎",
+    "gender": "",
+    "sel": "兄弟",
+    "originalExpected": "兄弟",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-136",
+    "q": "老公最近工作順嗎",
+    "gender": "女",
+    "sel": "官鬼",
+    "originalExpected": "官鬼",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-137",
+    "q": "老婆的檢查結果會不會有問題",
+    "gender": "男",
+    "sel": "妻財",
+    "originalExpected": "妻財",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-138",
+    "q": "婆婆搬來同住，相處會融洽嗎",
+    "gender": "",
+    "sel": "父母",
+    "originalExpected": "父母",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-139",
+    "q": "表哥出國打工，什麼時候回來",
+    "gender": "",
+    "sel": "兄弟",
+    "originalExpected": "兄弟",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-140",
+    "q": "堂妹生病了，嚴不嚴重",
+    "gender": "",
+    "sel": "兄弟",
+    "originalExpected": "兄弟",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-141",
+    "q": "叔叔中風之後能恢復嗎",
+    "gender": "",
+    "sel": "父母",
+    "originalExpected": "父母",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-142",
+    "q": "舅舅失聯好幾天，人在哪裡",
+    "gender": "",
+    "sel": "父母",
+    "originalExpected": "父母",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-143",
+    "q": "指導老師最近身體不好，會沒事嗎",
+    "gender": "",
+    "sel": "父母",
+    "originalExpected": "父母",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-144",
+    "q": "媽媽一個人搭飛機去美國，路上平安嗎",
+    "gender": "",
+    "sel": "父母",
+    "originalExpected": "父母",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-145",
+    "q": "太太出差去上海，平安嗎",
+    "gender": "男",
+    "sel": "妻財",
+    "originalExpected": "妻財",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-146",
+    "q": "兒子最近很叛逆，會不會學壞",
+    "gender": "",
+    "sel": "子孫",
+    "originalExpected": "子孫",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-147",
+    "q": "女兒剛出國留學，在那邊過得好嗎",
+    "gender": "",
+    "sel": "子孫",
+    "originalExpected": "子孫",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-148",
+    "q": "小孩發燒三天了，會不會很嚴重",
+    "gender": "",
+    "sel": "子孫",
+    "originalExpected": "子孫",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-149",
+    "q": "兒子騎車去環島，一路平安嗎",
+    "gender": "",
+    "sel": "子孫",
+    "originalExpected": "子孫",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-150",
+    "q": "女兒要嫁去外縣市，婚後會幸福嗎",
+    "gender": "",
+    "sel": "子孫",
+    "originalExpected": "子孫",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-151",
+    "q": "小孩轉學後適應得來嗎",
+    "gender": "",
+    "sel": "子孫",
+    "originalExpected": "子孫",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-152",
+    "q": "兒子退伍後找得到工作嗎",
+    "gender": "",
+    "sel": "子孫",
+    "originalExpected": "子孫",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-153",
+    "q": "外甥住院了，嚴重嗎",
+    "gender": "",
+    "sel": "子孫",
+    "originalExpected": "子孫",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-154",
+    "q": "兒子去當兵，在部隊平安嗎",
+    "gender": "",
+    "sel": "子孫",
+    "originalExpected": "子孫",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-155",
+    "q": "孫女剛滿月，身體健康嗎",
+    "gender": "",
+    "sel": "子孫",
+    "originalExpected": "子孫",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-156",
+    "q": "女兒青春期一直跟我吵，她會好起來嗎",
+    "gender": "",
+    "sel": "子孫",
+    "originalExpected": "子孫",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-157",
+    "q": "班上那個學生一直翹課，是不是出了什麼事",
+    "gender": "",
+    "sel": "子孫",
+    "originalExpected": "子孫",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-158",
+    "q": "家裡的狗狗吃壞肚子，會不會有事",
+    "gender": "",
+    "sel": "子孫",
+    "originalExpected": "子孫",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-159",
+    "q": "貓咪最近都不吃飼料，是生病了嗎",
+    "gender": "",
+    "sel": "子孫",
+    "originalExpected": "子孫",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-160",
+    "q": "養了十年的老狗還能陪我多久",
+    "gender": "",
+    "sel": "子孫",
+    "originalExpected": "子孫",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-161",
+    "q": "兔子結紮手術會順利嗎",
+    "gender": "",
+    "sel": "子孫",
+    "originalExpected": "子孫",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-162",
+    "q": "狗送去寵物旅館住一週，住得習慣嗎",
+    "gender": "",
+    "sel": "子孫",
+    "originalExpected": "子孫",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-163",
+    "q": "倉鼠一直掉毛，要不要緊",
+    "gender": "",
+    "sel": "子孫",
+    "originalExpected": "子孫",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-164",
+    "q": "看中的那間中古屋值得買嗎",
+    "gender": "",
+    "sel": "父母",
+    "originalExpected": "父母",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-165",
+    "q": "新家裝潢會不會出問題",
+    "gender": "",
+    "sel": "父母",
+    "originalExpected": "父母",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-166",
+    "q": "老家要都更，房子能順利改建嗎",
+    "gender": "",
+    "sel": "父母",
+    "originalExpected": "父母",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-167",
+    "q": "社會住宅這次抽得到嗎",
+    "gender": "",
+    "sel": "父母",
+    "originalExpected": "父母",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-168",
+    "q": "浴室漏水修得好嗎",
+    "gender": "",
+    "sel": "父母",
+    "originalExpected": "父母",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-169",
+    "q": "新成屋交屋會不會有瑕疵",
+    "gender": "",
+    "sel": "父母",
+    "originalExpected": "父母",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-170",
+    "q": "想把房子過戶給兒子，手續會順嗎",
+    "gender": "",
+    "sel": "父母",
+    "originalExpected": "父母",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-171",
+    "q": "這份租屋合約要不要簽",
+    "gender": "",
+    "sel": "父母",
+    "originalExpected": "父母",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-172",
+    "q": "這台二手車買下來會不會有問題",
+    "gender": "",
+    "sel": "父母",
+    "originalExpected": "父母",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-173",
+    "q": "車子引擎聲音怪怪的，是大問題嗎",
+    "gender": "",
+    "sel": "父母",
+    "originalExpected": "父母",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-174",
+    "q": "新車交車會不會延遲",
+    "gender": "",
+    "sel": "父母",
+    "originalExpected": "父母",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-175",
+    "q": "這台老車驗車會過嗎",
+    "gender": "",
+    "sel": "父母",
+    "originalExpected": "父母",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-176",
+    "q": "明天開車上山，路上平安嗎",
+    "gender": "",
+    "sel": "世",
+    "originalExpected": "世",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-177",
+    "q": "每天騎機車通勤，最近要不要特別小心",
+    "gender": "",
+    "sel": "世",
+    "originalExpected": "世",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-178",
+    "q": "被告誹謗，這場官司會贏嗎",
+    "gender": "",
+    "sel": "世",
+    "originalExpected": "世",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-179",
+    "q": "押金糾紛要告前房東，有勝算嗎",
+    "gender": "",
+    "sel": "世",
+    "originalExpected": "世",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-180",
+    "q": "離婚官司監護權爭得到嗎",
+    "gender": "",
+    "sel": "世",
+    "originalExpected": "世",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-181",
+    "q": "車禍被對方告過失傷害，判決會怎樣",
+    "gender": "",
+    "sel": "世",
+    "originalExpected": "世",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-182",
+    "q": "罰單提行政訴訟能撤銷嗎",
+    "gender": "",
+    "sel": "世",
+    "originalExpected": "世",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-183",
+    "q": "遺產官司拖了兩年，今年有結果嗎",
+    "gender": "",
+    "sel": "世",
+    "originalExpected": "世",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-184",
+    "q": "被鄰居告妨害名譽，會被判刑嗎",
+    "gender": "",
+    "sel": "世",
+    "originalExpected": "世",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-185",
+    "q": "下個月去日本自由行順利嗎",
+    "gender": "",
+    "sel": "世",
+    "originalExpected": "世",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-186",
+    "q": "一個人去歐洲背包旅行安全嗎",
+    "gender": "",
+    "sel": "世",
+    "originalExpected": "世",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-187",
+    "q": "颱風快來了還要搭船去澎湖，平安嗎",
+    "gender": "",
+    "sel": "世",
+    "originalExpected": "世",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-188",
+    "q": "出差去越南一週，會不會遇到麻煩",
+    "gender": "",
+    "sel": "世",
+    "originalExpected": "世",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-189",
+    "q": "明天搭紅眼班機，一路平安嗎",
+    "gender": "",
+    "sel": "世",
+    "originalExpected": "世",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-190",
+    "q": "過年開車回南部順利嗎",
+    "gender": "",
+    "sel": "世",
+    "originalExpected": "世",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-191",
+    "q": "週末去爬玉山，登山平安嗎",
+    "gender": "",
+    "sel": "世",
+    "originalExpected": "世",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-192",
+    "q": "轉機時間很趕，趕得上嗎",
+    "gender": "",
+    "sel": "世",
+    "originalExpected": "世",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-193",
+    "q": "騎重機去花東，這趟路上順利嗎",
+    "gender": "",
+    "sel": "世",
+    "originalExpected": "世",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-194",
+    "q": "錢包掉在捷運上，找得回來嗎",
+    "gender": "",
+    "sel": "妻財",
+    "originalExpected": "妻財",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-195",
+    "q": "手機不見了，是不是放在公司",
+    "gender": "",
+    "sel": "妻財",
+    "originalExpected": "父母",
+    "policyNote": "專案政策overlay：失物使用財物取妻財；原父母標註完整保留"
+  },
+  {
+    "id": "R2-196",
+    "q": "身分證不知道塞到哪了",
+    "gender": "",
+    "sel": "父母",
+    "originalExpected": "父母",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-197",
+    "q": "筆電在咖啡廳弄丟，有人會送回來嗎",
+    "gender": "",
+    "sel": "妻財",
+    "originalExpected": "父母",
+    "policyNote": "專案政策overlay：失物使用財物取妻財；原父母標註完整保留"
+  },
+  {
+    "id": "R2-198",
+    "q": "抽屜裡的現金少了兩千，掉到哪去了",
+    "gender": "",
+    "sel": "妻財",
+    "originalExpected": "妻財",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-199",
+    "q": "護照找不到，下週就要出國了",
+    "gender": "",
+    "sel": "父母",
+    "originalExpected": "父母",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-200",
+    "q": "公司的合約正本不見了，還在辦公室嗎",
+    "gender": "",
+    "sel": "父母",
+    "originalExpected": "父母",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-201",
+    "q": "裝著薪水的信封袋弄丟了",
+    "gender": "",
+    "sel": "妻財",
+    "originalExpected": "妻財",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-202",
+    "q": "貓咪跑出門兩天沒回來",
+    "gender": "",
+    "sel": "子孫",
+    "originalExpected": "子孫",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-203",
+    "q": "健保卡掉了，找得到嗎",
+    "gender": "",
+    "sel": "父母",
+    "originalExpected": "父母",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-204",
+    "q": "小狗散步時走失了，能找到嗎",
+    "gender": "",
+    "sel": "子孫",
+    "originalExpected": "子孫",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-205",
+    "q": "明天會下雨嗎",
+    "gender": "",
+    "sel": "父母",
+    "originalExpected": "父母",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-206",
+    "q": "週六戶外婚禮會不會下雨",
+    "gender": "",
+    "sel": "父母",
+    "originalExpected": "父母",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-207",
+    "q": "下週連假會是晴天嗎",
+    "gender": "",
+    "sel": "妻財",
+    "originalExpected": "妻財",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-208",
+    "q": "明天運動會能放晴嗎",
+    "gender": "",
+    "sel": "妻財",
+    "originalExpected": "妻財",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-209",
+    "q": "這週末去露營，雨會不會很大",
+    "gender": "",
+    "sel": "父母",
+    "originalExpected": "父母",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-210",
+    "q": "中秋節晚上會不會晴朗看得到月亮",
+    "gender": "",
+    "sel": "妻財",
+    "originalExpected": "妻財",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-211",
+    "q": "這家廠商的合作案談得成嗎",
+    "gender": "",
+    "sel": "應",
+    "originalExpected": "應",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-212",
+    "q": "新客戶到底有沒有誠意下單",
+    "gender": "",
+    "sel": "應",
+    "originalExpected": "應",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-213",
+    "q": "對方公司會接受我們的報價嗎",
+    "gender": "",
+    "sel": "應",
+    "originalExpected": "應",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-214",
+    "q": "要跟大陸代理商簽約，對方可靠嗎",
+    "gender": "",
+    "sel": "應",
+    "originalExpected": "應",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-215",
+    "q": "房仲說有買家很有興趣，是真的嗎",
+    "gender": "",
+    "sel": "應",
+    "originalExpected": "應",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-216",
+    "q": "競爭對手會不會搶走這次的標案",
+    "gender": "",
+    "sel": "應",
+    "originalExpected": "應",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-217",
+    "q": "明天要見的投資人會不會投我們",
+    "gender": "",
+    "sel": "應",
+    "originalExpected": "應",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-218",
+    "q": "對方突然約我見面，他的來意是什麼",
+    "gender": "",
+    "sel": "應",
+    "originalExpected": "應",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-219",
+    "q": "老客戶說要考慮換供應商，留得住嗎",
+    "gender": "",
+    "sel": "應",
+    "originalExpected": "應",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-220",
+    "q": "網路上的買家說要先匯款，會不會是詐騙",
+    "gender": "",
+    "sel": "應",
+    "originalExpected": "應",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-221",
+    "q": "陌生人加我LINE說要談合作，可以信嗎",
+    "gender": "",
+    "sel": "應",
+    "originalExpected": "應",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-222",
+    "q": "跟同事最近處不好，關係能改善嗎",
+    "gender": "",
+    "sel": "兄弟",
+    "originalExpected": "兄弟",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-223",
+    "q": "大學好友很久沒聯絡，他還好嗎",
+    "gender": "",
+    "sel": "兄弟",
+    "originalExpected": "兄弟",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-224",
+    "q": "被好朋友誤會了，能和好嗎",
+    "gender": "",
+    "sel": "兄弟",
+    "originalExpected": "兄弟",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-225",
+    "q": "鄰居一直找麻煩，他到底想怎樣",
+    "gender": "",
+    "sel": "應",
+    "originalExpected": "應",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-226",
+    "q": "隔壁組的同事會不會在背後說我壞話",
+    "gender": "",
+    "sel": "兄弟",
+    "originalExpected": "兄弟",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-227",
+    "q": "社團學姊對我有什麼看法",
+    "gender": "",
+    "sel": "兄弟",
+    "originalExpected": "兄弟",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-228",
+    "q": "網友約見面，對方是怎樣的人",
+    "gender": "",
+    "sel": "應",
+    "originalExpected": "應",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-229",
+    "q": "新來的同事好不好相處",
+    "gender": "",
+    "sel": "兄弟",
+    "originalExpected": "兄弟",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-230",
+    "q": "那個人值得信任嗎",
+    "gender": "",
+    "sel": "應",
+    "originalExpected": "應",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-231",
+    "q": "幫朋友問，她下週的面試能過嗎",
+    "gender": "",
+    "sel": "兄弟",
+    "originalExpected": "兄弟",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-232",
+    "q": "好朋友下週動手術，會平安嗎",
+    "gender": "",
+    "sel": "兄弟",
+    "originalExpected": "兄弟",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-233",
+    "q": "朋友車禍住院，他會好起來嗎",
+    "gender": "",
+    "sel": "兄弟",
+    "originalExpected": "兄弟",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-234",
+    "q": "麻吉在大陸做生意，最近還好嗎",
+    "gender": "",
+    "sel": "兄弟",
+    "originalExpected": "兄弟",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-235",
+    "q": "朋友失聯一週了，人平安嗎",
+    "gender": "",
+    "sel": "兄弟",
+    "originalExpected": "兄弟",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-236",
+    "q": "幫朋友問他這次出國打工會順利嗎",
+    "gender": "",
+    "sel": "兄弟",
+    "originalExpected": "兄弟",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-237",
+    "q": "同事請病假很久了，身體要不要緊",
+    "gender": "",
+    "sel": "兄弟",
+    "originalExpected": "兄弟",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-299",
+    "q": "交往快一年的男友，最近好像有點變心",
+    "gender": "女",
+    "sel": "官鬼",
+    "originalExpected": "官鬼",
+    "policyNote": "原第二批標註"
+  },
+  {
+    "id": "R2-300",
+    "q": "小兒子這次參加夏令營，會不會跟人起衝突",
+    "gender": "",
+    "sel": "子孫",
+    "originalExpected": "子孫",
+    "policyNote": "原第二批標註"
+  }
+]

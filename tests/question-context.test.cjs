@@ -1578,9 +1578,10 @@ for(const f of fixtures){
  const rt=load(raw,f.gender??'男');
  const inferred=rt.env.inferYong(f.q,f.gender??'男'),sel=inferred?.value||'';
  const x=run(rt,{state:0,date:'2026-01-15T12:00:00+08:00',q:f.q,sel});
- const pass=sel===f.sel&&x.d.cat===f.cat&&Number.isFinite(x.d.vScore);
+ const cat=rt.env.questionCategory(sel),pending=x.result.requiresConfirmation===true;
+ const pass=sel===f.sel&&cat===f.cat&&(pending?f.sel===''&&x.result.verdict==='待確認用神':Number.isFinite(x.d.vScore));
  if(!pass)failures++;
- records.push({id:f.id,q:f.q,gender:f.gender??'男',actual:{sel,cat:x.d.cat,score:x.d.vScore},expected:{sel:f.sel,cat:f.cat},pass});
+ records.push({id:f.id,q:f.q,gender:f.gender??'男',actual:{sel,cat,score:pending?null:x.d.vScore,requiresConfirmation:pending},expected:{sel:f.sel,cat:f.cat},pass});
 }
 console.log(JSON.stringify({sourceHash:hash,tested:records.length,failures,records},null,2));
 process.exitCode=failures?1:0;
