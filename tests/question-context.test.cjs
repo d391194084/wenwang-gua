@@ -1549,6 +1549,28 @@ fixtures.push(
  {id:'V16-R3',q:'用附子可以當公司名嗎',gender:'',sel:'官鬼',cat:'名'},
  {id:'V16-R4',q:'使用附子是否適合當公司名稱',gender:'',sel:'官鬼',cat:'名'}
 );
+// 第十九版：往外地採買取妻財、掣籤取官鬼、問非家人邀約的用意取應，以及反例
+fixtures.push(
+ {id:"V19-A1",q:"占往楚買豆",gender:"",sel:"妻財",cat:"財"},
+ {id:"V19-A2",q:"往台中買貨划算嗎",gender:"",sel:"妻財",cat:"財"},
+ {id:"V19-A3",q:"到市場買菜划算嗎",gender:"",sel:"妻財",cat:"財"},
+ {id:"V19-C1",q:"去台北買房好嗎",gender:"",sel:"父母",cat:""},
+ {id:"V19-C2",q:"去藥局買藥有效嗎",gender:"",sel:"子孫",cat:""},
+ {id:"V19-C3",q:"我想去日本旅遊買東西",gender:"",sel:"世",cat:"行"},
+ {id:"V19-C4",q:"到公司上班順利嗎",gender:"",sel:"官鬼",cat:"名"},
+ {id:"V19-B1",q:"占掣簽何處",gender:"",sel:"官鬼",cat:"名"},
+ {id:"V19-B2",q:"掣籤分發會分到哪裡",gender:"",sel:"官鬼",cat:"名"},
+ {id:"V19-D1",q:"占一朋友請吃飯為何事？",gender:"",sel:"應",cat:""},
+ {id:"V19-D2",q:"同事約我喝咖啡是為了什麼",gender:"",sel:"應",cat:""},
+ {id:"V19-D3",q:"有人找我有什麼事",gender:"",sel:"應",cat:""},
+ {id:"V19-E1",q:"朋友能幫我嗎",gender:"",sel:"兄弟",cat:""},
+ {id:"V19-E2",q:"朋友請吃飯會開心嗎",gender:"",sel:"兄弟",cat:""},
+ {id:"V19-E3",q:"媽媽找我有何事",gender:"",sel:"父母",cat:""},
+ {id:"V19-E4",q:"哥哥約我吃飯為何事",gender:"",sel:"兄弟",cat:""},
+ {id:"V19-E5",q:"他約我出去是什麼意思，他喜歡我嗎",gender:"女",sel:"官鬼",cat:"情"},
+ {id:"V19-E6",q:"同學考試能及格嗎",gender:"",sel:"兄弟",cat:"考"}
+);
+fixtures.push(...JSON.parse(fs.readFileSync(path.join(__dirname,'friend-love-personal-peace.cases.json'),'utf8')));
 const records=[];let failures=0;
 for(const f of fixtures){
  const rt=load(raw,f.gender??'男');

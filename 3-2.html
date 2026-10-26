@@ -1564,17 +1564,42 @@
     if (only && !/他|她|對方|其/.test(only[1])) {
       var prefix = q.slice(0, only.index).split(/[，,。；;]/);
       var excluded = function(cl) { return /^(?:我)?(?:不問|不想問|不是(?:要|想)?(?:問)?|並非(?:要|想)?問)/.test(cl.trim()); };
-      if (prefix.some(excluded)) return prefix.filter(function(cl) { return !excluded(cl); }).concat(only[1]).join("，");
+      if (prefix.some(excluded)) return personalPeaceQuestion(prefix.filter(function(cl) { return !excluded(cl); }).concat(only[1]).join("，"));
     }
     var clauses = q.split(/[，,。；;]/), last = clauses[clauses.length - 1].trim();
     if (clauses.length > 1 && !/以(父母|兄弟|子孫|妻財|官鬼)為用/.test(q) && /^我(?:本人|自己|個人)?(?:能|會|是否|能否|可否|要|想|這次)/.test(last) &&
-      /工作|上班|轉職|轉正|升職|升遷|晉升|裁員|資遣|面試|考試/.test(last)) return last;
-    return q;
+      /工作|上班|轉職|轉正|升職|升遷|晉升|裁員|資遣|面試|考試/.test(last)) return personalPeaceQuestion(last);
+    return personalPeaceQuestion(q);
+  }
+
+  // 職場只是本人／親友平安的背景時，保留所問人物，讓用神、事類及白話共用同一主問。
+  function personalPeaceQuestion(q) {
+    if (!/職場|工作|上班|同事|同仁|長官/.test(q)) return q;
+    if (JOB_STATUS_RE.test(q) || EXAM_ADMISSION_RE.test(q) || LOVE_TEST.test(q) ||
+      /影響|升職|升遷|晉升|升任|升官|升上|上任|就任|擔任|任用|調職|調動|轉職|離職|辭職|退休|求職|面試|職位|去留|薪|錢|財|款|投資|考試|成績|懷孕|胎|生產|坐月子|病|健康|身體|受傷|治療|醫|官司|訴訟|出國|旅行|出差/.test(q)) return q;
+    var clauses = q.replace(/^\s*[\[［【][^\]］】]{1,6}[\]］】]\s*/, "").split(/[，,。；;]/);
+    var peace = /(?:能否|是否|可否|會不會|能不能|能|會|可以)(?:夠|可以|傾向)?(?:平安(?:無事)?|安然(?:度過|無恙)|安全度過)/;
+    var main = clauses.filter(function(cl) { return peace.test(cl); }).pop();
+    if (!main) return q;
+    var at = main.search(peace), subject = main.slice(0, at).trim();
+    if (!subject) subject = clauses[0].trim();
+    subject = subject.replace(/以(?:父母|兄弟|子孫|妻財|官鬼)為用/g, "").trim();
+    // 衝突對象是背景；「同事在職場…」沒有介系詞，仍以同事為所問人物。
+    subject = subject.replace(/(?:與|跟|和|對|被|向)(?:同事|同仁|長官|主管|老闆)(?:們)?/g, "");
+    if (/^(?:我)?(?:替|幫|為)/.test(subject)) subject = subject.replace(/^(?:我)?(?:替|幫|為)/, "");
+    if (/^(?:我(?:的)?|目前的|這份)?(?:公司|企業|工廠|工作|職位|事業)/.test(subject)) return q;
+    var actor = subject.split(/在|於|問|職場|工作|上班|發生|遇到|面對|[，,]/)[0].trim();
+    if (!personRule(actor) && !YONG_OTHERS.re.test(actor)) {
+      if (/他|她|對方|別人|有人/.test(actor)) return q;
+      actor = "我";
+    }
+    var named = /以(?:父母|兄弟|子孫|妻財|官鬼)為用/.exec(q);
+    return (named ? named[0] + "，" : "") + actor + "能否平安";
   }
 
   // 依所問文字與用神判斷事類，用來調整沖合、進退等象義
   function questionCategory(sel) {
-    var q = effectiveQuestion(document.getElementById("question").value);
+    var q = effectiveQuestion(document.getElementById("question").value).replace(/以(?:父母|兄弟|子孫|妻財|官鬼)為用/g, "").replace(/^[，,\s]+/, "");
     var namedItem = LOST_RE.test(q) && YONG_ITEMS.some(function(it) { return it.re.test(q); });   // 明說遺失了什麼東西
     var money = /錢|款項|貨款|資金|投資|股|基金|回本|借|欠|債|貸|生意|開店/.test(q);
     var job = JOB_STATUS_RE.test(q) || /工作|上班|職位|職場|升職|升遷|晉升|面試|求職|轉職|調動|事業|應聘|應徵|公司/.test(q);
@@ -1606,7 +1631,7 @@
     ];
     for (var k = 0; k < rules.length; k++) if (rules[k][1].test(q)) return rules[k][0];
     // 沒有事類字詞時才依用神補：問人、天氣、小偷不補
-    if (personRule(q) || /晴|雨|颱風|雪|小偷|賊|盜/.test(q)) return "";
+    if (personRule(q) || /(?:^|，)我能否平安$|晴|雨|颱風|雪|小偷|賊|盜/.test(q)) return "";
     if (sel === "妻財") return "財";
     if (sel === "官鬼") return "名";
     return "";
@@ -4493,6 +4518,8 @@
     { re: { test: function(t) { return /(孩子|兒子|女兒|小孩|小朋友).{0,12}(考試|考上|考取|成績|學業|功課|升學|會考|學測)|(考試|考上|成績|學業|功課).{0,12}(孩子|兒子|女兒|小孩)/.test(t) || (EXAM_ADMISSION_RE.test(t) && /孩子|兒子|女兒|小孩|小朋友/.test(t)); } }, value: "父母", why: "代占孩子的考試學業：父母看學業，子孫看孩子狀態" },
     { re: { test: function(t) { return birthTopic(t, /懷孕|懷上|受孕|孕|(?<!輪|備|爆)胎|求子|生子|出生|預產|坐月子|後代|繁衍|產婦/); } }, value: "子孫", why: "胎孕、生產取子孫" },
     { re: /財利|財力|貨價|賺|獲利|財運|錢途|偏財|薪|獎金|資遣費|工資|貨款|收款|營收|營業|業績|股價|價位|押金|租金|房租|加薪|貸款|借錢|還錢|欠錢|借款|討債|追債|索債|債|金額|現金|消費券|\d+元|錢/, value: "妻財", why: "問錢財得失取妻財" },
+    // 問非家人邀約、來找的用意，看對方的來意取應；家人仍依人物規則
+    { re: /(?:朋友|同事|同學|網友|客戶|陌生人|某人|有人|對方|他|她)(?:們)?(?:請|約|邀|找)(?:我)?(?:去)?(?:吃飯|吃|喝酒|喝茶|喝咖啡|見面|聚餐|聊|談|出去)?(?:是)?(?:為何事|為了何事|為了什麼|為什麼|有何事|有什麼事|何事|何意|用意|目的|來意)/, value: "應", why: "問對方邀約、來找的用意，取應爻看來意" },
     { people: true },
     { re: LOVE_TEST, value: "情", unless: /官司|訴訟|監護權/ },
     // 沿用原有的自動用神備援，不把性別／對象描述新增成事類的感情關鍵字。
@@ -4512,7 +4539,9 @@
     { re: /(?:請|拜託|邀請)[一二三四五六七八九十兩幾數0-9]+(?:個|位)(?:陌生)?人[^。；;！？?]{0,40}(?:不知(?:道)?|不曉得)(?:他們)?(?:願意|願不願意|肯不肯|答不答應|同不同意|是否同意)/, value: "應", why: "問未明身分他人的意願取應爻" },
     { re: /房子|房屋|房價|房租|房東|房貸|(買|賣|租).{0,3}房|這間房|那間房|房地產|屋|宅|風水|土地|購地|保險|消息|回信|收得到信|通知|資料|紀錄|記錄|檔案|備份|車(?!禍)|漏水|違建|拆除|裝修|維修|衣服/, value: "父母", why: "房屋、車、文書消息取父母" },
     { re: /^(?!.*(工作|上班|應徵|應聘|考)).*(藥|醫生|醫師|牙醫|中醫|西醫|醫院|治療|(?:服用?|吃)附子(?=可否|可以|是否|能否|有效|有用|治|對症|好不好|嗎|[？?，,。；;]|$)|^占用附子可否[？?]?$)/, value: "子孫", why: "醫藥取子孫" },
+    { re: /掣[簽籤签]/, value: "官鬼", why: "掣籤是官員抽籤分發任所，取官鬼" },
     { re: /工作|上班|公司|職|升職|升遷|升官|升上|升任|升為|晉升|提拔|調動|調職|部門|面試|錄取|錄用|應徵|求職|轉正|辭呈|離職|事業|任職|上任|就任|擔任|任用|任(主任|經理|主管|.長)|官(?!司|非)|軍人|放榜|榜單|口試|副業|教書|兼差|公職|選舉|會上嗎/, value: "官鬼", why: "功名工作取官鬼" },
+    { re: /(?:往|到|去|赴)[^，,。；;？?！!\s]{1,6}?(?:買|販|採購|採買|進貨|批貨)/, value: "妻財", why: "往外地採買貨物，貨物與價格取妻財" },
     { re: /財|投資|股|基金|ETF|期貨|生意|開店|擺攤|網拍|買賣|貨|價|收|訂單|團購|中獎|彩券|樂透|發票|貿易/, value: "妻財", why: "求財取妻財" },
     { re: /官司|訴訟|勝訴|敗訴|判決|告得成/, value: "世", why: "官司以世爻為自己、應爻為對方" },
     { re: /病|痛|疾|失眠|睡眠|眼|牙|癌|腫瘤|健檢|身體|健康|手術|開刀|運勢|運程|運氣|流年|月令|壽|改名|心神|衰運|吉凶|平安|減肥|自己|本人|自身/, value: "世", why: "問自身取世爻" },
@@ -4578,6 +4607,29 @@
     return { value: "應", why: "問他人行蹤，身分不明取應爻；若是家人朋友請改選對應六親" };
   }
 
+  // 只處理明確「朋友自己要問感情」及「我和朋友」的感情問句，不將朋友稱謂一律改取伴侶。
+  function friendLoveRule(q, gender) {
+    var friend = "(?:男生|女生|男性|女性)?(?:好|普通)?朋友(?:[（(][^）)]{1,12}[）)])?";
+    var proxy = new RegExp("^(?:我(?:替|幫|為)|替|幫|為)?(" + friend + ")\\s*(?:自己)?(?:要|想)?問(?:一下)?[，,]?\\s*(.+)$").exec(q);
+    if (proxy) {
+      var tail = proxy[2], head = proxy[1];
+      if (/^我(?:的|自己|本人)/.test(tail) || !LOVE_TEST.test(tail)) return null;
+      var otherPeople = tail.replace(/男朋友|女朋友|未婚夫|未婚妻|男友|女友|丈夫|老婆|太太|老公|前夫|前妻|妻子|先生|伴侶|另一半|夫妻/g, "");
+      if (personRule(otherPeople)) return null;   // 問朋友的女兒、媽媽等，仍是第三人的感情。
+      var female = /女生|女性|[（(]女[）)]/.test(head), male = /男生|男性|[（(]男[）)]/.test(head);
+      var pronoun = /^(她|他)(?:的|自己|何時|什麼時候|和|跟|與)/.exec(tail);
+      if (pronoun) { female = female || pronoun[1] === "她"; male = male || pronoun[1] === "他"; }
+      if (female && male) return { value: "", why: "朋友本人的性別描述不一致，請確認或手動選用神" };
+      var actualGender = female ? "女" : male ? "男" : "";
+      var result = loveRule(tail, actualGender);
+      if (!actualGender && !result.value) return { value: "", why: "這是朋友本人的感情問題，請確認朋友性別或對象後手動選用神" };
+      return { value: result.value, why: "朋友是本題問事者：" + result.why };
+    }
+    var pair = new RegExp("我(?:和|跟|與)" + friend + "(?!的)|" + friend + "(?:和|跟|與)我");
+    if (pair.test(q) && LOVE_TEST.test(q)) return loveRule(q, gender);
+    return null;
+  }
+
   function inferYong(q, gender) {
     var lostTag = /^\s*[\[［【]尋物/.test(q || "");
     q = (q || "").replace(/^\s*[\[［【][^\]］】]{1,6}[\]］】]\s*/, "");
@@ -4592,6 +4644,8 @@
     for (var k = 0; k < YONG_STEPS.length; k++) {
       var st = YONG_STEPS[k], r;
       if (st.people) {
+        r = friendLoveRule(q, g);
+        if (r) return r;
         r = personRule(q);
         if (r) return r;
         if (LOVE_PARTNER_RE.test(q)) return loveRule(q, g);   // 伴侶稱謂保留取對方六親，事類仍依實際問題判斷
@@ -4618,7 +4672,7 @@
       sel.value = rule.value;
       yongAutoNote = "用神自動取" + sel.options[sel.selectedIndex].text + "（" + rule.why + "，可自行更改）";
     } else {
-      if (yongAutoNote.indexOf("用神自動取") === 0) sel.value = "";
+      sel.value = "";   // 手動優先已在入口擋下；重新自動判讀無答案時，不殘留上一題用神。
       yongAutoNote = rule ? rule.why : "";
     }
     sel.classList.toggle("auto-picked", !!(rule && rule.value));
