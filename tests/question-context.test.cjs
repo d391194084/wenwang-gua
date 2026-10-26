@@ -1532,6 +1532,23 @@ fixtures.push(
  {id:'V15-R6',q:'以兄弟為用，我能轉職成功嗎',gender:'男',sel:'兄弟',cat:'名'},
  {id:'V15-R7',q:'女占，我不問工作，只問他還愛我嗎',gender:'',sel:'官鬼',cat:'情'}
 );
+fixtures.push(
+ {id:'V16-A1',q:'請兩個人介紹客戶，不知願意否？',gender:'',sel:'應',cat:''},
+ {id:'V16-A2',q:'請一個人幫忙搬東西，不知願不願意',gender:'',sel:'應',cat:''},
+ {id:'V16-A3',q:'拜託兩位陌生人幫忙，不知道願不願意',gender:'',sel:'應',cat:''},
+ {id:'V16-C1',q:'請媽媽介紹客戶，不知願意否',gender:'',sel:'父母',cat:''},
+ {id:'V16-C2',q:'請兩位朋友幫忙，不知願意否',gender:'',sel:'兄弟',cat:''},
+ {id:'V16-C3',q:'我一個人工作能順利嗎',gender:'',sel:'官鬼',cat:'名'},
+ {id:'V16-C4',q:'我願意接受這份工作，能轉正嗎',gender:'',sel:'官鬼',cat:'名'},
+ {id:'V16-A4',q:'占用附子可否',gender:'',sel:'子孫',cat:''},
+ {id:'V16-A5',q:'服用附子有效嗎',gender:'',sel:'子孫',cat:''},
+ {id:'V16-C5',q:'我研究附子的工作能升職嗎',gender:'',sel:'官鬼',cat:'名'},
+ {id:'V16-C6',q:'用附子這個名稱當公司名好嗎',gender:'',sel:'官鬼',cat:'名'},
+ {id:'V16-R1',q:'請兩個人幫忙，我願意繼續現在的工作嗎',gender:'',sel:'官鬼',cat:'名'},
+ {id:'V16-R2',q:'請兩個人幫忙，我願意買這間房子，是否平安',gender:'',sel:'父母',cat:''},
+ {id:'V16-R3',q:'用附子可以當公司名嗎',gender:'',sel:'官鬼',cat:'名'},
+ {id:'V16-R4',q:'使用附子是否適合當公司名稱',gender:'',sel:'官鬼',cat:'名'}
+);
 const records=[];let failures=0;
 for(const f of fixtures){
  const rt=load(raw,f.gender??'男');
