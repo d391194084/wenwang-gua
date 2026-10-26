@@ -740,6 +740,7 @@
     .jie-row { padding: 1px 0 1px 3.2em; text-indent: -3.2em; }
     .jie-row b { color: var(--blue); }
     .jie-yuan { font-size: 0.9em; color: var(--muted); }
+    .jie-say p { margin: 0 0 10px; line-height: 1.85; }
 
     .rules-body strong { color: var(--red); }
 
@@ -2749,7 +2750,7 @@
         note(birthDates);
         r.timing = [{ text: birthDates, tone: "" }];
         if (isClash(f.branch, dz) && !isWeakLv(f.level)) note("子孫被日辰沖：胎產卦論「沖動、生得快」，不論凶。", "good");
-        r.advice = "產期以上面列的日子為參考，一切以醫院的安排為準。";
+        r.advice = "產期以列出的日子為參考，一切以醫院的安排為準。";
         r.verdictText = "應期卦（只看產期，不論吉凶）";
         r.keepUseless = true;
       } else if (askChild) {
@@ -2930,6 +2931,23 @@
       if (/賠償|賠款|拿到錢|要回/.test(q)) note("官司結束後問能否拿到錢，要當財運卦看：財爻旺衰、是否生世。");
     }
     return r;
+  }
+
+  // 總斷的有利、不利條目換成白話：去掉爻位干支與層級術語，給白話解讀與解卦說明「關鍵」
+  function plainReason(t) {
+    return String(t).replace(/^重內輕外：/, "")
+      .replace(/（[^）]*空破墓絕[^）]*）/g, "")
+      .replace(/卦中動爻（第二層）重於日月（第三層）/g, "卦中發動的爻比月份、日子的旺衰更重要")
+      .replace(/（第[一二三]層）/g, "")
+      .replace(/用神(?:[初二三四五上]爻)?(?:父母|兄弟|子孫|妻財|官鬼)[子丑寅卯辰巳午未申酉戌亥][金木水火土]?/g, "代表這件事的爻")
+      .replace(/[初二三四五上]爻(父母|兄弟|子孫|妻財|官鬼)[子丑寅卯辰巳午未申酉戌亥][金木水火土]?動/g, "發動的$1爻")
+      .replace(/[初二三四五上]爻(父母|兄弟|子孫|妻財|官鬼)[子丑寅卯辰巳午未申酉戌亥][金木水火土]?/g, "$1爻")
+      .replace(/以被剋論/g, "所以以受剋來看").replace(/以得生論/g, "所以以得生來看")
+      .replace(/日月雖衰/g, "在這個月、這一天雖然偏弱").replace(/雖得日月之旺/g, "雖然在這個月、這一天很旺")
+      .replace(/^世爻/, "代表你自己的世爻")
+      .replace(/（[^）]*(?:休囚|旺相|入墓|不動)[^）]*）/g, "").replace(/原神/g, "幫它的").replace(/忌神/g, "妨礙它的").replace(/仇神/g, "間接扯後腿的")
+      .replace(/用神/g, "這件事").replace(/日月/g, "月份、日子")
+      .replace(/[。]?$/, "。");
   }
 
   // 組出完整分析：{ verdict, sections:[{title, items:[{text, tone}], table}] }
@@ -3248,7 +3266,9 @@
     if (fanFu.some(function(f) { return f.kind === "反吟"; }) || yaoFan.length) {
       var ft = fanFu.filter(function(f) { return f.kind === "反吟"; }).map(function(f) { return f.text; });
       push(ov, "反吟：" + ft.concat(yaoFan.length ? ["爻反吟（" + yaoFan.join("、") + "）"] : []).join("；") +
-        "。主反覆不定、去而復返、得而復失。" + (yongChongKe ? "用神又化回頭沖剋，是「淚淋淋」的大凶。" : "用神不化沖剋，雖反覆，事終可成。"),
+        "。主反覆不定、去而復返、得而復失。" + (yongChongKe ? "用神又化回頭沖剋，是「淚淋淋」的大凶。" :
+          // 「事終可成」只在整體不凶時成立；應期卦不論成敗
+          cr.verdictText ? "用神不化沖剋，反吟只主過程反覆。" : vTone === "bad" ? "用神不化沖剋，反吟本身不致大凶，成敗仍看用神生剋。" : "用神不化沖剋，雖反覆，事終可成。"),
         yongChongKe ? "bad" : "");
     }
     if (fanFu.some(function(f) { return f.kind === "伏吟"; }) || yaoFu.length) {
@@ -3630,7 +3650,7 @@
     else if (ELEM_GEN[shiA.el] === yingA.el) relPlain.push("你付出比較多，要遷就對方");
     else if (ELEM_KE[yingA.el] === shiA.el) relPlain.push("壓力主要來自對方或外在環境");
     else if (ELEM_KE[shiA.el] === yingA.el) relPlain.push("你比較能掌握對方或局面");
-    if (relPlain.length) say(relPlain.join("；") + "。");
+    if (relPlain.length && cat !== "病") say(relPlain.join("；") + "。");   // 問病時世應關係與病情無關
     if (yongPick && yongPick.idx === gua.shi && !illness && !quitJob && !cr.timing) {
       say("這件事就落在你自己身上，跟你很有緣。", "good");
     } else if (focus && !focusIsFu && yongPick && !illness && !quitJob && !cr.timing) {
@@ -3642,7 +3662,7 @@
     if (gua.mainRel === "六合" && gua.chgRel === "六沖") say("先聚後散：一開始談得攏，後來可能生變。", "bad");
     if (gua.mainRel === "六沖" && gua.chgRel === "六合") say("先散後聚：一開始不順，後來會好轉。", "good");
     if (yaoFan.length || fanFu.some(function(f) { return f.kind === "反吟"; })) {
-      say("過程會反反覆覆、來回折騰" + (yongChongKe ? "，而且對這件事傷害較大。" : "，但最後仍有機會成。"), yongChongKe ? "bad" : "");
+      say("過程會反反覆覆、來回折騰" + (yongChongKe ? "，而且對這件事傷害較大。" : cr.verdictText || vTone === "bad" ? "。" : "，但最後仍有機會成。"), yongChongKe ? "bad" : "");
     }
     if (yaoFu.length || fanFu.some(function(f) { return f.kind === "伏吟"; })) say("事情容易停滯、卡住，心情也比較鬱悶。");
     var advice = {
@@ -3653,7 +3673,33 @@
       "凶": "目前不利，建議暫緩，或另作打算。",
       "平（需努力，有機會）": "成敗看你自己的努力：你自身的狀態不錯，用心準備就有機會。"
     }[verdict];
+    // 病與尋物不是「去做」的事，結論改用病情、找回的說法
+    if (cat === "病") advice = {
+      "吉": "病情可望好轉，持續治療、好好休養。",
+      "偏吉": "大致會好轉，留意上面提到的不利因素。",
+      "平（成敗參半，看後續變化）": "病情時好時壞，要持續治療、觀察變化。",
+      "偏凶（阻礙較多）": "病情不容易很快好轉，要積極就醫、多加留意。",
+      "凶": "病情較重，務必積極就醫，聽從醫師的安排。"
+    }[verdict] || advice;
+    if (cat === "尋") advice = {
+      "吉": "有很大的機會找回來。",
+      "偏吉": "有機會找回來，留意上面提到的不利因素。",
+      "平（成敗參半，看後續變化）": "找不找得回來還不一定，要看後續變化。",
+      "偏凶（阻礙較多）": "比較難找回，可以多找幾個地方或請人協助。",
+      "凶": "很難找回，建議做好最壞的打算。"
+    }[verdict] || advice;
     cr.plain.forEach(function(p) { say(p.text, p.tone); });
+    // 白話只列出和結論相反的因素時，補上決定結論的那一條，避免讀起來前後矛盾
+    var bodyTones = plain.items.slice(1).map(function(it) { return it.tone; });
+    if ((vTone === "bad" && bodyTones.indexOf("bad") < 0) || (vTone === "good" && bodyTones.indexOf("good") < 0)) {
+      // 離職的有利、不利是就工作本身列的，對離職要反過來挑
+      var wantBad = (vTone === "bad") !== quitJob;
+      var keyList = wantBad ? against : favor;
+      var keyRe = wantBad ? /無情|門檻|不及格|重內輕外|無用|化廢|回頭剋|真空|真破|月破|入墓|難/ : /重內輕外|回頭生|化進|貪生忘剋|臨日|臨月|有情/;
+      var keyItem = keyList.filter(function(t) { return keyRe.test(t); })[0] || keyList[keyList.length - 1];
+      if (!keyItem && quitJob) say("關鍵在於：這份工作本身" + (vTone === "good" ? "力量不強，對離職而言較容易離開。" : "仍有力量，對離職而言較難離開。"), vTone);
+      if (keyItem) say("關鍵在於：" + (quitJob ? "就這份工作本身來說，" + plainReason(keyItem).replace(/這件事/g, "工作") : plainReason(keyItem)) + (quitJob ? "對離職而言" + (vTone === "good" ? "反而較容易離開。" : "反而較難離開。") : ""), vTone);
+    }
     say("結論：" + (cr.advice || advice), vTone);
 
     // 應期換成實際日期：從起卦日起算 60 天內，最近的那一天
@@ -4178,48 +4224,82 @@
     var yaoLines = moving.map(function(k) {
       var src = (ZHOUYI[gua.mainName] && ZHOUYI[gua.mainName].yao[k]) || "";
       var hit = src.match(/^(初[六九]|[六九][二三四五]|上[六九]|用[六九])[：，]/);   // 否卦經文的爻位後接逗號
-      return { pos: hit ? hit[1] : "第 " + (k + 1) + " 爻", src: hit ? src.slice(hit[0].length) : src, text: m.yao[k] };
+      return { k: k, pos: hit ? hit[1] : "第 " + (k + 1) + " 爻", src: hit ? src.slice(hit[0].length) : src, text: m.yao[k] };
     });
-    var row = function(label, text) {   // text 可為陣列，每項一行
-      return '<div class="jie-row"><b>' + label + '：</b>' + [].concat(text).map(escapeHtml).join("<br>") + '</div>';
+    var row = function(label, text) {
+      return '<div class="jie-row"><b>' + label + '：</b>' + escapeHtml(text) + '</div>';
     };
+    var para = function(parts) {   // 一段話：字串陣列，空字串略過；{b:文字} 為粗體
+      var s = parts.filter(Boolean).map(function(p) { return typeof p === "string" ? escapeHtml(p) : '<b>' + escapeHtml(p.b) + '</b>'; }).join("");
+      return s ? '<p>' + s + '</p>' : '';
+    };
+    var keyWords = function(k) { return k.split("・").map(function(w) { return "「" + w + "」"; }).join("和"); };
+    var mainShort = shortName(gua.mainName), chgShort = c ? shortName(gua.chgName) : "";
+
+    // 白話解讀的條目分成：說明用神、狀態、有利、不利、關鍵
+    var body = plain.items.filter(function(it) { return !/^(你問的是|結論：|可能有變化或結果的日子：|時間上：|以上是)/.test(it.text); });
+    var keyLine = body.filter(function(it) { return /^關鍵在於：/.test(it.text); })[0];
+    body = body.filter(function(it) { return it !== keyLine; });
+    var intro = [], neutral = [], goods = [], bads = [];
+    body.forEach(function(it) {
+      var t = it.text.replace(/。$/, "").replace(/（[^（）]*可以代表：.*$/, "")   // 六親含義很長，只留名稱
+        .replace(/^這件事目前的狀態：/, "這件事本身").replace(/^你自己目前的狀態：/, "你自己").replace(/^病勢：/, "");
+      if (/^卦裡用/.test(t)) intro.push(t.replace(/^卦裡用(.+?)來代表這件事/, function(all, who) { return "這件事我看的是" + who + (/爻」$/.test(who) ? "" : "這一爻"); }));
+      else if (/^你還沒選用神|^你問的是離職|^你問自己的病/.test(t)) intro.push(t);
+      else if (it.tone === "good") goods.push(t);
+      else if (it.tone === "bad") bads.push(t);
+      else neutral.push(t);
+    });
 
     // 一、精簡卡片
     var html = '<section class="teach-step jie-card"><h3>一眼看完</h3>' +
       '<div class="jie-names">' + escapeHtml(gua.mainName) + (c ? ' → ' + escapeHtml(gua.chgName) : '') + '</div>' +
       '<div class="jie-keys">' + escapeHtml(m.k) + (c ? ' → ' + escapeHtml(c.k) : '') + '</div>' +
       '<div class="ana-verdict ana-' + (r.tone || "mid") + '">' + escapeHtml(r.verdict) + '</div>' +
-      row("一句話", m.s + (c ? "；變卦之後：" + c.s : "")) + row("宜", m.y) + row("忌", m.j) +
       (when ? row("時間", when) : '') + '</section>';
 
-    // 二、問事對答
-    html += '<section class="teach-step"><h3>問事對答</h3>' +
-      row("問", qText || "（沒有填寫所問）") + row("答", r.verdict) +
-      row("現在", "本卦「" + shortName(gua.mainName) + "」，" + m.s + "。") +
-      row("過程", !yaoLines.length ? "六爻安靜，事情暫時不會有大變化，照本卦的情況發展。" :
-        yaoLines.map(function(y) { return y.pos + "：" + y.text; })) +
-      row("結果", c ? "變成「" + shortName(gua.chgName) + "」（" + c.k + "），" + c.s + "。" : "維持本卦的局面。") +
-      (advice ? row("提醒", advice) : '') + (when ? row("時間", when) : '') +
-      '<p class="setting-note">「答」與「提醒」是六爻計分的結果，和「詳細分析」相同；其餘是卦辭、爻辭的意思，說明事情的性質和走向。兩者不一致時，吉凶以計分為準。</p></section>';
+    // 二、像真人解卦一樣，一段一段說給問卦的人聽
+    html += '<section class="teach-step jie-say"><h3>解卦</h3>';
+    html += para([qText ? "你問的是「" + qText + "」。" : "你沒有寫要問什麼，我就先幫你看整體的運勢。",
+      "這一卦起出來是「" + gua.mainName + "」",
+      c ? "，動了之後變成「" + gua.chgName + "」。" : "，六個爻都沒有動，是個靜卦。",
+      mainShort + "卦講的是" + keyWords(m.k) + "：" + m.s + "。",
+      c ? "後來變成" + chgShort + "卦，講的是" + keyWords(c.k) + "：" + c.s + "。" : "",
+      qText ? "不過卦名說的是整體的氣氛，真正的結果還是要看卦裡代表這件事的那一爻。" : "不過卦名說的是整體的氣氛，運勢好壞還是要看代表你自己的世爻。"]);
+    html += para([intro.join("。") + (intro.length ? "。" : ""), neutral.length ? neutral.join("。") + "。" : ""]);
+    if (goods.length) html += para(["對你有利的是：", goods.join("；") + "。"]);
+    if (bads.length) html += para(["要小心的是：", bads.join("；") + "。"]);
+    if (keyLine) html += para(["那為什麼結論是這樣？", keyLine.text.replace(/^關鍵在於：/, "最關鍵的是，")]);
 
-    // 三、卦意直說
-    html += '<section class="teach-step"><h3>卦意直說</h3>' +
-      '<div class="teach-block"><div class="teach-label">本卦　' + escapeHtml(gua.mainName) + '</div><p>' + escapeHtml(m.m) + '</p>' +
-      '<p>' + escapeHtml(m.g) + '</p></div>';
+    // 動爻：一爻為焦點，兩爻逐一說，三爻以上以變卦為主
+    if (!yaoLines.length) {
+      html += para(["卦中沒有爻在動，表示短期內不會有太大的變化，事情會照目前的樣子發展。"]);
+    } else if (moving.length >= 3) {
+      html += para(["卦中有 " + Math.min(moving.length, 6) + " 個爻在動，變化比較大，這種時候以變成的" + chgShort + "卦為最後走向：" + c.m]);
+      if (moving.length > 6) html += para(["六個爻全動，再看" + yaoLines[yaoLines.length - 1].pos + "：「" + yaoLines[yaoLines.length - 1].src + "」，" + yaoLines[yaoLines.length - 1].text]);
+    } else {
+      html += para([yaoLines.length === 1 ? "卦中只有" + yaoLines[0].pos + "在動，它就是這件事的焦點。" : "卦中有兩個爻在動。"].concat(yaoLines.map(function(y) {
+        var who = y.k === gua.shi ? "（這一爻正好是代表你自己的世爻）" : y.k === gua.ying ? "（這一爻正好是代表對方的應爻）" : "";
+        return y.pos + who + "的爻辭說「" + y.src.replace(/。$/, "") + "」，意思是" + y.text;
+      })));
+    }
+
+    // 應期卦只看日期，不說「整體來看」的吉凶
+    html += para([/^應期卦/.test(r.verdict) ? "所以這一卦是" : "所以整體來看是", { b: r.verdict }, "。", advice]);
+    html += para(["卦本身的提醒是：宜" + m.y + "；忌" + m.j + "。", when ? "時間上，可以留意" + when : ""]);
+    html += para(["打個比方，就像" + m.b.replace(/^像/, ""), c ? "之後則像" + c.b.replace(/^像/, "") : ""]);
+    html += '<p class="setting-note">吉凶與時間是依六爻規則推算，和「詳細分析」相同；卦辭、爻辭說明事情的性質和走向，兩者不一致時以吉凶推算為準。實際還要配合你自己的狀況判斷。</p></section>';
+
+    // 三、經文對照（收起來，想看再點開）
+    html += '<details class="teach-quiz"><summary>卦辭、爻辭對照</summary>' +
+      '<div class="teach-block"><div class="teach-label">本卦　' + escapeHtml(gua.mainName) + '</div><p>' + escapeHtml(m.m) + '</p><p>' + escapeHtml(m.g) + '</p></div>';
     if (yaoLines.length) {
       html += '<div class="teach-block"><div class="teach-label">動爻</div><ul>' + yaoLines.map(function(y) {
         return '<li><b>' + escapeHtml(y.pos) + '</b>：' + escapeHtml(y.text) + '<div class="jie-yuan">原文：' + escapeHtml(y.src) + '</div></li>';
-      }).join("") + '</ul>' + (moving.length >= 3 ? '<p class="setting-note">動爻較多時，事情變化大，以變卦的意思為最後走向。</p>' : '') + '</div>';
+      }).join("") + '</ul></div>';
     }
-    if (c) {
-      html += '<div class="teach-block"><div class="teach-label">變卦　' + escapeHtml(gua.chgName) + '</div><p>' + escapeHtml(c.m) + '</p>' +
-        '<p>' + escapeHtml(c.g) + '</p></div>';
-    }
-    html += '</section>';
-
-    // 四、比喻
-    html += '<section class="teach-step"><h3>打個比方</h3><p>' + escapeHtml(m.b) + '</p>' +
-      (c ? '<p><b>變卦之後：</b>' + escapeHtml(c.b) + '</p>' : '') + '</section>';
+    if (c) html += '<div class="teach-block"><div class="teach-label">變卦　' + escapeHtml(gua.chgName) + '</div><p>' + escapeHtml(c.m) + '</p><p>' + escapeHtml(c.g) + '</p></div>';
+    html += '</details>';
     return html;
   }
 
