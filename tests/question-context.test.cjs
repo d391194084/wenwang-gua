@@ -1571,6 +1571,7 @@ fixtures.push(
  {id:"V19-E6",q:"同學考試能及格嗎",gender:"",sel:"兄弟",cat:"考"}
 );
 fixtures.push(...JSON.parse(fs.readFileSync(path.join(__dirname,'friend-love-personal-peace.cases.json'),'utf8')));
+fixtures.push(...JSON.parse(fs.readFileSync(path.join(__dirname,'new-rule-boundaries.cases.json'),'utf8')));
 const records=[];let failures=0;
 for(const f of fixtures){
  const rt=load(raw,f.gender??'男');
