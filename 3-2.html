@@ -1557,9 +1557,24 @@
   // 「志願服務／志願上班」不是升學，不能單憑「志願」兩字判為考試。
   var EXAM_ADMISSION_RE = /考(?:大學|高中|高職|國中|研究所|大專)|第一志願|志願序|填(?:寫|報)?志願|錄取分數/;
 
+  // 明寫「只問」時以主問為準；前句人物只是背景、後句明問自己的工作時也不當代占。
+  function effectiveQuestion(q) {
+    q = (q || "").trim();
+    var only = /(?:^|[，,。；;])(?:我)?(?:只問|只想問|只想知道|要問的是|想問的是)(.+)$/.exec(q);
+    if (only && !/他|她|對方|其/.test(only[1])) {
+      var prefix = q.slice(0, only.index).split(/[，,。；;]/);
+      var excluded = function(cl) { return /^(?:我)?(?:不問|不想問|不是(?:要|想)?(?:問)?|並非(?:要|想)?問)/.test(cl.trim()); };
+      if (prefix.some(excluded)) return prefix.filter(function(cl) { return !excluded(cl); }).concat(only[1]).join("，");
+    }
+    var clauses = q.split(/[，,。；;]/), last = clauses[clauses.length - 1].trim();
+    if (clauses.length > 1 && !/以(父母|兄弟|子孫|妻財|官鬼)為用/.test(q) && /^我(?:本人|自己|個人)?(?:能|會|是否|能否|可否|要|想|這次)/.test(last) &&
+      /工作|上班|轉職|轉正|升職|升遷|晉升|裁員|資遣|面試|考試/.test(last)) return last;
+    return q;
+  }
+
   // 依所問文字與用神判斷事類，用來調整沖合、進退等象義
   function questionCategory(sel) {
-    var q = document.getElementById("question").value;
+    var q = effectiveQuestion(document.getElementById("question").value);
     var namedItem = LOST_RE.test(q) && YONG_ITEMS.some(function(it) { return it.re.test(q); });   // 明說遺失了什麼東西
     var money = /錢|款項|貨款|資金|投資|股|基金|回本|借|欠|債|貸|生意|開店/.test(q);
     var job = JOB_STATUS_RE.test(q) || /工作|上班|職位|職場|升職|升遷|晉升|面試|求職|轉職|調動|事業|應聘|應徵|公司/.test(q);
@@ -1575,7 +1590,7 @@
     };
     // 稱謂、「我和他」只在沒有其他主題時才當感情題（「女朋友出國」是出行、「男朋友考得好嗎」是考試）；
     // 其他主題直接用下面各事類的同一組字詞判斷，配偶字詞另把「回來、在哪」等行人字詞也當成其他主題
-    var otherTopic = money || job || ["胎", "病", "訟", "行", "考", "名", "財"].some(function(k) { return T[k].test(q); });
+    var otherTopic = money || job || ["胎", "病", "訟", "尋", "行", "考", "名", "財"].some(function(k) { return T[k].test(q); });
     var rules = [
       ["胎", T.胎],
       ["病", T.病],
@@ -2295,7 +2310,7 @@
   // 各類占事的專門斷法與靜卦斷法（安易芳《六爻中級課程》第 40–96 集）
   // 回傳要併入總斷的有利、不利、現況，分數調整（delta、cap 上限、floor 下限、replace 改以此分數為準），以及說明與白話
   function categoryRules(c) {
-    var r = { favor: [], against: [], neutral: [], delta: 0, cap: null, floor: null, staticCap: null, staticFloor: null, replace: null, effort: false, keepUseless: false, advice: "", verdictText: "", notes: [], plain: [] };
+    var r = { favor: [], against: [], neutral: [], delta: 0, cap: null, floor: null, staticCap: null, staticFloor: null, replace: null, effort: false, keepUseless: false, advice: "", verdictText: "", timing: null, notes: [], plain: [] };
     var gua = c.gua, A = c.A, f = c.focus, shi = c.shiA, ying = c.yingA, q = c.q, cat = c.cat;
     var mz = timeInfo.monthZhi, dz = timeInfo.dayZhi;
     function note(t, tone) { r.notes.push({ text: t, tone: tone || "" }); }
@@ -2555,16 +2570,24 @@
         r.replace = preg ? 2.5 : -3.5;
         r.keepUseless = true;
         r.advice = preg ? "有懷孕的跡象，建議到醫院確認。" : "目前看不出懷孕的跡象。";
+        r.timing = [{ text: "本題以胎爻判斷是否懷孕，沒有推算受孕或生產日期。", tone: "note" }];
         say(preg ? "代表胚胎的「胎爻」有出現、沒有受損，顯示有懷孕的跡象。" : "代表胚胎的「胎爻」沒有出現或已受損，顯示目前沒有懷孕的跡象。", preg ? "good" : "bad");
       } else if (askBirth) {
         note("問產期只斷應期，不必論吉凶。胎產宜沖：子孫或妻財逢沖多順產，逢合多難產或剖腹；臨產時子孫臨白虎不必擔心。");
-        var bd = [clashOf(f.branch) + "日（子孫逢沖）", clashOf(shi.branch) + "日（世爻逢沖）"];
+        var bd = [clashOf(shi.branch) + "日（世爻逢沖）"];
+        if (isWeakLv(f.level)) {
+          var birthSupport = uniq(zhisOfEl(findKey(ELEM_GEN, f.el)).concat(zhisOfEl(f.el))).filter(function(z) { return z !== clashOf(f.branch); });
+          bd = bd.concat(birthSupport.map(function(z) { return z + "日（生旺子孫）"; }));
+          note("子孫太衰，沖它的日子沖不起，改取生它、讓它旺起來的日子（" + birthSupport.join("、") + "日）。");
+        } else bd.unshift(clashOf(f.branch) + "日（子孫逢沖）");
         var cai2 = ofRel("妻財")[0];
         if (cai2) bd.push(clashOf(cai2.branch) + "日（妻財逢沖）");
         bd.push(shiftZhi(CHANG_SHENG[f.el], 10) + "日（子孫的胎地）", shiftZhi(CHANG_SHENG[f.el], 11) + "日（子孫的養地）");
-        if (isWeakLv(f.level)) note("子孫太衰，沖它的日子沖不起，改取生它、讓它旺起來的日子（" + uniq(zhisOfEl(findKey(ELEM_GEN, f.el)).concat(zhisOfEl(f.el))).join("、") + "日）。");
-        note("可能的出生日（應期很靈活，不一定照公式走）：" + uniq(bd).join("、") + "。");
-        if (isClash(f.branch, dz)) note("子孫被日辰沖：胎產卦論「沖動、生得快」，不論凶。", "good");
+        if (isWeakLv(f.level)) bd = bd.filter(function(t) { return t.charAt(0) !== clashOf(f.branch); });
+        var birthDates = "可能的出生日（應期很靈活，不一定照公式走）：" + uniq(bd).join("、") + "。";
+        note(birthDates);
+        r.timing = [{ text: birthDates, tone: "" }];
+        if (isClash(f.branch, dz) && !isWeakLv(f.level)) note("子孫被日辰沖：胎產卦論「沖動、生得快」，不論凶。", "good");
         r.advice = "產期以上面列的日子為參考，一切以醫院的安排為準。";
         r.verdictText = "應期卦（只看產期，不論吉凶）";
         r.keepUseless = true;
@@ -2915,7 +2938,7 @@
     }
 
     // 各類占事的專門斷法、靜卦斷法
-    var qText = document.getElementById("question").value.trim();
+    var qText = effectiveQuestion(document.getElementById("question").value);
     // 問離職才反轉；問「辭職後的下一份工作」不算
     var quitJob = !!roles && roles.sel === "官鬼" && /(辭職|離職|辭呈|退休|裸辭)(?!後|之後|以後)|離開(公司|工作|職場|這份)/.test(qText) &&
       !/新工作|下一份|找到.{0,6}工作|換工作/.test(qText);
@@ -3268,7 +3291,9 @@
 
     // ----- 應期 -----
     var yq = sec("應期參考");
-    if (illness) {
+    if (cr.timing) {
+      cr.timing.forEach(function(n) { push(yq, n.text, n.tone); });
+    } else if (illness) {
       // 世爻就是病：用神的應期是病勢起伏之時，好轉看子孫（醫藥）值日或沖官鬼之日
       var zsEl = Object.keys(ELEM_KE).filter(function(e) { return ELEM_KE[e] === focus.el; })[0];
       var zsZhi = Object.keys(FIVE_ELEMENTS).filter(function(z) { return FIVE_ELEMENTS[z] === zsEl; });
@@ -3276,18 +3301,21 @@
       if (focus.useless) push(yq, "代表病的官鬼無用（" + [focus.kongType, focus.poType, focus.muType, focus.riPo ? "日破" : ""].filter(Boolean).join("、") + "）：病勢難以成形、不易加重" +
         (focus.muType ? "；但世爻也代表你自己，入墓時仍要留意精神體力" : ""), "good");
       else yingQiNotes(focus, focusLabel, focusIsFu).forEach(function(n) { push(yq, "病勢的應期（官鬼就是病，這些日子病勢較明顯）：" + n.text, "bad"); });
+    } else if (quitJob && focus) {
+      if (focus.useless) push(yq, "代表工作的官鬼無用：工作難以維持，對離職而言較容易離開；確切日期仍須配合其他線索。", "good");
+      else yingQiNotes(focus, focusLabel, focusIsFu).forEach(function(n) { push(yq, "工作狀態的應期（工作轉旺較難離開、轉衰較容易離開）：" + n.text); });
     } else if (focus) yingQiNotes(focus, focusLabel, focusIsFu).forEach(function(n) { push(yq, n.text, n.tone); });
-    if (focusIsFu && !fuInfo.fu.useless) push(yq, "伏神出伏：沖開飛神之" + clashOf(fuInfo.fly.branch) + "日，或飛神逢空之時");
-    if (activeCount === 1) {
+    if (!cr.timing && focusIsFu && !fuInfo.fu.useless) push(yq, "伏神出伏：沖開飛神之" + clashOf(fuInfo.fly.branch) + "日，或飛神逢空之時");
+    if (!cr.timing && activeCount === 1) {
       var key = movingIdx.length ? movingIdx[0] : anIdx[0];
       push(yq, "獨發之爻" + nm(key) + "：值日之" + A.lines[key].branch + "日、逢合之" + ZHI_HE[A.lines[key].branch] + "日可作參考");
-    } else if (activeCount === 5) {
+    } else if (!cr.timing && activeCount === 5) {
       var st5 = [0, 1, 2, 3, 4, 5].filter(function(i) { return movingIdx.indexOf(i) < 0 && anIdx.indexOf(i) < 0; })[0];
       push(yq, "獨靜之爻" + nm(st5) + "：其值日之" + A.lines[st5].branch + "日或逢沖之" + clashOf(A.lines[st5].branch) + "日可作參考");
     }
-    if (jiHit.length && !tanSheng) {
-      push(yq, "需留意：忌神" + jiHit.map(function(a) { return a.name; }).join("、") + "值日（" + uniq(jiHit.map(function(a) { return a.branch; })).join("、") + "日）力量最強，" +
-        (focus ? "或" + focusLabel + "被沖之" + clashOf(focus.branch) + "日" : ""), "bad");
+    if (!cr.timing && jiHit.length && !tanSheng) {
+      push(yq, (quitJob ? "離職反看的參考：剋工作的爻" : "需留意：忌神") + jiHit.map(function(a) { return a.name; }).join("、") + "值日（" + uniq(jiHit.map(function(a) { return a.branch; })).join("、") + "日）力量最強，" +
+        (focus ? "或" + focusLabel + "被沖之" + clashOf(focus.branch) + "日" : "") + (quitJob ? "；工作受剋較容易離開" : ""), quitJob ? "good" : "bad");
     }
     push(yq, "近事以日、時論，遠事以月、年論；吉事解病之時應吉，凶事病發之時應凶。", "note");
 
@@ -3329,7 +3357,8 @@
     };
     var plain = { title: "白話解讀", items: [], plain: "用一般說法整理這一卦在說什麼；專有名詞的意思見最後的「名詞白話」。" };
     function say(t, tone) { plain.items.push({ text: t, tone: tone || "" }); }
-    if (qText) say("你問的是「" + qText + "」。");
+    var qShown = document.getElementById("question").value.trim();   // 顯示原句；判斷用的 qText 可能只保留主問
+    if (qShown) say("你問的是「" + qShown + "」。");
     if (quitJob) say("你問的是離職：要反著看，代表工作的爻越強越難離開，越弱越容易離開。");
     if (illness) say("你問自己的病，而代表病的官鬼正好在代表你的世爻上：要反著看，這一爻越強病越重，越弱病越輕。");
     if (!roles) {
@@ -3357,7 +3386,20 @@
         if (yuanHit.some(function(y) { return !damagedYuan(y).length; })) say("有因素正在助長病情（原神生官鬼），例如勞累、飲食或作息，要留意。", "bad");
       }
     }
-    if (focus && !illness) {
+    if (quitJob && focus) {
+      say("代表工作的官鬼目前" + LEVEL_PLAIN[focus.level] + "；工作越有力越難離開，越弱越容易離開。", isStrongLv(focus.level) ? "bad" : isWeakLv(focus.level) ? "good" : "");
+      if (focus.useless) say("這份工作難以維持，對離職而言較容易離開。", "good");
+      if (focus.moving) {
+        if (focus.chgTags.indexOf("回頭生") >= 0 || focus.chgTags.indexOf("化進神") >= 0) say("工作本身得到支持或繼續發展，較難離開。", "bad");
+        if (focus.chgTags.indexOf("回頭剋") >= 0 || focus.chgTags.indexOf("化退神") >= 0) say("工作本身受損或逐漸減弱，較容易離開。", "good");
+      }
+      if (tanSheng) say("力量轉去支持工作，對離職而言較難離開。", "bad");
+      else {
+        if (jiHit.length) say("有力量正在剋制這份工作，對離職而言較容易離開。", "good");
+        if (yuanHit.some(function(y) { return !damagedYuan(y).length; })) say("有力量正在支持這份工作，對離職而言較難離開。", "bad");
+      }
+    }
+    if (focus && !illness && !quitJob && !cr.timing) {
       var fname = roles ? "這件事" : "你自己";
       if (focusIsFu) {
         say("代表這件事的爻沒有直接出現在卦上，而是藏在別的爻底下，表示事情還沒浮上檯面。" +
@@ -3389,7 +3431,7 @@
         else if (ct.indexOf("化沖") >= 0) say("事情會反反覆覆、來回變化。");
       }
     }
-    if (roles && !illness) {
+    if (roles && !illness && !quitJob && !cr.timing) {
       if (tanSheng) {
         say("原本扯後腿的力量，反而轉去幫助你的助力，壞事變好事（貪生忘剋）。", "good");
       } else {
@@ -3415,9 +3457,9 @@
     else if (ELEM_KE[yingA.el] === shiA.el) relPlain.push("壓力主要來自對方或外在環境");
     else if (ELEM_KE[shiA.el] === yingA.el) relPlain.push("你比較能掌握對方或局面");
     if (relPlain.length) say(relPlain.join("；") + "。");
-    if (yongPick && yongPick.idx === gua.shi && !illness) {
+    if (yongPick && yongPick.idx === gua.shi && !illness && !quitJob && !cr.timing) {
       say("這件事就落在你自己身上，跟你很有緣。", "good");
-    } else if (focus && !focusIsFu && yongPick) {
+    } else if (focus && !focusIsFu && yongPick && !illness && !quitJob && !cr.timing) {
       if (ELEM_GEN[focus.el] === shiA.el || ELEM_KE[focus.el] === shiA.el) say("這件事會主動找上你，比較容易得到。", "good");
       else if (ELEM_GEN[shiA.el] === focus.el || ELEM_KE[shiA.el] === focus.el) say("這件事要你主動去追求，會比較辛苦。");
     }
@@ -3460,8 +3502,10 @@
       var re = /([子丑寅卯辰巳午未申酉戌亥](?:、[子丑寅卯辰巳午未申酉戌亥])*)日/g, m;
       while ((m = re.exec(it.text))) m[1].split("、").forEach(function(z) { if (dayZhis.indexOf(z) < 0) dayZhis.push(z); });
     });
-    if (focusUseless && !illness) say("時間上：這件事目前看不到明確的好轉時機。", "bad");   // 疾病反看時官鬼無用是病難成形，好轉日期照列
+    if (focusUseless && !illness && !quitJob && !cr.keepUseless) say("時間上：這件事目前看不到明確的好轉時機。", "bad");   // 反看及改判主體時不以一般用神無用否定應期
     else if (dayZhis.length) say("可能有變化或結果的日子：" + dayZhis.slice(0, 4).map(nextDay).sort(function(a, b) { return a.d - b.d; }).map(function(x) { return x.text; }).join("、") + "。若是長期的事，則看相同地支的月份或年份。");
+    else if (cr.timing) say("時間上：" + cr.timing.map(function(n) { return n.text; }).join(""));
+    else if (quitJob) say("時間上：目前只能看出離職的難易，沒有足夠線索推算確切日期。");
     say("以上是依六爻規則推算的參考，實際還要配合你自己的狀況判斷。", "note");
     sections.unshift(plain);
 
@@ -3771,8 +3815,8 @@
         var effects = [];
         A.lines.forEach(function(b, k) {
           if (k === act.idx) return;
-          if (ELEM_GEN[act.el] === b.el) effects.push("生" + YAO_SHORT[k] + b.rel + b.branch);
-          else if (ELEM_KE[act.el] === b.el) effects.push("剋" + YAO_SHORT[k] + b.rel + b.branch);
+          if (b.actShengIdx.indexOf(act.idx) >= 0) effects.push("生" + YAO_SHORT[k] + b.rel + b.branch);
+          else if (b.actKeIdx.indexOf(act.idx) >= 0) effects.push("剋" + YAO_SHORT[k] + b.rel + b.branch);
         });
         apply5.push(act.label + "（" + act.el + "）：" + (effects.join("、") || "對其他爻沒有直接生剋") + "。");
       });
@@ -4477,12 +4521,15 @@
 
   // 所問之人：從第一個人物往後接「的、之」或緊接的人物（女朋友媽媽→媽媽）；問卦的人（奶奶預測孫子）略過
   function personRule(q) {
+    // 明確可合成的親屬稱呼，先換成相對於問卦者的世代；避免只取最後一個稱謂。
+    q = q.replace(/(?:媽媽|母親|爸爸|父親|父母|爸|媽)(?:的|之)(?:姐姐|姊姊|哥哥|弟弟|妹妹|兄弟|姊妹|姐妹|兄|姊|姐|弟|妹)/g, "長輩")
+      .replace(/女兒(?:的|之)(?:老公|丈夫|先生|夫君)/g, "女婿");
     var hits = [];
     YONG_PEOPLE.forEach(function(p) {
       var re = new RegExp(p.re.source, "g"), m;
       while ((m = re.exec(q))) {
         var end = m.index + m[0].length;
-        if (q.slice(Math.max(0, m.index - 2), m.index) === "我是") continue;
+        if (/我(?:本人|自己)?(?:是|的職業是)(?:一?[名位個])?$/.test(q.slice(0, m.index))) continue;
         if (/^(介紹|推薦)/.test(q.slice(end)) || /^的?(介紹|推薦)/.test(q.slice(end))) continue;
         // 比較對象不是所問之人（「我比同事更愛我的工作」「我跟同事一樣」）
         var w0 = m[0];   // 疊字稱謂（哥哥、媽媽）整個一起看
@@ -4511,6 +4558,9 @@
 
   // 感情：先看所問明寫的性別或對象，再看設定的問卦者性別
   function loveRule(q, gender) {
+    // 明確復合問句的對象不被前句對「我」的第三者指控改掉；未明主體時保留原判斷。
+    var last = q.split(/[，,。；;]/).pop().trim();
+    if (gender && /^(?:他|她|對方).*(?:跟我|和我|與我).*(?:復合|復婚|在一起)/.test(last)) q = last;
     if (/其他女生|別的女生|別的女人|小三/.test(q)) return { value: "官鬼", why: "問男方是否另有對象，取官鬼" };
     if (/其他男生|別的男生|別的男人|小王/.test(q)) return { value: "妻財", why: "問女方是否另有對象，取妻財" };
     if (gender === "男") return { value: "妻財", why: "感情，男占取妻財" };
@@ -4523,13 +4573,14 @@
   // 行蹤、方位：問東西看是什麼東西；問自己取世爻；身分不明的他人取應爻
   function whereRule(q) {
     if (/出差|出遊|旅遊|旅行|出國|出門/.test(q) && !/他|她|對方|有沒有出國|出國了/.test(q)) return { value: "世", why: "自身出行看世爻" };
-    if (/我/.test(q) && !/他|她|對方|人/.test(q)) return { value: "世", why: "問自身取世爻" };
+    if (/我/.test(q) && !OTHER_PERSON_RE.test(q) && !/他人|家人|行人|路人|何人/.test(q)) return { value: "世", why: "問自身取世爻" };
     return { value: "應", why: "問他人行蹤，身分不明取應爻；若是家人朋友請改選對應六親" };
   }
 
   function inferYong(q, gender) {
     var lostTag = /^\s*[\[［【]尋物/.test(q || "");
     q = (q || "").replace(/^\s*[\[［【][^\]］】]{1,6}[\]］】]\s*/, "");
+    q = effectiveQuestion(q);
     if (!q) return null;
     var named = /以(父母|兄弟|子孫|妻財|官鬼)為用/.exec(q);
     if (named) return { value: named[1], why: "所問已註明用神" };

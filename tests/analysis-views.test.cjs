@@ -1,0 +1,27 @@
+// 驗證三分頁的事件方向、應期與實際作用；直接執行 HTML 和本地資料。
+const fs=require('fs'),path=require('path'),vm=require('vm'),assert=require('assert'),crypto=require('crypto');
+const ROOT=path.resolve(__dirname,'..'),raw=fs.readFileSync(path.join(ROOT,'3-2.html'),'utf8');
+const files=['3-2.html','lib/jiegua.js','lib/zhouyi.js','lib/lunar.js'];
+const hashes=Object.fromEntries(files.map(f=>[f,crypto.createHash('sha256').update(fs.readFileSync(path.join(ROOT,f))).digest('hex')]));
+hashes['3-2.html']=crypto.createHash('sha256').update(Buffer.from(raw)).digest('hex');
+const els=new Map();function el(id){if(!els.has(id))els.set(id,{value:'',classList:{contains:()=>false},getContext:()=>({}),addEventListener:()=>{}});return els.get(id);}
+const env={Solar:require(path.join(ROOT,'lib/lunar.js')).Solar,Date,console,document:{getElementById:el,querySelectorAll:()=>[],querySelector:s=>({value:s.includes('ziMode')?'0':s.includes('gender')?'男':'auto'}),documentElement:{style:{}}},window:{matchMedia:()=>({matches:false}),addEventListener:()=>{}},setTimeout:()=>0,clearTimeout:()=>{},setInterval:()=>0,clearInterval:()=>{}};
+vm.createContext(env);for(const f of ['lib/zhouyi.js','lib/jiegua.js'])vm.runInContext(fs.readFileSync(path.join(ROOT,f),'utf8'),env);
+vm.runInContext(raw.match(/<script>\s*([\s\S]*?)<\/script>/)[1].split('/* ---------- 初始化 ---------- */')[0],env);
+const coins=[[0,0,0],[1,0,0],[1,1,0],[1,1,1]],records=[];
+function run(state,q,sel){el('question').value=q;el('yongShen').value=sel;env.castTime=new Date('2026-01-15T12:00:00+08:00');env.timeInfo=env.computeTimeInfo(env.castTime);env.yaos=Array.from({length:6},(_,i)=>env.makeYao(coins[(state>>>(2*i))&3]));const gua=env.analyzeGua(),r=env.buildDetailedAnalysis(gua);return {gua,r,plain:r.sections.find(s=>s.title==='白話解讀').items.map(i=>i.text).join('\n'),timing:r.sections.find(s=>s.title==='應期參考').items,steps:env.teachingSteps(gua),jie:env.jieguaHtml(gua),analysis:env.analysisHtml(gua)};}
+function test(id,fn){try{fn();records.push({id,pass:true});}catch(e){records.push({id,pass:false,error:e.message});}}
+test('產期日期沿用專門候選，而非一般合沖日期',()=>{const x=run(132,'我何時生產','子孫');for(const date of ['1/22（申日）','1/23（酉日）','1/24（戌日）','1/26（子日）']){assert(x.plain.includes(date),date);assert(x.jie.includes(date),date);}assert(!x.timing.some(i=>i.tone==='bad'));});
+test('產期用神無用時仍不以成敗論應期',()=>{const x=run(80,'我何時生產','子孫');assert.equal(x.r.verdict,'應期卦（只看產期，不論吉凶）');assert(!/事終不成|看不到明確的好轉時機/.test(x.plain+x.timing.map(i=>i.text).join('')+x.jie));});
+test('子孫太衰的產期候選須落實改取生旺日',()=>{const x=run(80,'我何時生產','子孫'),text=x.r.sections.flatMap(s=>s.items||[]).map(i=>i.text).join('\n');assert(!text.includes('巳日（子孫逢沖）'));for(const z of ['申','酉','亥','子'])assert(x.timing.some(i=>i.text.includes(z+'日（生旺子孫）')),z);});
+test('弱子孫持世不從世沖重加同一被排除日期',()=>{const x=run(16,'我何時生產','子孫'),text=x.timing.map(i=>i.text).join('\n');assert(!text.includes('巳日'));assert(!x.jie.includes('1/19（巳日）'));});
+test('弱子孫被日沖不再同時宣稱沖動生得快',()=>{const x=run(1100,'我何時生產','子孫'),text=x.r.sections.flatMap(s=>s.items||[]).map(i=>i.text).join('\n');assert(text.includes('子孫太衰'));assert(!text.includes('沖動、生得快'));});
+test('是否懷孕改看胎爻後不再以子孫無用否定應期',()=>{const x=run(849,'我是否懷孕','子孫');assert.equal(x.r.verdict,'吉');assert(!x.timing.some(i=>i.tone==='bad'));assert(!x.timing.some(i=>i.text.includes('事終不成')));assert(x.plain.includes('有懷孕的跡象'));});
+test('離職工作無用不被解讀為沒有好轉或事終不成',()=>{const x=run(160,'我想離職','官鬼');assert.equal(x.r.verdict,'吉');assert(!/事終不成|看不到明確的好轉時機/.test(x.plain+x.timing.map(i=>i.text).join('')+x.jie));});
+test('離職回頭生應說工作獲支持而較難離開',()=>{const x=run(3,'我想離職','官鬼');assert.equal(x.r.verdict,'偏凶（阻礙較多）');assert(!x.plain.includes('越變越有利'));assert(x.plain.includes('較難離開'));});
+test('教學只列實際剋用神，不列被方向排除的生酉',()=>{const x=run(341,'求財','妻財'),step=x.steps[4].apply.join('\n');assert(step.includes('剋初爻妻財子'));assert(step.includes('剋四爻妻財亥'));assert(!step.includes('生五爻子孫酉'));});
+test('教學接續相生時不再列同一爻也剋財',()=>{const x=run(0,'求財','妻財'),line=x.steps[4].apply.find(t=>t.startsWith('初爻兄弟未'));assert(line.includes('生上爻子孫酉'));assert(!line.includes('剋五爻妻財亥'));});
+test('64卦與386條爻文對齊經文資料',()=>{assert.equal(Object.keys(env.JIEGUA).length,64);let n=0;for(const [name,m]of Object.entries(env.JIEGUA)){assert(env.ZHOUYI[name],name);const expected=/^(乾為天|坤為地)$/.test(name)?7:6;assert.equal(m.yao.length,expected,name);assert.equal(env.ZHOUYI[name].yao.length,expected,name);assert(m.yao.every(v=>typeof v==='string'&&v.trim()),name);n+=m.yao.length;}assert.equal(n,386);});
+test('乾六爻全動有用九，坤全動有用六',()=>{assert(run(4095,'求財','妻財').jie.includes('用九'));assert(run(0,'求財','妻財').jie.includes('用六'));});
+for(const f of [{state:147,q:'我的工作能升職嗎',sel:'官鬼',verdict:'偏凶（阻礙較多）'},{state:161,q:'我的工作能升職嗎',sel:'官鬼',verdict:'偏吉'},{state:296,q:'我身體的病何時好',sel:'世',verdict:'吉'},{state:132,q:'我何時生產',sel:'子孫',verdict:'應期卦（只看產期，不論吉凶）'}])test('跨分頁判詞：'+f.state+'/'+f.q,()=>{const x=run(f.state,f.q,f.sel);assert.equal(x.r.verdict,f.verdict);assert(x.analysis.includes('整體傾向：'+f.verdict));assert(x.jie.includes('>'+f.verdict+'</div>'));assert(x.jie.includes('答：</b>'+f.verdict));});
+const failures=records.filter(x=>!x.pass).length;console.log(JSON.stringify({sourceHash:hashes['3-2.html'],hashes,tested:records.length,failures,records},null,2));process.exitCode=failures?1:0;
