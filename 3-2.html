@@ -2845,6 +2845,8 @@
     }
     // 重內輕外（第 28、64、65、89 集）：自身變化（第一層）> 卦中動爻（第二層）> 日月（第三層）
     var innerCap = false;   // 第一層的凶（自身化廢、有效回頭剋）要保留到最後，貪生忘剋與各類加分不能救回
+    var middleCap = false;  // 第二層的實際受剋優先於日月之旺，也不能被持世等附加分數救回
+    var innerGood = false;  // 有用用神的第一層有利優先；胎產宜靜不套下限，尋類化進則為不回
     if (focus && !focus.useless) {
       var hasHS = focus.chgTags.indexOf("回頭生") >= 0, hasHK = focus.chgTags.indexOf("回頭剋") >= 0;
       if (!focusIsFu && focus.fei && focus.fei.length) {
@@ -2852,12 +2854,21 @@
         vScore = Math.min(vScore, -1.6);
         innerCap = true;
       }
-      else if (hasHS) { if (vScore < 1) { favor.push("重內輕外：" + focusLabel + "自身化回頭生（第一層），勝過日月與動爻的不利"); vScore = 1; } }
+      else if (hasHS || focus.chgTags.indexOf("化進神") >= 0) {
+        innerGood = cat !== "胎" && (hasHS || cat !== "尋");
+        if (vScore < 1 && (hasHS || innerGood)) {
+          favor.push("重內輕外：" + focusLabel + "自身" + (hasHS ? "化回頭生" : "化進神") + "（第一層），勝過日月與動爻的不利");
+          vScore = 1;
+        }
+      }
       else if (hasHK) { innerCap = true; if (vScore > -1.6) { against.push("重內輕外：" + focusLabel + "自身化回頭剋（第一層），日月再旺也以凶論"); vScore = -1.6; } }
       else if (focus.chgTags.indexOf("化進神") < 0) {
-        if (focus.mdScore >= 1 && focus.actKe.length > focus.actSheng.length && vScore > -1.6) {
-          against.push("重內輕外：" + focusLabel + "雖得日月之旺，但被" + focus.actKe.join("、") + "所剋；卦中動爻（第二層）重於日月（第三層），以被剋論");
-          vScore = -1.6;
+        if (focus.mdScore >= 1 && focus.actKe.length > focus.actSheng.length) {
+          middleCap = true;
+          if (vScore > -1.6) {
+            against.push("重內輕外：" + focusLabel + "雖得日月之旺，但被" + focus.actKe.join("、") + "所剋；卦中動爻（第二層）重於日月（第三層），以被剋論");
+            vScore = -1.6;
+          }
         } else if (focus.mdScore < 0 && focus.actSheng.length > focus.actKe.length && vScore < 1) {
           favor.push("重內輕外：" + focusLabel + "日月雖衰，但得" + focus.actSheng.join("、") + "生；卦中動爻（第二層）重於日月（第三層），以得生論");
           vScore = 1;
@@ -2908,6 +2919,8 @@
     // 問離職才反轉；問「辭職後的下一份工作」不算
     var quitJob = !!roles && roles.sel === "官鬼" && /(辭職|離職|辭呈|退休|裸辭)(?!後|之後|以後)|離開(公司|工作|職場|這份)/.test(qText) &&
       !/新工作|下一份|找到.{0,6}工作|換工作/.test(qText);
+    // 先保留第一層有利，再依疾病或離職的方向反看；一般原神等加減不能推翻自身的變化。
+    if (innerGood) vScore = Math.max(vScore, 1);
     // 自占疾病而官鬼持世：世爻就是病，鬼旺病重、鬼衰病輕，先把用神面的分數反過來（第 84 集）
     if (illness) {
       neutral.unshift("自占疾病而官鬼持世：世爻就是病，病越旺越不好，越衰越好；下面的有利、不利已改從病人的角度排列（「用神」指官鬼，也就是病）");
@@ -2934,8 +2947,12 @@
     // 用神無用（真空、真破、無用伏神等）時，專門斷法的下限不能把它拉回吉
     var focusUseless = !!focus && (focus.useless || (focusIsFu && fuInfo.fu.verdict.useless));
     if (focusUseless && !illness && !cr.keepUseless) vScore = Math.min(vScore, -3.5);
-    // 用神自身化廢或有效回頭剋（第一層）：其他加分不能救回；疾病、離職反看與改以他爻為準時不套
-    if (innerCap && !illness && !quitJob && cr.replace === null && !cr.keepUseless) vScore = Math.min(vScore, -1.6);
+    // 第一層化廢／回頭剋、第二層受剋的凶：其他加分不能救回；反看與改判主體的特例仍保留。
+    var priorityCap = (innerCap || middleCap) && !illness && !quitJob && cr.replace === null && !cr.keepUseless;
+    if (priorityCap) vScore = Math.min(vScore, -1.6);
+    // 專門事類有硬性上限、改判主體或用神無用時仍依專門規則，不能一律以第一層有利救回。
+    if (innerGood && !illness && !focusUseless && cr.replace === null && !cr.keepUseless &&
+      (cr.cap === null || cr.cap >= 1) && (cr.staticCap === null || cr.staticCap >= 1)) vScore = Math.max(vScore, 1);
     // 辭職、離職反著看（第 64 集）
     if (quitJob && focus) {
       var zsKe = focus.actKeIdx.some(function(i) { return A.lines[i].rel === "子孫"; });
@@ -2947,7 +2964,7 @@
 
     var verdict = vScore >= 2.5 ? "吉" : vScore >= 1 ? "偏吉" : vScore > -1.5 ? "平（成敗參半，看後續變化）" : vScore > -3 ? "偏凶（阻礙較多）" : "凶";
     // 考試的努力條件：用神本身沒有化廢、回頭剋、無用，也沒有被硬性上限壓住時才適用
-    var focusBroken = !!focus && (focusUseless || (focus.fei && focus.fei.length > 0) || focus.chgTags.indexOf("回頭剋") >= 0);
+    var focusBroken = priorityCap || (!!focus && (focusUseless || (focus.fei && focus.fei.length > 0) || focus.chgTags.indexOf("回頭剋") >= 0));
     if (cr.effort && !focusBroken && (cr.cap === null || cr.cap > -1.6) && (cr.staticCap === null || cr.staticCap > -1.6) && vScore > -3 && vScore < 1) verdict = "平（需努力，有機會）";
     var vTone = vScore >= 1 ? "good" : vScore > -1.5 ? "" : "bad";
     if (verdict === "平（需努力，有機會）") vTone = "";
