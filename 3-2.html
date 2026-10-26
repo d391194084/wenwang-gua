@@ -733,6 +733,14 @@
     .teach-quiz summary { cursor: pointer; font-weight: bold; color: var(--blue); }
     .teach-quiz[open] summary { margin-bottom: 4px; }
 
+    /* 解卦 */
+    .jie-names { text-align: center; font-size: 1.1em; font-weight: bold; color: var(--red); }
+    .jie-keys { text-align: center; color: var(--muted); margin-bottom: 6px; }
+    .jie-card .ana-verdict { margin: 4px 0 8px; }
+    .jie-row { padding: 1px 0 1px 3.2em; text-indent: -3.2em; }
+    .jie-row b { color: var(--blue); }
+    .jie-yuan { font-size: 0.9em; color: var(--muted); }
+
     .rules-body strong { color: var(--red); }
 
     .rules-body code {
@@ -820,7 +828,7 @@
         <div class="gua-info-bar">
           <div class="gua-line">
             <span id="guaInfoBar" onclick="openJing()">請誠心定念，開始搖卦</span>
-            <button class="secondary small hidden" id="btnAnalysis" onclick="openAnalysis()">分析・教學</button>
+            <button class="secondary small hidden" id="btnAnalysis" onclick="openAnalysis()">分析・教學・解卦</button>
             <button class="secondary small hidden" id="btnCopy" onclick="copyRecord()">複製</button>
           </div>
           <div class="question-line hidden" id="questionLine"></div>
@@ -895,15 +903,17 @@
 </dialog>
 
 <dialog id="dlgAnalysis">
-  <div class="dlg-head">斷卦分析與教學 <button class="secondary small" onclick="closeDialog('dlgAnalysis')">關閉</button></div>
+  <div class="dlg-head">斷卦分析・教學・解卦 <button class="secondary small" onclick="closeDialog('dlgAnalysis')">關閉</button></div>
   <div class="dlg-body analysis-body">
     <div class="ana-tabs">
       <button class="secondary small" id="tabAnalysis" onclick="setAnalysisMode('analysis')">詳細分析</button>
       <button class="secondary small" id="tabTeach" onclick="setAnalysisMode('teach')">教學模式</button>
+      <button class="secondary small" id="tabJie" onclick="setAnalysisMode('jie')">解卦</button>
     </div>
     <div class="ana-title" id="analysisTitle"></div>
     <div id="analysisContent"></div>
     <div id="teachContent" class="hidden"></div>
+    <div id="jieContent" class="hidden"></div>
     <div class="setting-note">以上依《六爻神卦整理》課程的斷卦規則自動推算，評分與吉凶傾向僅供參考；實際仍需配合所問之事與現實背景綜合判斷。</div>
   </div>
 </dialog>
@@ -933,6 +943,7 @@
 
 <script src="lib/lunar.js"></script>
 <script src="lib/zhouyi.js"></script>
+<script src="lib/jiegua.js"></script>
 <script>
   var canvas = document.getElementById('coinCanvas');
   var ctx = canvas.getContext('2d');
@@ -3904,13 +3915,82 @@
     return html;
   }
 
+  /* ---------- 解卦：用白話說明卦辭、爻辭的意思，吉凶沿用詳細分析 ---------- */
+
+  function jieguaHtml(gua) {
+    var m = (typeof JIEGUA !== "undefined") && JIEGUA[gua.mainName];
+    if (!m) return '<p class="setting-note">解卦資料沒有載入，請重新整理頁面後再試。</p>';
+    var c = gua.hasMoving ? JIEGUA[gua.chgName] : null;
+    var moving = [];
+    for (var i = 0; i < 6; i++) if (yaos[i].isChanging) moving.push(i);
+    if (moving.length === 6 && m.yao.length > 6) moving.push(6);   // 乾坤六爻全動，加看用九、用六
+
+    var r = buildDetailedAnalysis(gua);
+    var plain = r.sections.filter(function(s) { return s.title === "白話解讀"; })[0] || { items: [] };
+    var pick = function(re) {
+      var hit = plain.items.filter(function(it) { return re.test(it.text); })[0];
+      return hit ? hit.text.replace(re, "") : "";
+    };
+    var advice = pick(/^結論：/);
+    var when = pick(/^可能有變化或結果的日子：/) || pick(/^時間上：/);
+    var qText = document.getElementById("question").value.trim();
+    var shortName = function(name) { return name.charAt(1) === "為" ? name.charAt(0) : name.slice(2); };   // 澤火革 → 革、乾為天 → 乾
+    var yaoLines = moving.map(function(k) {
+      var src = (ZHOUYI[gua.mainName] && ZHOUYI[gua.mainName].yao[k]) || "";
+      var hit = src.match(/^(初[六九]|[六九][二三四五]|上[六九]|用[六九])[：，]/);   // 否卦經文的爻位後接逗號
+      return { pos: hit ? hit[1] : "第 " + (k + 1) + " 爻", src: hit ? src.slice(hit[0].length) : src, text: m.yao[k] };
+    });
+    var row = function(label, text) {   // text 可為陣列，每項一行
+      return '<div class="jie-row"><b>' + label + '：</b>' + [].concat(text).map(escapeHtml).join("<br>") + '</div>';
+    };
+
+    // 一、精簡卡片
+    var html = '<section class="teach-step jie-card"><h3>一眼看完</h3>' +
+      '<div class="jie-names">' + escapeHtml(gua.mainName) + (c ? ' → ' + escapeHtml(gua.chgName) : '') + '</div>' +
+      '<div class="jie-keys">' + escapeHtml(m.k) + (c ? ' → ' + escapeHtml(c.k) : '') + '</div>' +
+      '<div class="ana-verdict ana-' + (r.tone || "mid") + '">' + escapeHtml(r.verdict) + '</div>' +
+      row("一句話", m.s + (c ? "；變卦之後：" + c.s : "")) + row("宜", m.y) + row("忌", m.j) +
+      (when ? row("時間", when) : '') + '</section>';
+
+    // 二、問事對答
+    html += '<section class="teach-step"><h3>問事對答</h3>' +
+      row("問", qText || "（沒有填寫所問）") + row("答", r.verdict) +
+      row("現在", "本卦「" + shortName(gua.mainName) + "」，" + m.s + "。") +
+      row("過程", !yaoLines.length ? "六爻安靜，事情暫時不會有大變化，照本卦的情況發展。" :
+        yaoLines.map(function(y) { return y.pos + "：" + y.text; })) +
+      row("結果", c ? "變成「" + shortName(gua.chgName) + "」（" + c.k + "），" + c.s + "。" : "維持本卦的局面。") +
+      (advice ? row("提醒", advice) : '') + (when ? row("時間", when) : '') +
+      '<p class="setting-note">「答」與「提醒」是六爻計分的結果，和「詳細分析」相同；其餘是卦辭、爻辭的意思，說明事情的性質和走向。兩者不一致時，吉凶以計分為準。</p></section>';
+
+    // 三、卦意直說
+    html += '<section class="teach-step"><h3>卦意直說</h3>' +
+      '<div class="teach-block"><div class="teach-label">本卦　' + escapeHtml(gua.mainName) + '</div><p>' + escapeHtml(m.m) + '</p>' +
+      '<p>' + escapeHtml(m.g) + '</p></div>';
+    if (yaoLines.length) {
+      html += '<div class="teach-block"><div class="teach-label">動爻</div><ul>' + yaoLines.map(function(y) {
+        return '<li><b>' + escapeHtml(y.pos) + '</b>：' + escapeHtml(y.text) + '<div class="jie-yuan">原文：' + escapeHtml(y.src) + '</div></li>';
+      }).join("") + '</ul>' + (moving.length >= 3 ? '<p class="setting-note">動爻較多時，事情變化大，以變卦的意思為最後走向。</p>' : '') + '</div>';
+    }
+    if (c) {
+      html += '<div class="teach-block"><div class="teach-label">變卦　' + escapeHtml(gua.chgName) + '</div><p>' + escapeHtml(c.m) + '</p>' +
+        '<p>' + escapeHtml(c.g) + '</p></div>';
+    }
+    html += '</section>';
+
+    // 四、比喻
+    html += '<section class="teach-step"><h3>打個比方</h3><p>' + escapeHtml(m.b) + '</p>' +
+      (c ? '<p><b>變卦之後：</b>' + escapeHtml(c.b) + '</p>' : '') + '</section>';
+    return html;
+  }
+
   var ANA_MODE_KEY = "wenwang_gua_analysis_mode";
 
   function setAnalysisMode(mode) {
-    document.getElementById("analysisContent").classList.toggle("hidden", mode === "teach");
-    document.getElementById("teachContent").classList.toggle("hidden", mode !== "teach");
-    document.getElementById("tabAnalysis").classList.toggle("active", mode !== "teach");
-    document.getElementById("tabTeach").classList.toggle("active", mode === "teach");
+    if (mode !== "teach" && mode !== "jie") mode = "analysis";
+    [["analysis", "analysisContent", "tabAnalysis"], ["teach", "teachContent", "tabTeach"], ["jie", "jieContent", "tabJie"]].forEach(function(p) {
+      document.getElementById(p[1]).classList.toggle("hidden", mode !== p[0]);
+      document.getElementById(p[2]).classList.toggle("active", mode === p[0]);
+    });
     try { localStorage.setItem(ANA_MODE_KEY, mode); } catch (e) { /* 忽略 */ }
   }
 
@@ -3958,6 +4038,7 @@
     document.getElementById("analysisTitle").textContent = guaTitle(gua);
     document.getElementById("analysisContent").innerHTML = analysisHtml(gua);
     document.getElementById("teachContent").innerHTML = teachingHtml(gua);
+    document.getElementById("jieContent").innerHTML = jieguaHtml(gua);
     var mode = "analysis";
     try { mode = localStorage.getItem(ANA_MODE_KEY) || "analysis"; } catch (e) { /* 忽略 */ }
     setAnalysisMode(mode);
