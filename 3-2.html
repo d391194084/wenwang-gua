@@ -915,7 +915,7 @@
     <div id="analysisContent"></div>
     <div id="teachContent" class="hidden"></div>
     <div id="jieContent" class="hidden"></div>
-    <div class="setting-note">以上依《六爻神卦整理》課程的斷卦規則自動推算，評分與吉凶傾向僅供參考；實際仍需配合所問之事與現實背景綜合判斷。</div>
+    <div class="setting-note">評分與吉凶傾向僅供參考；實際仍需配合所問之事與現實背景綜合判斷。</div>
   </div>
 </dialog>
 
@@ -1564,6 +1564,77 @@
   function vaccineTreatment(q) {
     return VACCINE_USE_RE.test(q) && !/工作|上班|應徵|應聘|公司|股票|投資/.test(q);
   }
+  // 醫藥效用看主問（最後一句）有沒有問「藥、疫苗、治療有沒有效」；「我的」只是所有權，不代表問的是患者病況。
+  var MEDICAL_EFFECT_RE = /(?:醫生|醫師|醫院|診所|醫療|治療|療程|藥物|藥|醫藥|疫苗)(?:的|之)?[^，,。；;]{0,6}?(?:效果|效力|效用|療效|有效|有用|防護|保護力)/;
+  function isVaccineOrTreatmentEffect(q) {
+    var clauses = String(q || "").split(/[，,。；;]/).filter(function(t) { return t.trim(); });
+    var main = clauses.length ? clauses[clauses.length - 1] : "";
+    return MEDICAL_EFFECT_RE.test(main) && !/工作|公司|上班/.test(main);
+  }
+  // 事類與用神共用：問藥、疫苗、治療有沒有效屬醫藥；「去藥局買藥」是採買行動背景，維持既有事類。
+  function medicalEffectTopic(q) {
+    return isVaccineOrTreatmentEffect(q) && !/(?:去|到|往)[^，,。；;]{0,6}(?:買|購|採買|進貨)/.test(q);
+  }
+  // 疫苗接種安排、副作用、藥物效果問的是醫藥本身，不推定問的人已經生病；
+  // 主句明確問病情、病會不會好時才依患者病況（疫苗只是背景）。回傳 "effect" | "side" | "plan" | ""。
+  var PATIENT_ASK_RE = /病情|病況|病勢|病痛|的病|病會|病能|病是否|病好|生病|患病|痊癒|康復|復原|好轉|恢復/;
+  // 已經有明確症狀、末句問會不會好（退、緩解、治好…）時，主問是這個人的病況；疫苗、打針只是過去的背景。
+  // 「接種後會不會發燒」只問會不會有反應（副作用），沒有問好轉，不算已生病。
+  var SYMPTOM_RE = /生病|患病|病(?!毒|菌)|發燒|發熱|感冒|咳嗽|頭痛|頭暈|胃痛|牙痛|肚子痛|腹痛|喉嚨痛|關節痛|痠痛|疼痛|腹瀉|拉肚子|嘔吐|過敏|發炎|肺炎|紅疹|紅腫|腫痛|腫脹|不舒服|症狀/;
+  var RECOVER_RE = /好轉|[會能]好(?![玩吃看用聽奇笑])|何時好|什麼時候(?:會)?好|多久(?:會|能)?好|治好|治得好|痊癒|康復|復原|恢復|緩解|退燒|[燒熱腫痛咳炎][^，,。；;]{0,3}退|消腫|消退|自己消|消失|消掉|惡化|加重|嚴重/;
+  // 問打針會不會有反應（痛、腫、癢…）：問的是副作用，不是已經生病
+  var REACTION_ASK_RE = /會不會|是否|有沒有|會有|容易|機率|會嗎|會很|會(?:痛|腫|癢|燒|紅|痠)|痛不痛|腫不腫/;
+  var PAST_VACCINE_RE = /打完|打了|打過|接種完|接種了|接種過|施打完|施打後|接種後|注射後|疫苗後/;
+  // 末句還在問（尚未發生的）疫苗、接種安排本身；已打完的疫苗只是背景。
+  function vaccinePlanMain(main) {
+    return /疫苗|接種|施打|注射|打針/.test(main) && !PAST_VACCINE_RE.test(main);
+  }
+  // 尚未發生的反應：疑問或可能的字詞（會不會、是否、有沒有、有機會、容易、可能、會）在症狀之前，前句也沒有已存在的症狀，
+  // 末句沒有問好轉、退燒等恢復——這時「嚴重、加重」只是可能出現的反應的程度（會不會嚴重發燒），不是已有病況的好壞。
+  // 症狀在疑問之前（發燒了會不會更嚴重）、前句已有症狀、或末句問恢復，仍是病況。醫藥事類與用神共用。
+  // 「病情、病況、舊病」本身就表示病已經存在，不算可能出現的反應。
+  var CONCERN_RE = /會不會|是否|有沒有|會有|有機會|容易|機率|可能|(?<![機社聚體領])會/;
+  var EXISTING_ILL_RE = /病情|病況|病勢|病重|的病|舊病|宿疾|慢性|本來就|原本就|原有/;
+  function symptomHypothetical(main, lead) {
+    var symptomAt = main.search(SYMPTOM_RE), concernAt = main.search(CONCERN_RE);
+    return symptomAt >= 0 && concernAt >= 0 && concernAt < symptomAt && !SYMPTOM_RE.test(lead) &&
+      !EXISTING_ILL_RE.test(main) && !RECOVER_RE.test(main.replace(/惡化|加重|嚴重/g, ""));
+  }
+  function medicalMatter(q) {
+    q = String(q || "");
+    var clauses = q.split(/[，,。；;]/).filter(function(t) { return t.trim(); });
+    var main = clauses.length ? clauses[clauses.length - 1] : "", lead = clauses.slice(0, -1).join("，");
+    if (isVaccineOrTreatmentEffect(q)) return "effect";
+    if (!vaccineTreatment(q)) return "";
+    if (/副作用|不良反應/.test(main)) return "side";
+    if (symptomHypothetical(main, lead)) return "side";
+    if (RECOVER_RE.test(main) && (SYMPTOM_RE.test(main) || SYMPTOM_RE.test(lead)) && !vaccinePlanMain(main)) return "";
+    if (PATIENT_ASK_RE.test(main)) return "";
+    if ((SYMPTOM_RE.test(main) || /痛|腫|癢|痠/.test(main)) && REACTION_ASK_RE.test(main) && !RECOVER_RE.test(main)) return "side";
+    return "plan";
+  }
+  // 主問（末句）問「要不要看醫生、需不需要去醫院」：問的是就醫與否，不是接種、療效或病情；
+  // 去醫院打疫苗（接種安排）、探病、上班等不算。卦象不能決定要不要就醫，三分頁共用同一句交代，不憑判詞指示去或不去。
+  var CARE_ACT = "(?:看(?:醫生|醫師|大夫|急診|門診)|看診|就醫|就診|掛(?:號|急診|門診)|(?:去|到|上|送)(?:醫院|診所|急診)|送醫)";
+  var CARE_ASK_RE = new RegExp("(?:要不要|該不該|需不需要|應不應該|用不用|有沒有必要|是否(?:需要|要|應該|該|有必要)?)(?:先|再|馬上|立刻|趕快|盡快|儘快|去|到)*" + CARE_ACT +
+    "|(?:需要|應該|該|有必要|要)(?:先|馬上|立刻|趕快|盡快|儘快|去|到)*" + CARE_ACT + "[^，,。；;]{0,2}[嗎呢吧？?]");
+  function careAsk(q) {
+    var clauses = String(q || "").split(/[，,。；;]/).filter(function(t) { return t.trim(); });
+    var main = clauses.length ? clauses[clauses.length - 1] : "";
+    return CARE_ASK_RE.test(main) && !vaccinePlanMain(main) && !/探病|探望|看望|陪|上班|工作|面試|應徵|實習|買|費用|保險/.test(main);
+  }
+  var CARE_ADVICE = "這一題問的是要不要看醫生，這不是卦象能替你決定的事；是否需要就醫，要看你實際的症狀、持續多久與嚴重程度，並由醫師、藥師等醫療專業人員評估。這一卦的判詞只當參考，不能用來決定去或不去；有疑慮請直接和醫療專業人員討論，不要只憑卦象決定。";
+  // 主問是天氣：只看末句，婚禮、旅遊等活動只是背景；回傳 "rain" | "snow" | "clear" | ""。
+  function weatherAsk(q) {
+    var clauses = String(q || "").replace(/以(?:父母|兄弟|子孫|妻財|官鬼)為用/g, "").split(/[，,。；;]/).filter(function(t) { return t.trim(); });
+    var main = clauses.length ? clauses[clauses.length - 1].trim() : "";
+    if (!/(?:下雨|下雪|降雨|放晴|晴天)[嗎呢？?。\s]*$/.test(main)) return "";
+    return /放晴|晴天/.test(main) ? "clear" : /下雪/.test(main) ? "snow" : "rain";
+  }
+  // 主問（末句）是出門、旅遊、出國等行程的平安或順利：前句的天氣、颱風只是背景。
+  // 行程字詞要直接接平安、順利，並且到句尾為止；「出國的簽證順利嗎」「出國工作順利嗎」「出國能順利拿到簽證嗎」是文件、工作的主問，不算。
+  var TRIP_WORD_RE = /出門|出遠門|旅遊|旅行|出國|出遊|出差/;
+  var TRIP_SAFE_RE = /(?:出門|出遠門|旅遊|旅行|出國|出遊|出差)(?:之旅|行程|期間|途中|一路|的時候|時)?的?(?:會不會|能不能|能否|是否|可否|能|會|可以|都)?(?:一路|全程)?(?:平安(?:無事)?|安全|順利)(?:回來|到達|抵達)?[嗎呢吧啊呀？?。！!\s]*$/;
   function fertilityTreatment(q) {
     return /試管(?:嬰兒|療程)|胚胎植入|人工受孕/.test(q) && !/實驗室|採購|器材|股|投資|公司|工作|費用|退費|退款/.test(q);
   }
@@ -1572,12 +1643,28 @@
     if (!match || !/^[，,\s]*(?:的)?(?:今年|明年|這次)?(?:何時|什麼時候|幾時)?(?:才)?(?:會不會|能否|是否|能不能|可否|會|能|可以)?(?:順利|如期|按時)?(?:下來|入帳|到帳|發放|發下來|下發|撥款|領到|領得到|拿到|拿得到|收到|退回|多不多|多|少|多少|有多少|增加|減少|發)?(?:了|一點|一些|足額)?[嗎呢？?。\s]*$/.test(q.slice(match.index + match[0].length))) return null;
     return match;
   }
+  // 主問是「這筆錢拿不拿得到」：收款、入帳、領取、要回；換匯、投資、買賣、花錢不算，也不替對方編拖欠的情節。
+  function receiptQuestion(q) {
+    var clauses = String(q || "").split(/[，,。；;]/).filter(function(t) { return t.trim(); });
+    var main = clauses.length ? clauses[clauses.length - 1].trim() : "";
+    if (/換|投資|買|賣|花|刷|消費/.test(main)) return false;
+    if (/^(?:他|她|他們|她們|對方|朋友|同事|家人)(?:們)?(?:能不能|能|會不會|會|可以|有沒有)?(?:順利)?(?:拿到|收到|領到|拿得到|收得到|領得到|領取|入帳)/.test(main)) return false;
+    return /款(?!式)|錢|薪水|薪資|工資|獎金|年終|租金|押金|理賠|退稅|退費|補助|紅利|股利|分紅|酬勞|報酬|稿費|佣金/.test(main) &&
+      /拿到|拿得到|拿得回|拿回|收到|收得到|收回|收款|入帳|到帳|進帳|領到|領得到|領取|匯進來|撥下來|發下來|要回|討回|追回|還我|還給我/.test(main);
+  }
 
   // 明確事件結果先於背景名詞；人物本人為所問時仍保留六親。分類由選用神與事類共用。
   var INTENT_EXAM_RE = /統測|英檢|路考|複試|推甄|被二一|考私中|考得上|交換學生|學校分發/;
-  var INTENT_JOB_RE = /跳槽|續聘|二面|三面|外派|升(?:課長|組長|店長|科長)|調到[^，,。；;]{1,8}部|公務員分發/;
-  var INTENT_MONEY_RE = /理賠(?:金額|金|款)|退稅|年終|分紅|股利|紅利|卡費|工程款|加班費|訂金|資金|款項/;
+  var INTENT_JOB_RE = /跳槽|續聘|二面|三面|外派|升(?:課長|組長|店長|科長)|當上(?:課長|組長|店長|科長|主管)|調到[^，,。；;]{1,8}部|公務員分發/;
+  var INTENT_MONEY_RE = /理賠(?:金額|金|款)|退(?:稅|款|費)|費用[^，,。；;]{0,6}退(?![休伍學出賽場選])|補助(?:款|金)|年終|分紅|股利|紅利|卡費|工程款|加班費|佣金|訂金|資金|款項/;
   var INTENT_HEALTH_RE = /頭暈|咳嗽|肺炎|開完刀|受傷|復健|病|身體|健康|康復|痊癒/;
+  // 末句只問「這筆交易／客戶會不會成交」（可有我、這筆、這單等修飾）；末句帶其他人物或事物就不算。
+  var DEAL_CLOSE_RE = /^(?:我們?(?:的)?)?(?:[這那該此][筆個張次件]?)?(?:生意|交易|訂單|單子?|案子?|客戶|業務)?(?:到底|究竟)?(?:何時|什麼時候|幾時)?(?:才)?(?:會不會|能不能|能否|是否|可否|可不可以|會|能|可以|有機會)?(?:順利|如期)?成交(?:了)?[嗎呢吧？?。\s]*$/;
+  // 只看末句：介紹人（同事、朋友）只是背景；房屋、車輛維持各自既有取法。意圖與靜卦自占判斷共用。
+  function dealClosingQuestion(q) {
+    var tail = String(q || "").split(/[，,。；;！!？?\s]+/).filter(Boolean).pop() || "";
+    return DEAL_CLOSE_RE.test(tail) && /客戶|生意|交易|訂單|買賣|案子|業務/.test(q) && !/房|屋|宅|土地|購地|車/.test(q);
+  }
   function questionIntent(q) {
     q = (q || "").replace(/以(?:父母|兄弟|子孫|妻財|官鬼)為用/g, "").replace(/^[，,\s]+/, "");
     if (!q) return null;
@@ -1586,7 +1673,7 @@
     var main = clauses[clauses.length - 1].trim();
     var person = personRule(q.replace(/育嬰假/g, ""));
     // 尾句明示另一事件時，前句只提供人物／情境，不提供事件關鍵字。
-    var explicitMain = INTENT_HEALTH_RE.test(main) || /工作|上班|面試|錄取|職缺|款|錢|入帳|合約|文件|資料|手續|護照|可信|可靠|誠意|興趣|裝潢|套房|續約|稿子|稿件/.test(main);
+    var explicitMain = INTENT_HEALTH_RE.test(main) || /工作|上班|面試|錄取|職缺|款|錢|入帳|合約|文件|資料|手續|護照|申訴書|可信|可靠|誠意|興趣|裝潢|套房|續約|稿子|稿件/.test(main);
     var eventContext = explicitMain ? main : q;
     function result(value, cat, why) { return { value: value, cat: cat, why: why }; }
     function unknown(cat) { return { value: "", cat: cat, why: "請先確認所問人物的身分或手動選用神，再判斷吉凶", requiresConfirmation: true }; }
@@ -1605,6 +1692,24 @@
       if (YONG_OTHERS.re.test(text)) return "應";
       return fallback;
     }
+    // 明說對方願意、答應幫忙的失物題：主問是對方的意願，取對方的六親（人物不明則要求確認）
+    if (lostQuestion(q) && helpConsentAsk(q)) {
+      var helper = actor(main, "");
+      return helper ? result(helper, "", "主問對方肯不肯幫忙，找東西只是請對方幫的事，取對方的六親") : unknown("");
+    }
+    // 「最近」「很差」「會好起來」只是時間與泛用結果：要有明確的心情、近況等主題才算近況題；
+    // 主題在前句時，主問必須只剩泛用結果；只有「最近」時，全句除了人物與泛用結果不能另有事物主題（生意等）。
+    function plainStateAsk(text) {
+      var who = personRule(text, true), rest = who ? text.split(who.text).join("") : text;
+      return !rest.replace(YONG_OTHERS.re, "").replace(/心情|近況|身體|狀態|最近|近來|近日|這陣子|這幾天|這段時間|目前|現在|以後|之後|何時|什麼時候|會不會|是不是|能不能|有沒有|怎麼樣|不好|很差|太差|低落|好起來|好轉|變好|起來|怎樣|如何|是否|能否|可以|自己|本人|[我他她很還也都的了嗎呢吧會能好差不是有點]|[\s，,。；;？?！!]/g, "");
+    }
+    var lawTopic = /官司|訴訟|判決|判刑|起訴|提告|被[^，,。；;]{0,12}告|告[^，,。；;]{0,8}房東|申訴|罰單/.test(q);
+    var stateLead = clauses.slice(0, -1).join("，");
+    var stateAsk = /心情|近況|身體|狀態/.test(main) || (/心情|近況|身體|狀態/.test(stateLead) ? plainStateAsk(main) : /最近/.test(q) && plainStateAsk(q));
+    if (stateAsk && /不好|差|低落|起來|怎樣|如何/.test(main) && !lawTopic && !/工作|升職|轉正|考試|感情|合作|感染|疾病/.test(q)) {
+      var av = /^我|我自己/.test(main) ? "世" : actor(main, person ? person.value : "世");
+      return av ? result(av, "", "主問本人或親友近況心情，不推定超自然原因") : unknown("");
+    }
     var travel = /開車|騎(?:機)?車|自駕|駕車|搭船|搭飛機|搭機|搭車|通勤|轉機|出行/.exec(q);
     if (travel && /平安|安全|順利|小心|出事|趕得上|趕上/.test(main) && !/維修|故障|煞車|車況|修車|保養/.test(main) &&
       !/賺|費用|退款|理賠|投資|買|賣|錄取|工作結果/.test(main)) {
@@ -1612,38 +1717,84 @@
       var av = actor(subject, "世");
       return av ? result(av, "行", "主問出行平安或行程，不以車輛或天氣背景取用") : unknown("行");
     }
-    if (/(?:下雨|下雪|降雨|放晴|晴天)[嗎呢？?。\s]*$/.test(main)) {
-      return result(/放晴|晴天/.test(main) ? "妻財" : "父母", "", "主問天氣，活動或婚禮只是背景");
+    // 主問是出門、旅遊、出國的平安或順利：旅行者看末句所指的人；末句沒有指明人、前句另有親友，或旅行者是另一半、夫妻時，交回人物規則，不在這裡取世。
+    var tripSubject = TRIP_SAFE_RE.test(main) ? main.slice(0, main.search(TRIP_WORD_RE)) : null;
+    if (tripSubject !== null && !LOVE_PARTNER_RE.test(tripSubject)) {
+      var tripNamed = personRule(tripSubject) || YONG_OTHERS.re.test(tripSubject) || /我|(?<!其)[他她]/.test(tripSubject);
+      if (tripNamed || !(personRule(q) || YONG_OTHERS.re.test(q) || /(?<!其)[他她]/.test(q))) {
+        var tv = actor(tripSubject, "世");
+        return tv ? result(tv, "行", "主問出門、旅遊或出國的平安，天氣或颱風只是背景") : unknown("行");
+      }
     }
-    var lawTopic = /官司|訴訟|判決|判刑|起訴|提告|被[^，,。；;]{0,12}告|告[^，,。；;]{0,8}房東/.test(q);
-    if (lawTopic && /判決|判刑|勝訴|敗訴|勝算|申訴|會贏|能贏/.test(main)) {
+    if (weatherAsk(main)) {
+      return result(weatherAsk(main) === "clear" ? "妻財" : "父母", "", "主問天氣，活動或婚禮只是背景");
+    }
+    // 問申訴書這份文書能否拿到、寄到，問的是文書，不是申訴勝負。
+    if (lawTopic && /(?:申訴書|訴狀)[^，,。；;]{0,8}(?:拿到|收到|寄到|下來|拿得到|收得到|寄得到|領到|送到|取得)/.test(main)) {
+      return result("父母", "", "主問申訴書等文書能否取得，不是申訴勝負，取父母看文書");
+    }
+    if (lawTopic && /判決|判刑|勝訴|敗訴|勝算|申訴|會贏|能贏|成功/.test(main)) {
       var accused = /被|要告|提告|起訴/.exec(q), legalSubject = accused ? q.slice(0, accused.index) : main;
+      if (!accused && clauses.length > 1 && !/我|他|她/.test(main) && !personRule(main)) {
+        // 主問沒有說是誰申訴時，承接前句已說明的親友；前句是沒有前文的他／她則交由 actor 要求確認。
+        var lead = clauses.slice(0, -1).join("，"), leadPerson = personRule(lead, true);
+        if (leadPerson) {
+          var leadAt = lead.indexOf(leadPerson.text), leadRest = leadAt < 0 ? lead : lead.slice(0, leadAt).replace(/我(?:的|家)?$/, "") + lead.slice(leadAt);
+          if (!/我/.test(leadRest)) legalSubject = lead;
+        } else if (/^(?:他|她)(?!人)/.test(clauses[0].trim())) legalSubject = clauses[0];
+      }
       if (/^我(?:跟|和|與)/.test(legalSubject)) legalSubject = "我";
       var lv = actor(legalSubject, "世");
       return lv ? result(lv, "訟", "主問訴訟結果，對手與押金等背景不代替主體") : unknown("訟");
     }
-    var docGoal = /(?:申請書|合約|合同|契約|公文|文件|資料|信函|證件|護照|健保卡|手續)[^，,。；;]{0,16}(?:拿到|收到|寄到|下來|核准|辦|順|補|通過)/.test(eventContext);
+    var docGoal = /(?:申請書|合約|合同|契約|公文|文件|資料|信函|證件|護照|健保卡|手續|申訴書)[^，,。；;]{0,16}(?:拿到|收到|寄到|下來|核准|辦|順|補|通過|能)/.test(eventContext);
     if (docGoal || /(?:房|屋|土地).{0,8}過戶/.test(q) && /手續|順|通過/.test(main)) return result("父母", "", "主問文件、證件或過戶手續，保留文書取法");
     var counterpart = /客戶|代理商|合作方|投資人|供應商|對方|那個人|這個人|此人|仲介|對手/.test(q);
     if (counterpart && /可靠|可信|值得信任|有沒有誠意|有沒有興趣|有興趣|會不會投|留得住|態度|講的是真的|實力強|有什麼來意/.test(main)) return result("應", "", "主問對方的誠意、可靠性或意願，取應看對方");
+    if (dealClosingQuestion(q)) return result("妻財", "財", "主問這筆交易或客戶能否成交，介紹人只是背景，依求財取妻財");
     if (/撐得過去|最近還好|最近好不好|還好嗎/.test(main) && person) return result(person.value, "", "主問人物近況，生意或欠債只是背景");
+    // 「性別」要和胎兒或孩子連在一起才算孕產；證件、戶籍等文書的性別欄不是胎兒。
+    var fetalGender = /(?:胎兒|寶寶|寶貝|嬰兒|孩子|小孩|肚子裡|腹中|產檢|超音波)(?:的)?[^，,。；;]{0,4}性別|性別[^，,。；;]{0,6}(?:胎兒|寶寶|寶貝|嬰兒)/.test(q) && !/欄|證|戶口|戶籍|登記|更正|更改|變更|表格|填寫/.test(q);
+    // 「當上媽媽／爸爸」問的是成為父母的生育意願，稱謂不是所問人物；「當上店長」等職務仍走工作。
+    var becomeParent = /(?:當(?:上)?|成為|做)(?:媽媽|爸爸|母親|父親|父母|爸|媽)(?![的之們家媽爸親母])|為人[父母]|(?:升格|晉升)(?:為|成|當)?(?:爸媽|父母|爸爸|媽媽)/.test(q) && !/工作|上班|公司|面試|職|錄取/.test(main);
     var moneyGoal = /拿|領|發|撥|入帳|繳|回本|還|退|分到|多少|多不多|多久|什麼時候|何時/.test(main);
     var otherOutcome = /應徵|錄取|職缺|工作|上班|面試|申請書|合約|文件/.test(main);
+    // 主問是費用退款等金流結果時，孕產只是背景，不能因此取子孫
+    var moneyResult = !otherOutcome && INTENT_MONEY_RE.test(main) && moneyGoal;
+    if ((becomeParent || birthTopic(q, /懷孕|懷上|受孕|孕婦|產婦|(?<!輪|備|爆)胎|求子|出生|預產|流產|坐月子|生小孩/) ||
+        /懷的是|懷的男|懷的女|生育|生子|生女|男生還是女生|女生還是男生/.test(q) || fetalGender) && !/懷念|懷舊/.test(q) && !moneyResult) {
+      return result("子孫", "胎", "主問胎兒性別或分娩方式取子孫");
+    }
+    if (/剖腹|自然產/.test(q) && /是男|是女|性別|好|好嗎|怎樣|比較|哪個/.test(main) && !/費用|公司|面試|錄取|工作|應聘/.test(q)) {
+      return result("子孫", "胎", "主問胎兒性別或分娩方式取子孫");
+    }
     if (!otherOutcome && (INTENT_MONEY_RE.test(q) && moneyGoal || /借給/.test(q) && /還/.test(main) || /(?:黃金|白銀).{0,12}賣/.test(q) ||
       /續抱|持股|解套|套牢/.test(q) || /投資/.test(q) && /進場|獲利|回本|賺/.test(main) ||
-      /賣得到[一二三四五六七八九十百千萬兩0-9]|售價|賣價/.test(main))) return result("妻財", "財", "主問款項、資金或投資財物結果，取妻財");
+      /賣得到[一二三四五六七八九十百千萬兩0-9]|售價|賣價/.test(main) ||
+      /批發/.test(q) || /(?:美金|日圓|人民幣|歐元|英鎊|泰銖|新幣|馬幣|盧比|里拉|比索).*換|換.*(?:台幣|新台幣)/.test(q))) return result("妻財", "財", "主問款項、資金或投資財物結果，取妻財");
     if (/年終/.test(q) && /有沒有|會不會|多少/.test(main)) return result("妻財", "財", "主問年終款項取妻財");
+    if (/(台|臺)積電|TSMC|2330/.test(q) && /漲|跌|破|買|賣|進場|持股|解套|续抱/.test(q) && !/面試|錄取|工作|應聘|應徵/.test(q)) {
+      return result("妻財", "財", "主問股票價格或投資取妻財");
+    }
     var exam = INTENT_EXAM_RE.test(eventContext), application = /投[^，,。；;]{0,16}職缺|職缺[^，,。；;]{0,12}回覆/.test(eventContext);
     if (exam || application) {
       var childExam = /孩子|兒子|女兒|小孩|小朋友/.test(q);
       return result(childExam || !person ? "父母" : person.value, application ? "名" : "考", "主問入學、考試學業或應聘回覆，依既有考試與人物政策取用");
     }
-    if (INTENT_JOB_RE.test(eventContext) || /^我(?:的)?(?:工作|上班)/.test(main) && /順|會|能|如何/.test(main) || /育嬰假/.test(q) && /回得去|回原單位|復職/.test(main)) {
+    // 明確問錄取結果（沒有面試）時，沿用既有錄取通知取法；只問工作順不順仍取官鬼。
+    var admissionResult = /錄取|錄用/.test(main) && !/面試|口試/.test(main);
+    if (INTENT_JOB_RE.test(eventContext) || /^我(?:的)?(?:工作|上班)/.test(main) && /順|會|能|如何/.test(main) && !admissionResult || /育嬰假/.test(q) && /回得去|回原單位|復職/.test(main)) {
       return result(/^我(?:的)?(?:工作|上班)/.test(main) ? "官鬼" : person ? person.value : "官鬼", "名", "主問職務、任用或回原單位，育嬰假等只是背景");
     }
     var bodyGoal = /好|恢復|康復|要緊|嚴重|肺炎|復原/.test(main);
-    if (/治療|醫生.{0,8}(?:看得好|治得好|能治)/.test(main) && !/工作|公司|上班/.test(main)) return result("子孫", "病", "主問醫藥治療或治療後效果取子孫");
-    if (INTENT_HEALTH_RE.test(q) && bodyGoal && !/工作|上班|費用|退款|賠償|考試/.test(main)) {
+    // 明示症狀、末句問會不會好／退／緩解時，主問是這個人的病況（疫苗只是過去的背景）；
+    // 末句還在問接種安排、或問藥物、醫生、治療方式時，仍是醫藥主問，不在此列。
+    var symptomRecovery = SYMPTOM_RE.test(q) && RECOVER_RE.test(main) && !vaccinePlanMain(main) &&
+      !/藥|醫生|醫師|醫院|診所|治療|療程|手術|開刀|看診/.test(main) && !LOVE_TEST.test(q);
+    // 疫苗後「會不會嚴重發燒」問的是可能的反應（與 medicalMatter 共用 symptomHypothetical），不是已有的病況
+    var futureReaction = vaccineTreatment(q) && symptomHypothetical(main, stateLead);
+    if ((medicalEffectTopic(main) || /治療|醫生.{0,8}(?:看得好|治得好|能治)/.test(main)) && !/工作|公司|上班/.test(main)) return result("子孫", "病", "主問醫藥、疫苗或治療的效用取子孫，不推定問的人已經生病");
+    if (((INTENT_HEALTH_RE.test(q) && bodyGoal) || symptomRecovery) && !futureReaction && !/工作|上班|費用|退款|賠償|考試/.test(main)) {
       var hv = actor(main, person ? person.value : "世");
       return hv ? result(hv, "病", "主問本人或親友病況，醫院背景不等於問醫藥效用") : unknown("病");
     }
@@ -1690,9 +1841,39 @@
     return q;
   }
 
+  // 前置修飾語：「朋友幫我買的」「媽媽同意我買的」是「人物＋對我做的事＋的」，只說明後面那件東西的來歷，不是在問那個人。
+  // 只有修飾語之後的述語沒有再問對方的意願或幫忙（見 INTERPERSONAL_ACT_RE）時，才拿掉修飾語，讓用神、事類與白話共用同一個主問；
+  // 「我的」「他的」是所有格、「事情」「那件」等泛稱不當成可保留的主體，修飾語之後仍在問對方（如「朋友借的錢會還嗎」）則維持原樣。
+  var ATTRIB_ACT_RE = /幫|替|同意|答應|允許|准許|批准|推薦|介紹|安排|借|送|給|請|陪|教|通知|寄|帶|買|訂|選|準備|規劃|預約/;
+  // 找東西的結果說法（找得到、找不到、找回、找得回、找不找得到、尋回）也是修飾語後面的結果述語。
+  var ATTRIB_HEAD_PRED_RE = /^[^，,。；;的]{1,8}?(?:能不能|能否|可否|會不會|是否|有沒有|要不要|該不該|好不好|還能|還會|有機會|可能|能|會|可以|順利|平安|安全|划算|漲|跌|找(?:不找)?(?:得|不)?(?:到|回|著)|尋回)/;
+  var ATTRIB_GENERIC_HEAD_RE = /^(?:事情|事(?![業務故])|那件事?|這件事?|那個|這個|東西)/;
+  function attributiveSplit(clause) {
+    var c = String(clause || "").trim();
+    for (var at = c.indexOf("的"); at > 0; at = c.indexOf("的", at + 1)) {
+      var mod = c.slice(0, at), rest = c.slice(at + 1);
+      // 「答應我的」「同意我的」的「我的」是所有格；「送我的」「借我的」的「我」是接受者，整段仍是修飾子句。
+      if (/[我你他她它們己]$/.test(mod) && !/(?:借|給|送|賣|寄|租|教|傳|匯|轉|還|分)[我你他她]$/.test(mod)) continue;
+      if (ATTRIB_GENERIC_HEAD_RE.test(rest) || !ATTRIB_HEAD_PRED_RE.test(rest)) continue;
+      var who = personRule(mod, true), other = YONG_OTHERS.re.exec(mod), pron = /^(?:我們?)?[他她]們?/.exec(mod);
+      var actorAt = who ? who.at : other ? other.index : pron ? 0 : -1;
+      var actorEnd = who ? who.end : other ? other.index + other[0].length : pron ? pron[0].length : 0;
+      if (actorAt < 0 || actorAt > 2) continue;
+      if (!ATTRIB_ACT_RE.test(mod.slice(Math.min(actorEnd, mod.length)))) continue;
+      return { mod: mod, rest: rest };
+    }
+    return null;
+  }
+  function stripAttributiveActor(q) {
+    q = String(q || "");
+    var m = /^([\s\S]*[，,。；;])?([^，,。；;]*)$/.exec(q), split = m ? attributiveSplit(m[2]) : null;
+    if (!split || INTERPERSONAL_ACT_RE.test(split.rest)) return q;
+    return (m[1] || "") + split.rest;
+  }
+
   // 明寫「只問」時以主問為準；前句人物只是背景、後句明問自己的工作時也不當代占。
   function effectiveQuestion(q) {
-    q = (q || "").trim();
+    q = stripAttributiveActor((q || "").trim());
     q = focusedQuestion(q);
     var only = /(?:^|[，,。；;])(?:我)?(?:只問|只想問|只想知道|要問的是|想問的是)(.+)$/.exec(q);
     if (only && !/他|她|對方|其/.test(only[1])) {
@@ -1734,7 +1915,7 @@
   // 依所問文字與用神判斷事類，用來調整沖合、進退等象義
   function questionCategory(sel) {
     var q = effectiveQuestion(document.getElementById("question").value).replace(/以(?:父母|兄弟|子孫|妻財|官鬼)為用/g, "").replace(/^[，,\s]+/, "");
-    var namedItem = lostQuestion(q) && YONG_ITEMS.some(function(it) { return it.re.test(q); });
+    var namedItem = lostQuestion(q) && !helpConsentAsk(q) && YONG_ITEMS.some(function(it) { return it.re.test(q); });
     if (namedItem) return "尋";
     var intent = questionIntent(q);
     if (intent && intent.cat !== undefined) return intent.cat;
@@ -1742,7 +1923,7 @@
     var job = JOB_STATUS_RE.test(q) || /工作|上班|職位|職場|升職|升遷|晉升|面試|求職|轉職|調動|事業|應聘|應徵|公司/.test(q);
     var T = {
       胎: { test: function(t) { return fertilityTreatment(t) || birthTopic(t, /懷孕|懷上|受孕|有孕|孕婦|產婦|(?<!輪|備|爆)胎|求子|出生|預產|流產|坐月子|生小孩|有孩子|生孩子|子女緣/); } },
-      病: { test: function(t) { return vaccineTreatment(t) || /病|疾|手術|開刀|住院|健康|身體|痊癒|失眠|疼痛|頭痛|牙痛|胃痛|感冒|發燒|癌|腫瘤|看醫生|就醫|醫治/.test(t); } },
+      病: { test: function(t) { return vaccineTreatment(t) || medicalEffectTopic(t) || /病|疾|手術|開刀|住院|健康|身體|痊癒|失眠|疼痛|頭痛|牙痛|胃痛|感冒|發燒|癌|腫瘤|看醫生|就醫|醫治/.test(t); } },
       訟: /官司|訴訟|起訴|提告|被告|告(他|她|對方|我|人)|判決|判刑|仲裁|坐牢|牢獄|入獄|糾紛|犯罪|罪名|有罪|無罪/,
       尋: /走失|失物|遺失|找回|尋人|尋物|下落|何時回|什麼時候回|回來|歸期|不見|弄丟|掉了|被偷|失竊|在哪/,
       行: /出差|出遊|旅遊|旅行|出國|出門|出行|搬家|搬寢室|搬宿舍|回老家|成行/,
@@ -2523,7 +2704,7 @@
     }
 
     // ---------- 靜卦斷法（第 40–44 集）：只用於自占 ----------
-    var selfAsk = !personRule(q) && sel !== "應" && sel !== "世";
+    var selfAsk = (!personRule(q) || dealClosingQuestion(q)) && sel !== "應" && sel !== "世";
     var askPregnant = cat === "胎" && /是否懷孕|有沒有懷孕|懷孕了|懷上|有孕|受孕|是不是懷孕|有喜/.test(q) && !/何時|什麼時候|幾時/.test(q);
     var lostQ = isLostItem(q);
     if (c.activeCount === 0 && selfAsk && onGua && !askPregnant) {
@@ -2854,7 +3035,9 @@
     // ---------- 疾病（第 81–85 集） ----------
     if (cat === "病") {
       var gui2 = ofRel("官鬼");
-      if (sel === "世") {
+      // 接種安排、副作用問的是醫藥，不推定問的人有病位或病勢（效果題沿用原本的醫藥效用處理）
+      var medKind = medicalMatter(q), medArr = medKind === "plan" || medKind === "side";
+      if (sel === "世" && !medArr) {
         if (shi.rel === "官鬼") {
           if (isStrongLv(shi.level)) r.against.push("官鬼（病）持世又旺：病纏在身、較重");
           else if (shi.kong || isWeakLv(shi.level)) r.favor.push("官鬼持世但衰或空：病不重");
@@ -2864,12 +3047,13 @@
         gui2.forEach(function(a) {
           if (act(a) && a.idx !== gua.shi && (hits(keBy(shi), a) || chong(a, shi))) { r.against.push(a.name + "（病）發動來沖剋世爻：大忌"); r.delta -= 1; }
         });
-      } else if (sel === "官鬼" || sel === "父母") {
+      } else if ((sel === "官鬼" || sel === "父母") && !medArr) {
         note("占" + (sel === "官鬼" ? "丈夫" : "長輩") + "的病：官鬼是" + (sel === "官鬼" ? "用神" : "原神") + "，宜旺不宜衰（衰代表免疫力、後勁不足），病改看忌神。");
       }
-      var illSelf = sel === "世" && shi.rel === "官鬼";   // 反看：世爻就是病
-      if (!illSelf && c.yuan.some(function(y) { return c.damagedYuan(y).length; })) note("原神（免疫力、抵抗力）受傷：多主神經、思想、頭部方面的毛病。");
-      var pt = sel === "世" ? shi : onGua ? f : null;
+      var illSelf = sel === "世" && shi.rel === "官鬼" && !medArr;   // 反看：世爻就是病
+      var medEffect = !!medKind && !illSelf;   // 問藥、疫苗或治療的安排、副作用與效果，不推定問的人已有病位
+      if (!illSelf && !medEffect && c.yuan.some(function(y) { return c.damagedYuan(y).length; })) note("原神（免疫力、抵抗力）受傷：多主神經、思想、頭部方面的毛病。");
+      var pt = medEffect ? null : sel === "世" ? shi : onGua ? f : null;
       if (pt) {
         var tg2 = trigramOf(gua, pt.idx);
         note("病位參考（象法，多個證據疊加才準）：" + pt.name + "在" + YAO_SHORT[pt.idx] + "（" + YAO_POS[pt.idx].body + "）；屬" + pt.el + "（" + ZHI_BODY[pt.el] + "）；所在" + tg2 + "卦（" + TRIGRAM_BODY[tg2] + "）；臨" + c.spirits[pt.idx] + "（" + SPIRIT_DISEASE[c.spirits[pt.idx]] + "）。");
@@ -2950,12 +3134,30 @@
       .replace(/[。]?$/, "。");
   }
 
+  // 主問（末句）是在問與對方的互動：句中有對象，且末句談到對方的意願、幫忙、答應、態度、談判、相處或還款。
+  // 「借我的」「給我的」這種物品來源不算；失主、同行者、消息來源只是背景，不構成人事題。
+  var INTERPERSONAL_ACT_RE = /幫(?:我|忙)|答應|同意|接受|願意|肯(?:不肯|幫|借|給|讓|去)|原諒|支持我|信任|相信我|喜歡|看重|重視|欣賞|在意|配合|理我|回覆|回應|回我|找我|約我|請我|談|簽約|成交|會還|還我|相處|合作|態度|誠意|心意|想法|看法|印象|來意|用意|意願|有興趣|(?:幫|借|給|賣|送|教|通知|聯絡|聯繫)我(?!的)/;
+  function interpersonalAsk(q) {
+    q = String(q || "");
+    var clauses = q.split(/[，,。；;]/).filter(function(t) { return t.trim(); });
+    var main = clauses.length ? clauses[clauses.length - 1] : "";
+    var counterpart = !!personRule(q) || YONG_OTHERS.re.test(q) || /合作|談判|簽約|客戶|夥伴|面試官|主管|老闆|賣家|買家|對手|(?<!其)他|她/.test(q);
+    return counterpart && INTERPERSONAL_ACT_RE.test(main);
+  }
+
   // 組出完整分析：{ verdict, sections:[{title, items:[{text, tone}], table}] }
+  // 非空問題、沒有選用神、自動也判不出來（含完全無結果）時，不借世爻亂給吉凶，先要使用者確認。
+  var NO_AUTO_YONG_WHY = "這個問題無法從文字自動判斷要看哪一爻（人物、事情或目的不夠明確）";
+  function hasQuestionContent(q) {
+    return !!(q || "").replace(/^\s*[\[［【][^\]］】]{1,6}[\]］】]\s*/, "").trim();
+  }
   function pendingYongRule() {
     var q = document.getElementById("question").value.trim();
     if (!q || document.getElementById("yongShen").value) return null;
     var rule = inferYong(q, getRadio("gender"));
-    return rule && rule.requiresConfirmation ? rule : null;
+    if (rule && rule.requiresConfirmation) return rule;
+    if (rule && rule.value || !hasQuestionContent(q)) return null;
+    return { value: "", why: NO_AUTO_YONG_WHY, requiresConfirmation: true };
   }
 
   function pendingYongHtml(rule) {
@@ -2968,6 +3170,12 @@
     var A = assessGua(gua);
     var roles = computeRoles(gua);
     var cat = questionCategory(roles ? roles.sel : "");
+    // 疫苗接種安排、副作用、藥物效果：問醫藥本身，不當成患者病況；天氣主問沒有專門的晴雨判斷
+    var medKind = medicalMatter(effectiveQuestion(document.getElementById("question").value));
+    var medArr = medKind === "plan" || medKind === "side";
+    var weather = weatherAsk(effectiveQuestion(document.getElementById("question").value));
+    var care = careAsk(effectiveQuestion(document.getElementById("question").value));
+    var catName = cat === "病" && medKind ? "醫藥" : CAT_NAMES[cat];
     var spirits = getSixSpirits();
     var mz = timeInfo.monthZhi, dz = timeInfo.dayZhi;
     var sections = [];
@@ -3021,7 +3229,7 @@
       return uniq(why);
     }
     // 疾病自占、官鬼持世：子孫剋世是醫藥剋去病，不當忌神（第 41、84 集）
-    var illness = cat === "病" && !!roles && roles.sel === "世" && !!focus && !focusIsFu && A.lines[gua.shi].rel === "官鬼";
+    var illness = cat === "病" && !medArr && !!roles && roles.sel === "世" && !!focus && !focusIsFu && A.lines[gua.shi].rel === "官鬼";
     // 反看時，實際剋到官鬼（世）的子孫是醫藥，不當阻力
     var medicine = illness ? jiActive.filter(function(j) { return focus.actKeIdx.indexOf(j.idx) >= 0; }).map(function(j) { return j.idx; }) : [];
     // 實際剋到、生到用神的忌神、原神（依作用方向）
@@ -3131,6 +3339,10 @@
 
     // 各類占事的專門斷法、靜卦斷法
     var qText = effectiveQuestion(document.getElementById("question").value);
+    // 世應的人際說法（談得來、好感、遷就）只用在問題確有對象的人事題；
+    // 遺失物、出行、換匯、考試等沒有指明對方的題目，只說外在條件，不編造對方的心理或相處。
+    // 句中出現人物不夠：失主、同行者、消息來源只是背景。要主問本身在問對方的意願、幫忙、態度或雙方互動才算。
+    var socialQ = cat === "情" || cat === "訟" || (!!roles && roles.sel === "應") || interpersonalAsk(qText);
     // 問離職才反轉；問「辭職後的下一份工作」不算
     var quitJob = !!roles && roles.sel === "官鬼" && /(辭職|離職|辭呈|退休|裸辭)(?!後|之後|以後)|離開(公司|工作|職場|這份)/.test(qText) &&
       !/新工作|下一份|找到.{0,6}工作|換工作/.test(qText);
@@ -3187,7 +3399,7 @@
 
     var sum = sec("總斷");
     if (!roles) push(sum, "尚未選擇用神，以下以世爻代表自身概略判斷；在「所問」旁選擇用神，分析會以用神為主。", "note");
-    if (cat) push(sum, "所問事類判斷為「" + CAT_NAMES[cat] + "」，沖合、進退等象義依此解釋。", "note");
+    if (cat) push(sum, "所問事類判斷為「" + catName + "」，沖合、進退等象義依此解釋。", "note");
     neutral.forEach(function(t) { push(sum, "現況：" + t); });
     favor.forEach(function(t) { push(sum, "有利：" + t, "good"); });
     against.forEach(function(t) { push(sum, "不利：" + t, "bad"); });
@@ -3203,7 +3415,7 @@
       if (ills.length) push(sum, "卦中之病：" + focusLabel + ills.join("、") + "。「天機盡洩於有病之間，斷法總在於藥醫之處」，解病之時即應期（見下方應期參考）。", "note");
     }
     if (cr.notes.length) {
-      var cs = sec(cat ? CAT_NAMES[cat] + "專門斷法" : "補充斷法");
+      var cs = sec(cat ? catName + "專門斷法" : "補充斷法");
       cr.notes.forEach(function(n) { push(cs, n.text, n.tone); });
     }
 
@@ -3238,11 +3450,12 @@
     push(ov, pattern);
 
     function relText(kind) {
+      var relCat = medKind ? "" : cat;   // 問醫藥安排時，不套用「近病、久病」的病情說法
       if (kind === "六沖") {
-        return { "病": "近病逢沖即癒，久病逢沖則凶", "情": "主分散、不合，不利婚姻感情", "訟": "官非易散（不代表勝訴）", "財": "變動快、不穩，合作易意見不合", "名": "主變動快，工作易調動", "尋": "主散，難以聚合", "行": "主東奔西跑、在外不安", "胎": "臨產宜沖，主生得快；懷孕期間則主不穩" }[cat] ||
+        return { "病": "近病逢沖即癒，久病逢沖則凶", "情": "主分散、不合，不利婚姻感情", "訟": "官非易散（不代表勝訴）", "財": "變動快、不穩，合作易意見不合", "名": "主變動快，工作易調動", "尋": "主散，難以聚合", "行": "主東奔西跑、在外不安", "胎": "臨產宜沖，主生得快；懷孕期間則主不穩" }[relCat] ||
           "主散、變動、衝突；所惡之事宜沖，所好之事不宜";
       }
-      return { "病": "近病逢合拖延難癒，久病逢合反可支撐", "情": "主和合、易成", "訟": "官事纏綿、逃不掉", "財": "主合作順利、聚財", "名": "主維持現狀，難以變動", "尋": "主聚，人或物在一處", "行": "主順利、在外平安", "胎": "懷孕期間主安穩；臨產逢合多難產或剖腹" }[cat] ||
+      return { "病": "近病逢合拖延難癒，久病逢合反可支撐", "情": "主和合、易成", "訟": "官事纏綿、逃不掉", "財": "主合作順利、聚財", "名": "主維持現狀，難以變動", "尋": "主聚，人或物在一處", "行": "主順利、在外平安", "胎": "懷孕期間主安穩；臨產逢合多難產或剖腹" }[relCat] ||
         "主聚、穩定、牽絆；所好之事宜合，所惡之事不宜";
     }
     if (gua.mainRel) push(ov, "本卦為" + gua.mainRel + "卦：" + relText(gua.mainRel));
@@ -3391,12 +3604,12 @@
     push(sy, "應爻（對方、所求之處）" + yingA.name + "，臨" + spirits[gua.ying] + "，「" + yingA.level + "」（" + signed(yingA.score) + "）" +
       (yingA.kong ? (yingA.kongType.indexOf("真空") === 0 ? "，旬空（真空）：對方無心、不實" : "，旬空（" + yingA.kongType.replace(/（.*$/, "") + "）：對方暫時猶豫或惶恐，出空即實") : "") + (yingA.yuePo ? "，月破" : "") + "。");
     var syRel = [];
-    if (ZHI_HE[shiA.branch] === yingA.branch) syRel.push("世應相合：雙方有意、易合作");
-    if (isClash(shiA.branch, yingA.branch)) syRel.push("世應相沖：彼此不合、意見相左");
-    if (ELEM_GEN[yingA.el] === shiA.el) syRel.push("應生世：對方有意助我");
-    else if (ELEM_GEN[shiA.el] === yingA.el) syRel.push("世生應：我付出、遷就對方");
-    else if (ELEM_KE[yingA.el] === shiA.el) syRel.push("應剋世：壓力來自對方");
-    else if (ELEM_KE[shiA.el] === yingA.el) syRel.push("世剋應：我能制住對方");
+    if (ZHI_HE[shiA.branch] === yingA.branch) syRel.push(socialQ ? "世應相合：雙方有意、易合作" : "世應相合：你這邊和外在條件配合、容易成事");
+    if (isClash(shiA.branch, yingA.branch)) syRel.push(socialQ ? "世應相沖：彼此不合、意見相左" : "世應相沖：你這邊和外在條件不合拍、容易有阻力");
+    if (ELEM_GEN[yingA.el] === shiA.el) syRel.push(socialQ ? "應生世：對方有意助我" : "應生世：外在條件有利於你");
+    else if (ELEM_GEN[shiA.el] === yingA.el) syRel.push(socialQ ? "世生應：我付出、遷就對方" : "世生應：你要多付出、多配合外在條件");
+    else if (ELEM_KE[yingA.el] === shiA.el) syRel.push(socialQ ? "應剋世：壓力來自對方" : "應剋世：壓力來自外在環境");
+    else if (ELEM_KE[shiA.el] === yingA.el) syRel.push(socialQ ? "世剋應：我能制住對方" : "世剋應：你能掌握局面");
     else syRel.push("世應比和：勢均力敵");
     push(sy, syRel.join("；") + "。");
     if (focus && !focusIsFu && yongPick && yongPick.idx !== gua.shi) {
@@ -3602,7 +3815,7 @@
       say(fname + "目前的狀態：" + LEVEL_PLAIN[focus.level] + "。", isStrongLv(focus.level) ? "good" : isWeakLv(focus.level) ? "bad" : "");
       if (focus.kongType) {
         var trueKong = focus.kongType.indexOf("真空") === 0;
-        say(trueKong ? "有「落空」的跡象：看起來有，實際上很難落實。" : "暫時「落空」：現在還沒到位、有點虛，但不是沒有，時間到了就會實現。", trueKong ? "bad" : "");
+        say(trueKong ? "有「落空」的跡象：看起來有，實際上很難落實。" : "暫時「落空」：現在還沒到位、有點虛，但不是沒有；要等時候到了，而且其他爻的生剋沒有擋住它，才有機會落實，最後仍以整體吉凶為準。", trueKong ? "bad" : "");
       }
       if (focus.poType) {
         var truePo = focus.poType.indexOf("真破") === 0;
@@ -3640,54 +3853,139 @@
       }
       if (!yuan.length && !focusIsFu) say("卦中看不到明顯的助力，這件事比較要靠自己。");
     }
-    var shiPlain = { "旺": "狀態很好、很有信心", "偏旺": "狀態不錯", "不旺不衰": "狀態普通", "偏衰": "狀態偏弱、比較沒把握", "衰": "狀態很差、力不從心" }[shiA.level];
+    // 只描述代表自己的世爻條件，不替問的人猜心情或信心
+    var shiPlain = { "旺": "條件很好", "偏旺": "條件不錯", "不旺不衰": "條件普通", "偏衰": "條件偏弱、做起來比較吃力", "衰": "條件很弱、比較吃力" }[shiA.level];
     // 沒選用神時上面已經以世爻說明過自己，不再重複
-    if (roles && !illness) say("你自己目前" + shiPlain + (shiA.kong ? "，但心裡還有些猶豫、還沒完全定下來" : "") + "。");
+    if (roles && !illness) say("你自己這邊目前" + shiPlain + (shiA.kong ? "，但還沒完全落實、有些不確定" : "") + "。");
+    // 世應的人際說法見 socialQ（定義在 qText 之後）；天氣題與問病不套世應說法。
     var relPlain = [];
-    if (ZHI_HE[shiA.branch] === yingA.branch) relPlain.push("你和對方關係融洽、容易談得來");
-    if (isClash(shiA.branch, yingA.branch)) relPlain.push("你和對方容易意見不合");
-    if (ELEM_GEN[yingA.el] === shiA.el) relPlain.push("對方願意幫你、對你有好感");
-    else if (ELEM_GEN[shiA.el] === yingA.el) relPlain.push("你付出比較多，要遷就對方");
-    else if (ELEM_KE[yingA.el] === shiA.el) relPlain.push("壓力主要來自對方或外在環境");
-    else if (ELEM_KE[shiA.el] === yingA.el) relPlain.push("你比較能掌握對方或局面");
-    if (relPlain.length && cat !== "病") say(relPlain.join("；") + "。");   // 問病時世應關係與病情無關
+    if (ZHI_HE[shiA.branch] === yingA.branch) relPlain.push(socialQ ? "你和對方關係融洽、容易談得來" : "你這邊和外在條件比較合拍");
+    if (isClash(shiA.branch, yingA.branch)) relPlain.push(socialQ ? "你和對方容易意見不合" : "你這邊和外在條件不太合拍，過程可能要多調整");
+    if (ELEM_GEN[yingA.el] === shiA.el) relPlain.push(socialQ ? "對方願意幫你、對你有好感" : "外在條件對你比較有幫助");
+    else if (ELEM_GEN[shiA.el] === yingA.el) relPlain.push(socialQ ? "你付出比較多，要遷就對方" : "你要多付出、多配合外在條件");
+    else if (ELEM_KE[yingA.el] === shiA.el) relPlain.push(socialQ ? "壓力主要來自對方或外在環境" : "壓力主要來自外在環境");
+    else if (ELEM_KE[shiA.el] === yingA.el) relPlain.push(socialQ ? "你比較能掌握對方或局面" : "你比較能掌握局面");
+    if (relPlain.length && cat !== "病" && !weather) say(relPlain.join("；") + "。");
     if (yongPick && yongPick.idx === gua.shi && !illness && !quitJob && !cr.timing) {
       say("這件事就落在你自己身上，跟你很有緣。", "good");
     } else if (focus && !focusIsFu && yongPick && !illness && !quitJob && !cr.timing) {
       if (ELEM_GEN[focus.el] === shiA.el || ELEM_KE[focus.el] === shiA.el) say("這件事會主動找上你，比較容易得到。", "good");
       else if (ELEM_GEN[shiA.el] === focus.el || ELEM_KE[shiA.el] === focus.el) say("這件事要你主動去追求，會比較辛苦。");
     }
-    if (gua.mainRel === "六沖") say(cat === "病" ? "整體氣氛是「散」：剛生的病容易好，拖很久的病則要小心。" : "整體氣氛是「散」：事情變動快、不容易穩定。");
-    if (gua.mainRel === "六合") say(cat === "病" ? "整體氣氛是「合」：剛生的病容易拖，久病反而撐得住。" : "整體氣氛是「合」：事情容易聚合、穩定，但也可能拖延。");
+    // 問疫苗接種、用藥等醫藥安排時，不說剛生的病、久病
+    if (gua.mainRel === "六沖") say(cat === "病" && !medKind ? "整體氣氛是「散」：剛生的病容易好，拖很久的病則要小心。" : "整體氣氛是「散」：事情變動快、不容易穩定。");
+    if (gua.mainRel === "六合") say(cat === "病" && !medKind ? "整體氣氛是「合」：剛生的病容易拖，久病反而撐得住。" : "整體氣氛是「合」：事情容易聚合、穩定，但也可能拖延。");
     if (gua.mainRel === "六合" && gua.chgRel === "六沖") say("先聚後散：一開始談得攏，後來可能生變。", "bad");
     if (gua.mainRel === "六沖" && gua.chgRel === "六合") say("先散後聚：一開始不順，後來會好轉。", "good");
     if (yaoFan.length || fanFu.some(function(f) { return f.kind === "反吟"; })) {
       say("過程會反反覆覆、來回折騰" + (yongChongKe ? "，而且對這件事傷害較大。" : cr.verdictText || vTone === "bad" ? "。" : "，但最後仍有機會成。"), yongChongKe ? "bad" : "");
     }
-    if (yaoFu.length || fanFu.some(function(f) { return f.kind === "伏吟"; })) say("事情容易停滯、卡住，心情也比較鬱悶。");
+    if (yaoFu.length || fanFu.some(function(f) { return f.kind === "伏吟"; })) say("事情容易停滯、卡住，進度比較難推動。");
     var advice = {
       "吉": "整體順利，可以積極去做。",
-      "偏吉": "大致順利，留意上面提到的不利因素就好。",
+      "偏吉": "大致順利，留意卦中顯示的不利因素就好。",
       "平（成敗參半，看後續變化）": "好壞參半，關鍵在後續變化和你自己的作為。",
       "偏凶（阻礙較多）": "阻礙比較多，建議保守一點、多做準備，或延後再做。",
       "凶": "目前不利，建議暫緩，或另作打算。",
       "平（需努力，有機會）": "成敗看你自己的努力：你自身的狀態不錯，用心準備就有機會。"
     }[verdict];
     // 病與尋物不是「去做」的事，結論改用病情、找回的說法
-    if (cat === "病") advice = {
+    var q = document.getElementById("question").value;
+    // 問藥、疫苗、治療有沒有效：只說卦象對效果的傾向，不推定問的人已生病，也不憑卦象叫人繼續、停藥或換療法。
+    var advKind = isVaccineOrTreatmentEffect(q) ? "effect" : medKind;
+    var isMedicalEffect = !!advKind && !illness && (cat === "病" || !!roles && roles.sel === "子孫");
+    var effectNote = "；實際療效要由醫師或藥師依個別狀況評估，卦象只能當參考。";
+    // 接種安排與副作用：同樣只說卦象的傾向，是否接種、用藥交給醫師、藥師，不憑卦象叫人去打、不打或停用
+    var planNote = "；是否接種或用藥，要由醫師、藥師或衛生單位依你的個別狀況評估，卦象只能當參考。";
+    var sideNote = "；副作用的實際情況因人而異，要依醫師、藥師的說明與個人狀況評估，卦象只能當參考。";
+    var askDoctor = "有疑慮請和醫療專業人員討論，不要只憑卦象決定。";
+    if (isMedicalEffect && advKind === "plan") advice = {
+      "吉": "從卦象看，這件事的傾向偏順利" + planNote,
+      "偏吉": "從卦象看，大致偏順利，卦中顯示的限制因素要留意" + planNote,
+      "平（成敗參半，看後續變化）": "從卦象看，好壞參半，要看個別狀況" + planNote,
+      "平（需努力，有機會）": "從卦象看，還有機會，但要看個別狀況與配合" + planNote,
+      "偏凶（阻礙較多）": "從卦象看，過程的阻礙比較多、不太順" + planNote + askDoctor,
+      "凶": "從卦象看，目前不太順" + planNote + askDoctor
+    }[verdict] || "從卦象看，傾向要綜合卦中的各項因素" + planNote;
+    else if (isMedicalEffect && advKind === "side") advice = {
+      "吉": "從卦象看，這件事的整體傾向偏平順" + sideNote,
+      "偏吉": "從卦象看，大致偏平順，卦中顯示的限制因素要留意" + sideNote,
+      "平（成敗參半，看後續變化）": "從卦象看，好壞參半，要看個別狀況" + sideNote,
+      "平（需努力，有機會）": "從卦象看，還有機會，但要看個別狀況" + sideNote,
+      "偏凶（阻礙較多）": "從卦象看，阻礙比較多、需要多留意" + sideNote + askDoctor,
+      "凶": "從卦象看，目前不太樂觀、需要多留意" + sideNote + askDoctor
+    }[verdict] || "從卦象看，傾向要綜合卦中的各項因素" + sideNote;
+    else if (isMedicalEffect) advice = {
+      "吉": "從卦象看，這項醫藥或治療的效果傾向不錯" + effectNote,
+      "偏吉": "從卦象看，效果大致偏好，卦中顯示的限制因素要留意" + effectNote,
+      "平（成敗參半，看後續變化）": "從卦象看，效果好壞參半，要看個別狀況" + effectNote,
+      "平（需努力，有機會）": "從卦象看，效果還有機會，但要看個別狀況與配合" + effectNote,
+      "偏凶（阻礙較多）": "從卦象看，效果的阻礙比較多、不容易看到明顯成果" + effectNote + "要不要調整，請和醫療專業人員討論。",
+      "凶": "從卦象看，效果不太樂觀" + effectNote + "要不要調整，請和醫療專業人員討論。"
+    }[verdict] || "從卦象看，效果的傾向要綜合卦中的各項因素" + effectNote;
+    else if (cat === "病") advice = {
       "吉": "病情可望好轉，持續治療、好好休養。",
-      "偏吉": "大致會好轉，留意上面提到的不利因素。",
+      "偏吉": "病情大致會好轉，留意卦中顯示的不利因素。",
       "平（成敗參半，看後續變化）": "病情時好時壞，要持續治療、觀察變化。",
       "偏凶（阻礙較多）": "病情不容易很快好轉，要積極就醫、多加留意。",
       "凶": "病情較重，務必積極就醫，聽從醫師的安排。"
     }[verdict] || advice;
     if (cat === "尋") advice = {
       "吉": "有很大的機會找回來。",
-      "偏吉": "有機會找回來，留意上面提到的不利因素。",
+      "偏吉": "有機會找回來，留意卦中顯示的不利因素。",
       "平（成敗參半，看後續變化）": "找不找得回來還不一定，要看後續變化。",
       "偏凶（阻礙較多）": "比較難找回，可以多找幾個地方或請人協助。",
       "凶": "很難找回，建議做好最壞的打算。"
     }[verdict] || advice;
+    // 錢財、工作、考試、感情、官司、出行、孕產各用自己的說法回答，不一律說「可以積極去做」；只說傾向，不保證結果
+    var OUTCOME_ADVICE = {
+      "財": { "吉": "錢財方面條件不錯，有機會順利，金額與期限仍要自己確認清楚。", "偏吉": "錢財方面大致有機會，卦中顯示的不利因素要留意，金額與期限也要確認。",
+        "平（成敗參半，看後續變化）": "錢財方面好壞參半，要看後續變化，先把金額、期限確認清楚。", "偏凶（阻礙較多）": "錢財方面阻礙比較多、不太容易順利，建議保守一點，不要押太多。",
+        "凶": "錢財方面目前相當不利，先不要抱太高期待，多確認、留好備案。" },
+      "名": { "吉": "工作方面條件不錯，有機會順利，仍要靠自己好好準備與表現。", "偏吉": "工作方面大致有機會，卦中顯示的不利因素要留意。",
+        "平（成敗參半，看後續變化）": "工作方面好壞參半，要看後續變化和你自己的表現。", "偏凶（阻礙較多）": "工作方面阻礙比較多、不太容易順利，建議多做準備，也先想好備案。",
+        "凶": "工作方面目前相當不利，先不要抱太高期待，想好備案。" },
+      "考": { "吉": "考試或錄取方面條件不錯，有機會順利，仍要靠自己準備。", "偏吉": "考試或錄取方面大致有機會，卦中顯示的不利因素要留意。",
+        "平（成敗參半，看後續變化）": "考試或錄取方面好壞參半，結果要看後續準備與臨場表現。", "偏凶（阻礙較多）": "考試或錄取方面阻礙比較多、不太容易順利，建議多做準備，也想好備案。",
+        "凶": "考試或錄取方面目前相當不利，先不要抱太高期待，也想好備案。" },
+      "情": { "吉": "感情方面條件不錯，有機會順利，但對方的想法仍要實際溝通才知道。", "偏吉": "感情方面大致有機會，卦中顯示的不利因素要留意，也要實際溝通。",
+        "平（成敗參半，看後續變化）": "感情方面好壞參半，要看後續變化和雙方的互動。", "偏凶（阻礙較多）": "感情方面阻礙比較多、不太容易順利，建議不要急著下結論，也別勉強對方。",
+        "凶": "感情方面目前相當不利，先不要抱太高期待，也不要勉強對方。" },
+      "訟": { "吉": "官司方面形勢偏有利，但實際仍要依證據與律師、法院的專業意見。", "偏吉": "官司方面大致偏有利，卦中顯示的不利因素要留意，實際仍以證據與專業意見為準。",
+        "平（成敗參半，看後續變化）": "官司方面輸贏難說，要看後續變化與證據，必要時請教律師。", "偏凶（阻礙較多）": "官司方面阻礙比較多，建議多準備證據，必要時請教律師。",
+        "凶": "官司方面目前相當不利，建議盡早請教律師，也想好備案。" },
+      "行": { "吉": "出行方面條件不錯，大致順利，行前仍要把安全與行程確認好。", "偏吉": "出行方面大致順利，卦中顯示的不利因素要留意，行前多確認。",
+        "平（成敗參半，看後續變化）": "出行方面好壞參半，要看後續變化，行前多確認。", "偏凶（阻礙較多）": "出行方面阻礙比較多，行程與安全要多確認，也可以預留彈性。",
+        "凶": "出行方面目前不利，行程與安全要特別留意，必要時可以考慮調整時間。" },
+      "胎": { "吉": "從卦象看，這件事的傾向偏有利；孕產的實際情況仍以醫院檢查與醫師的意見為準。", "偏吉": "從卦象看，這件事大致偏有利，卦中顯示的不利因素要留意；孕產的實際情況仍以醫院檢查與醫師的意見為準。",
+        "平（成敗參半，看後續變化）": "從卦象看，這件事好壞參半，後面還要看變化；孕產的實際情況仍以醫院檢查與醫師的意見為準。", "偏凶（阻礙較多）": "從卦象看，這件事的阻礙比較多；但孕產的實際情況只能以醫院檢查與醫師的意見為準，不要只憑卦象下判斷。",
+        "凶": "從卦象看，這件事目前不利；但孕產的實際情況只能以醫院檢查與醫師的意見為準，不要只憑卦象下判斷。" }
+    };
+    if (!isMedicalEffect && !quitJob && OUTCOME_ADVICE[cat]) advice = OUTCOME_ADVICE[cat][verdict] || advice;
+    // 主問是對方肯不肯幫忙（沒有其他事類）：回答願不願意幫，不說「可以積極去做」，也不替對方編心情
+    var HELP_ADVICE = {
+      "吉": "對方願意幫忙的可能性高；不過要請他幫的事還是講清楚，也留意他實際有沒有空、有沒有辦法。",
+      "偏吉": "對方大致願意幫忙，只是卦中顯示的不利因素要留意，請託時把需要的事說清楚。",
+      "平（成敗參半，看後續變化）": "對方願不願意幫忙還不一定，要看後續變化和你開口的方式，先別當作已經答應。",
+      "平（需努力，有機會）": "對方有機會願意幫忙，但要看你自己開口與跟進得好不好，先別當作已經答應。",
+      "偏凶（阻礙較多）": "對方願意幫忙的把握不高，阻礙比較多，建議也先想好其他辦法。",
+      "凶": "目前看來對方願意幫忙的可能性很低，先不要抱太高期待，另外想好備案。"
+    };
+    if (!cat && !isMedicalEffect && !quitJob && helpConsentAsk(qText)) advice = HELP_ADVICE[verdict] || advice;
+    // 主問是這筆錢拿不拿得到：回答拿到的難易與要留意的事，用同一組判詞；不編造對方拖欠，也不保證一定拿到
+    var RECEIPT_ADVICE = {
+      "吉": "這筆款項拿到的條件不錯，有機會順利，不過我還是會先把金額和期限確認清楚，錢真的進來才算數。",
+      "偏吉": "這筆款項我看大致有機會拿到，只是卦中顯示的不利因素要留意，金額和期限也先確認清楚。",
+      "平（成敗參半，看後續變化）": "這筆款項能不能順利拿到還不一定，要看後續變化，所以我會先把金額和期限確認清楚，別太早當作已經到手。",
+      "平（需努力，有機會）": "這筆款項我看有機會拿到，但要看你自己跟進得緊不緊，所以先別當作已經到手，該確認的金額和期限先確認好。",
+      "偏凶（阻礙較多）": "這筆款項拿到的過程阻礙比較多、不太容易順利，所以我會偏保守看待，先別當作已經到手，多確認、多跟進。",
+      "凶": "目前看來這筆款項拿到的把握不高，所以我會先保守看待，暫時別當作已經到手；金額和期限先確認清楚，也留好備案。"
+    };
+    if (!isMedicalEffect && !quitJob && cat === "財" && receiptQuestion(qText)) advice = RECEIPT_ADVICE[verdict] || advice;
+    // 天氣主問：程式沒有獨立的晴雨專斷，通用吉凶不等於晴雨；不臆造機率，也不把判詞說成一定下雨或放晴
+    if (weather) advice = "這一題問的是天氣，但這個程式的吉凶推算是通用規則，沒有專門的晴雨判斷，所以不能用這個判詞直接說天氣會怎樣；要安排行程，請以氣象預報為準，卦象只當參考。";
+    // 要不要就醫：卦象不能決定，不依判詞變動，也不用接種、療效或病情的說法代答
+    if (care) advice = CARE_ADVICE;
     cr.plain.forEach(function(p) { say(p.text, p.tone); });
     // 白話只列出和結論相反的因素時，補上決定結論的那一條，避免讀起來前後矛盾
     var bodyTones = plain.items.slice(1).map(function(it) { return it.tone; });
@@ -3700,7 +3998,7 @@
       if (!keyItem && quitJob) say("關鍵在於：這份工作本身" + (vTone === "good" ? "力量不強，對離職而言較容易離開。" : "仍有力量，對離職而言較難離開。"), vTone);
       if (keyItem) say("關鍵在於：" + (quitJob ? "就這份工作本身來說，" + plainReason(keyItem).replace(/這件事/g, "工作") : plainReason(keyItem)) + (quitJob ? "對離職而言" + (vTone === "good" ? "反而較容易離開。" : "反而較難離開。") : ""), vTone);
     }
-    say("結論：" + (cr.advice || advice), vTone);
+    say("結論：" + (care ? advice : cr.advice || advice), vTone);
 
     // 應期換成實際日期：從起卦日起算 60 天內，最近的那一天
     var ziAt23 = getRadio("ziMode") === "23";
@@ -3757,7 +4055,7 @@
       ["月建", "起卦當月的地支，決定這個月誰當令、誰有力"],
       ["日辰", "起卦當天的地支，影響較長遠"],
       ["月令", "依月建看旺、相、休、囚、死：旺最強、死最弱"],
-      ["旬空", "暫時落空、還沒到位；分真空（真的沒有）與假空（時候到了就有）"],
+      ["旬空", "暫時落空、還沒到位；分真空（真的沒有）與假空（時候到了才有機會到位，還要看其他生剋）"],
       ["月破", "被月建沖壞，這個月不順；分真破與假破"],
       ["日破", "力量弱又被當天沖到，暫時沒有作用"],
       ["暗動", "表面安靜卻被當天沖動，暗中發生作用"],
@@ -3953,7 +4251,9 @@
     // 2. 取用神
     var apply2 = [];
     var q = document.getElementById("question").value.trim();
-    if (cat) apply2.push("所問「" + q + "」屬於" + CAT_NAMES[cat] + "，一般" + CAT_YONG[cat] + "。");
+    if (careAsk(effectiveQuestion(q))) apply2.push("所問「" + q + "」問的是要不要看醫生。這不是卦象能替你決定的事：是否需要就醫，要看實際症狀與嚴重程度，並由醫師、藥師等專業人員評估；下面的取用神與斷法只當參考。");
+    else if (cat === "病" && medicalMatter(effectiveQuestion(q))) apply2.push("所問「" + q + "」問的是疫苗、用藥或治療這件事本身，不推定問的人已經生病，一般取子孫（醫藥）為用神；是否接種或用藥，要由醫師、藥師依個別狀況評估。");
+    else if (cat) apply2.push("所問「" + q + "」屬於" + CAT_NAMES[cat] + "，一般" + CAT_YONG[cat] + "。");
     if (roles) {
       var yongEl = lineYongIdx(gua, roles.sel) >= 0 ? gua.lines[lineYongIdx(gua, roles.sel)].element : elementOfRelative(pEl, roles.sel);
       apply2.push("你選的用神是「" + roles.names["用"] + "」，代表：" + (REL_MEANING[roles.sel] || "") + "。");
@@ -4258,37 +4558,65 @@
       '<div class="ana-verdict ana-' + (r.tone || "mid") + '">' + escapeHtml(r.verdict) + '</div>' +
       (when ? row("時間", when) : '') + '</section>';
 
-    // 二、像真人解卦一樣，一段一段說給問卦的人聽
+    // 二、像懂六爻的人面對面說話：先回答所問，再說依據，卦名象義與宜忌只當提醒
+    var jieRoles = computeRoles(gua), jieCat = questionCategory(jieRoles ? jieRoles.sel : "");
+    var isTiming = /^應期卦/.test(r.verdict);
+    var jieMedKind = isVaccineOrTreatmentEffect(qText) ? "effect" : medicalMatter(effectiveQuestion(qText));
+    var medicalEffect = !!jieMedKind && (jieCat === "病" || !!jieRoles && jieRoles.sel === "子孫");
+    var jieCare = careAsk(effectiveQuestion(qText));
+    if (medicalEffect && !jieCare) intro = intro.map(function(t) { return t.replace(/^這件事我看的是「子孫」這一爻$/, jieMedKind === "effect" ? "問藥物或治療的效果，我看的是代表醫藥的「子孫」這一爻" : "問疫苗接種或用藥的事，我看的是代表醫藥的「子孫」這一爻"); });
+    var jieWeather = weatherAsk(effectiveQuestion(qText));
+    var dateWhen = pick(/^可能有變化或結果的日子：/), timeNote = pick(/^時間上：/);
+    var timeSentence = dateWhen ? "時間上，可以留意" + dateWhen : timeNote ? "時間上，" + timeNote : "";
+
     html += '<section class="teach-step jie-say"><h3>解卦</h3>';
+    // 1. 先回答所問；應期卦只答時間，不另判成敗
     html += para([qText ? "你問的是「" + qText + "」。" : "你沒有寫要問什麼，我就先幫你看整體的運勢。",
-      "這一卦起出來是「" + gua.mainName + "」",
+      isTiming ? "這一題只看時間、不論成敗，所以這一卦是" : jieWeather || jieCare ? "我先直接回答你：照通用的吉凶推算，這一卦的判詞是" : "我先直接回答你：照這一卦推算，" + (qText ? "整體傾向是" : "整體運勢的傾向是"),
+      { b: r.verdict }, "。", advice]);
+    if (isTiming) html += para([timeSentence]);
+
+    // 2. 再說為什麼：先說看哪一爻與最關鍵的原因，再補有利與要留意的地方
+    if (!isTiming) {
+      if (intro.length || keyLine) html += para([jieWeather ? "這個通用判詞是這樣來的（不是晴雨預測）：" : jieCare ? "這個判詞是這樣來的（不是就醫與否的判斷）：" : "我是這樣判斷的：", intro.join("。") + (intro.length ? "。" : ""), keyLine ? keyLine.text.replace(/^關鍵在於：/, "最關鍵的是，") : ""]);
+      var detail = [];
+      if (goods.length) detail.push((r.tone === "bad" ? "雖然也有有利的地方：" : "有利的地方是：") + goods.join("；") + "。");
+      if (bads.length) detail.push((r.tone === "good" ? "也有要留意的地方：" : goods.length ? "不過要留意的是：" : "要留意的是：") + bads.join("；") + "。");
+      if (goods.length && r.tone === "bad") detail.push("但整體算下來仍不樂觀，不能只看有利的那幾點。");
+      html += para(detail);
+      if (neutral.length) html += para(["另外補充：" + neutral.join("。") + "。"]);
+    }
+
+    // 3. 卦名象義：只講一般道理，當提醒，不當這件事的結果
+    html += para(["至於卦名，這一卦起出來是「" + gua.mainName + "」",
       c ? "，動了之後變成「" + gua.chgName + "」。" : "，六個爻都沒有動，是個靜卦。",
       mainShort + "卦講的是" + keyWords(m.k) + "：" + m.s + "。",
       c ? "後來變成" + chgShort + "卦，講的是" + keyWords(c.k) + "：" + c.s + "。" : "",
-      qText ? "不過卦名說的是整體的氣氛，真正的結果還是要看卦裡代表這件事的那一爻。" : "不過卦名說的是整體的氣氛，運勢好壞還是要看代表你自己的世爻。"]);
-    html += para([intro.join("。") + (intro.length ? "。" : ""), neutral.length ? neutral.join("。") + "。" : ""]);
-    if (goods.length) html += para(["對你有利的是：", goods.join("；") + "。"]);
-    if (bads.length) html += para(["要小心的是：", bads.join("；") + "。"]);
-    if (keyLine) html += para(["那為什麼結論是這樣？", keyLine.text.replace(/^關鍵在於：/, "最關鍵的是，")]);
+      "這些是卦名本身的一般道理，只能當提醒，不是" + (qText ? "這件事的結果；" : "運勢的結論；") + (isTiming ? "這一題只看時間，以上面的日期為準。" : qText ? "真正的結果還是要看卦裡代表這件事的那一爻。" : "運勢好壞還是要看代表你自己的世爻。")]);
 
-    // 動爻：一爻為焦點，兩爻逐一說，三爻以上以變卦為主
+    // 4. 動爻：一爻為焦點，兩爻逐一說，三爻以上說明變卦象義但不當最終結論；爻辭只是提醒
     if (!yaoLines.length) {
       html += para(["卦中沒有爻在動，表示短期內不會有太大的變化，事情會照目前的樣子發展。"]);
     } else if (moving.length >= 3) {
-      html += para(["卦中有 " + Math.min(moving.length, 6) + " 個爻在動，變化比較大，這種時候以變成的" + chgShort + "卦為最後走向：" + c.m]);
+      html += para(["卦中有 " + Math.min(moving.length, 6) + " 個爻在動，變化比較大，所以變成的" + chgShort + "卦的氣氛也可以參考（卦辭與解釋見下方經文對照）。" +
+        (isTiming ? "不過這一題只看日期，變卦的象義不影響上面的時間。" : "不過最終的結論還是要看吉凶推算，而不是光看卦的象義" + (r.tone === "bad" ? "，這也不代表事情最後就會成。" : "。"))]);
       if (moving.length > 6) html += para(["六個爻全動，再看" + yaoLines[yaoLines.length - 1].pos + "：「" + yaoLines[yaoLines.length - 1].src + "」，" + yaoLines[yaoLines.length - 1].text]);
     } else {
-      html += para([yaoLines.length === 1 ? "卦中只有" + yaoLines[0].pos + "在動，它就是這件事的焦點。" : "卦中有兩個爻在動。"].concat(yaoLines.map(function(y) {
+      html += para([yaoLines.length === 1 ? "卦中只有" + yaoLines[0].pos + "在動，它就是這件事變化的焦點。" : "卦中有兩個爻在動。"].concat(yaoLines.map(function(y) {
         var who = y.k === gua.shi ? "（這一爻正好是代表你自己的世爻）" : y.k === gua.ying ? "（這一爻正好是代表對方的應爻）" : "";
-        return y.pos + who + "的爻辭說「" + y.src.replace(/。$/, "") + "」，意思是" + y.text;
-      })));
+        return y.pos + who + "的爻辭說「" + y.src.replace(/。$/, "") + "」，意思是" + y.text.replace(/。?$/, "。");
+      }), [isTiming ? "爻辭只是提醒方向，不影響上面的日期。" : "爻辭只是提醒方向，結論仍以上面的推算為準。"]));
     }
 
-    // 應期卦只看日期，不說「整體來看」的吉凶
-    html += para([/^應期卦/.test(r.verdict) ? "所以這一卦是" : "所以整體來看是", { b: r.verdict }, "。", advice]);
-    html += para(["卦本身的提醒是：宜" + m.y + "；忌" + m.j + "。", when ? "時間上，可以留意" + when : ""]);
-    html += para(["打個比方，就像" + m.b.replace(/^像/, ""), c ? "之後則像" + c.b.replace(/^像/, "") : ""]);
-    html += '<p class="setting-note">吉凶與時間是依六爻規則推算，和「詳細分析」相同；卦辭、爻辭說明事情的性質和走向，兩者不一致時以吉凶推算為準。實際還要配合你自己的狀況判斷。</p></section>';
+    // 5. 時間與提醒；應期卦不再加宜忌與比喻，避免像在另判成敗
+    if (!isTiming) {
+      html += para([timeSentence]);
+      html += para(["如果要我多提醒一句：這一卦的象義是宜" + m.y + "；忌" + m.j + "。這是做法上的提醒，不是在保證結果。"]);
+      // 偏凶時不再用變卦的正面畫面作比方，避免讀起來像保證最後會成
+      html += para(["用生活的畫面來比喻卦象本身（不代表這件事的結果）：就像" + m.b.replace(/^像/, ""), c && r.tone !== "bad" ? "變卦則像" + c.b.replace(/^像/, "") : ""]);
+    }
+    html += '<p class="setting-note">吉凶與時間是依六爻規則推算，和「詳細分析」相同；卦辭、爻辭說明事情的性質和走向，兩者不一致時以吉凶推算為準。實際還要配合你自己的狀況判斷。' +
+      (jieCat === "病" || medicalEffect || jieCare ? '涉及身體或用藥的事，請以醫師、藥師的專業意見為準。' : '') + '</p></section>';
 
     // 三、經文對照（收起來，想看再點開）
     html += '<details class="teach-quiz"><summary>卦辭、爻辭對照</summary>' +
@@ -4730,7 +5058,7 @@
     return EXTRA_PET_RE.test(q) && !/(?:公司|企業|商店|品牌|商標).{0,8}(?:命名|取名|名字|名稱)|公司名|店名|品牌|商標|(?:鸚鵡|倉鼠|兔子|烏龜)(?:股份有限|有限)?公司/.test(q);
   }
   var YONG_ITEMS = [
-    { re: /身分證|身份證|駕照|證件|護照|健保卡|公文|存證信函|印章|文件|資料|機車|腳踏車|電動車|汽車|車子|單車/, value: "父母", why: "證件、文書、車輛取父母" },
+    { re: /身分證|身份證|駕照|證件|護照|健保卡|公文|存證信函|申訴書|印章|文件|資料|機車|腳踏車|電動車|汽車|車子|單車/, value: "父母", why: "證件、文書、車輛取父母" },
     { re: { test: function(t) { return /貓|狗|寵物|牠|鳥|動物/.test(t) || extraPetTopic(t); } }, value: "子孫", why: "寵物取子孫" },
     { re: /項鍊|戒指|戒子|首飾|珠寶|耳環|手錶|錢包|皮包|包包|現金|錢|\d+元|消費券|眼鏡|手機|筆電|筆記型電腦|鑰匙|耳機|平板|信用卡|悠遊卡|包裹|寄物|行李|家具|桌|椅|東西|物品/, value: "妻財", why: "失物取妻財（一切使用之財物）" }
   ];
@@ -4740,6 +5068,20 @@
     if (LOST_RE.test(q.replace(/找不到/g, ""))) return true;
     var main = q.split(/[，,。；;]/).pop();
     return /找不到/.test(q) && !/工作|上班|職缺|求職|面試|錄取/.test(main);
+  }
+  // 主問（末句）明說對方願意、答應、肯不肯「幫忙」：找東西只是請對方幫的事，主問是對方的意願，不取物品用神。
+  // 明標[尋物]、答應在前句，或「答應幫我找的」只是修飾語（的之後還有述語）時，仍是失物題。
+  var HELP_CONSENT_RE = /(?:願意|願不願意|肯不肯|肯|答應|答不答應|同意|同不同意)(?:幫|替|協助)/;
+  function helpConsentAsk(q) {
+    q = String(q || "");
+    if (/^\s*[\[［【]尋物/.test(q)) return false;
+    var main = (q.split(/[，,。；;]/).filter(function(t) { return t.trim(); }).pop() || "").trim();
+    var hit = HELP_CONSENT_RE.exec(main);
+    if (!hit) return false;
+    var who = main.slice(0, hit.index).replace(/我(?:們)?(?:的|家的)/g, "");
+    if (/我/.test(who) || !(personRule(who) || YONG_OTHERS.re.test(who) || /(?<!其)[他她]/.test(who))) return false;
+    var tail = main.slice(hit.index + hit[0].length), at = tail.lastIndexOf("的");
+    return at < 0 || /^[^了不得能會有還在是被已過到回]*$/.test(tail.slice(at + 1).replace(/[嗎呢吧啊呀？?！!\s]+$/, ""));
   }
 
   // 人物：value 為「情男」「情女」表示感情對象（依性別再判斷）
@@ -4791,7 +5133,7 @@
     { re: JOB_STATUS_RE, value: "官鬼", why: "裁員、資遣、試用與轉正等工作狀態取官鬼" },
     { re: /面試|口試|求職|副業|教書|兼差|升職|晉升|轉正|辭呈|辭職|離職|調職|調動|比賽|得名|名次/, value: "官鬼", why: "在職、升職、面試、離職、名次取官鬼" },
     { re: /成績|分數|總分|門檻|(破|達到|超過)\d+|\d+分以上|托福|多益|GRE|雅思|段考|基測|學測|會考|論文|課程|教材|dvd|DVD|補習|讀書|念書|學業|升學/, value: "父母", why: "成績、文章、教材取父母" },
-    { re: /租約|合約|合同|契約|簽約|文件|文書|公文|存證信函|申請書|身分證|身份證|護照|健保卡|簽證|綠卡|居留|保單|執照|證照/, value: "父母", why: "合約、證件、文書取父母" },
+    { re: /租約|合約|合同|契約|簽約|文件|文書|公文|存證信函|申請書|申訴書|身分證|身份證|護照|健保卡|簽證|綠卡|居留|保單|執照|證照/, value: "父母", why: "合約、證件、文書取父母" },
     { re: YONG_OTHERS.re, value: "應", why: YONG_OTHERS.why },
     { re: /(?:請|拜託|邀請)[一二三四五六七八九十兩幾數0-9]+(?:個|位)(?:陌生)?人[^。；;！？?]{0,40}(?:不知(?:道)?|不曉得)(?:他們)?(?:願意|願不願意|肯不肯|答不答應|同不同意|是否同意)/, value: "應", why: "問未明身分他人的意願取應爻" },
     { re: /房子|房屋|房價|房租|房東|房貸|(買|賣|租).{0,3}房|這間房|那間房|房地產|屋|宅|風水|土地|購地|保險|消息|回信|收得到信|通知|資料|紀錄|記錄|檔案|備份|車(?!禍)|漏水|違建|拆除|裝修|維修|衣服/, value: "父母", why: "房屋、車、文書消息取父母" },
@@ -4829,6 +5171,8 @@
         while (pre.slice(-w0.length) === w0) pre = pre.slice(0, -w0.length);
         while (post.slice(0, w0.length) === w0) post = post.slice(w0.length);
         if (/[比像]$/.test(pre) || (/[跟和與同]$/.test(pre) && /^(一樣|一般|那樣|似的)/.test(post))) continue;
+        // 「當上媽媽」的稱謂是想成為的身分，不是所問的人物
+        if (/^(?:媽|爸|媽媽|爸爸|母親|父親)$/.test(w0) && /(?:當(?:上)?|成為|做)$/.test(pre) && !/^[的之們家]/.test(post)) continue;
         hits.push({ at: m.index, end: end, rule: p, text: m[0] });
       }
     });
@@ -4899,7 +5243,7 @@
     if (!q) return null;
     var named = /以(父母|兄弟|子孫|妻財|官鬼)為用/.exec(q);
     if (named) return { value: named[1], why: "所問已註明用神" };
-    if (lostTag || lostQuestion(q)) {
+    if (lostTag || (lostQuestion(q) && !helpConsentAsk(q))) {
       for (var i = 0; i < YONG_ITEMS.length; i++) if (YONG_ITEMS[i].re.test(q)) return YONG_ITEMS[i];
     }
     var g = gender;
@@ -4943,7 +5287,7 @@
       yongAutoNote = "用神自動取" + sel.options[sel.selectedIndex].text + "（" + rule.why + "，可自行更改）";
     } else {
       sel.value = "";   // 手動優先已在入口擋下；重新自動判讀無答案時，不殘留上一題用神。
-      yongAutoNote = rule ? rule.why : "";
+      yongAutoNote = rule ? rule.why : hasQuestionContent(document.getElementById("question").value) ? NO_AUTO_YONG_WHY + "，請在「所問」旁選擇用神" : "";
     }
     sel.classList.toggle("auto-picked", !!(rule && rule.value));
   }

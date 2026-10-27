@@ -2,6 +2,10 @@
 六爻神卦整理/
 # 開發用腳本
 *.py
+!/.agents/skills/claude-collaboration/scripts/collaborate.py
+!/tests/claude-collaboration.test.py
 __pycache__/
+# 協同驗證、CLI 回執與瀏覽器暫存僅保留本機
+/tmp/
 # 安易芳老師課程逐字稿與整理（第三方影片內容，不公開）
 安易芳六爻中級課程/
