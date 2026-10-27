@@ -32,9 +32,11 @@ const sayNarrative=jie=>((jie.split('class="teach-step jie-say"')[1]||'').split(
 const analysisText=x=>x.r.sections.map(s=>(s.items||[]).map(i=>i.text).join('\n')).join('\n');
 const teachingLook=x=>x.e.teachingSteps(x.gua).map(s=>[].concat(s.apply||[]).join('\n')).join('\n');
 const states=[];for(let s=0;s<4096;s+=31)states.push(s);states.push(0,4095);
+// 案例可選填 states（取代預設掃描）或 extraStates（在預設掃描外加上指定卦）
+const statesOf=f=>f.states||(f.extraStates?states.concat(f.extraStates):states);
 
 function fail(msg){throw new Error(msg);}
-const PATIENT_RE=/病情|病重|病況|病勢|病位|剛生的病|久病|近病|拖很久的病|病纏|積極就醫|務必就醫|持續治療|好好休養|病何時好|病好|病痛/;
+const PATIENT_RE=/病情|病重|病況|病勢|病位|剛生的病|久病|近病|拖很久的病|病纏|積極就醫|務必就醫|持續治療|好好休養|病何時好|病好|病痛|你問自己的病|代表病的官鬼|自占疾病|病越旺|病越重/;
 const DIRECTIVE_RE=/繼續進行|繼續治療|繼續服用|繼續使用|停藥|停用|停止|換藥|改用|換成|換療法|尋求其他方式|延後再做|可以積極去做|建議暫緩|另作打算|趕快去打|不要去打|不用打|一定要打/;
 const INVENTED_RE=/你和對方|對方願意|對你有好感|遷就對方|談得來|關係融洽|意見不合/;
 const INVENTED_ANALYSIS_RE=/你和對方|對方願意|對你有好感|遷就對方|談得來|關係融洽|對方有意助我|雙方有意|彼此不合、意見相左|壓力來自對方(?!或)|我能制住對方/;
@@ -45,8 +47,12 @@ const WEATHER_BAD_RE=/可以積極去做|建議暫緩|延後再做|錢財方面|
 // CARE_BAD_RE 是就醫題的結論不能出現的內容（接種安排、療效、病情，或憑卦象叫人去、不去、觀察）
 const CARE_MARK_RE=/不是卦象能替你決定|這一題問的是要不要看醫生/;
 const CARE_BAD_RE=/是否接種|接種或用藥|副作用|實際療效|效果傾向|病情|病重|持續治療|好好休養|積極就醫|務必就醫|建議(?:你)?(?:去|先|盡快|立刻|暫緩|不要)|不用(?:看|去)|不需要(?:看|去|就醫)|不必(?:看|去)|應該去|最好(?:去|先)|趕快去|先觀察|再觀察|先不用/;
+// 醫藥主問才會出現的說法：主問是別的事（對方肯不肯幫忙等）時，三分頁都不能出現
+const MED_MARK_RE=/是否接種或用藥|副作用的實際情況|實際療效|疫苗、用藥或治療這件事本身|問疫苗接種或用藥的事|問藥物或治療的效果|醫師、藥師/;
 // 尋物結論的說法：對方肯不肯幫忙的題目不能套用
 const LOST_ANSWER_RE=/找回來|找不回|找得回|比較難找回|很難找回|多找幾個地方|最壞的打算|找不找得回/;
+// 尚未發生的健康風險題不能出現的已有病情說法
+const FUTURE_ILL_BAD_RE=/病情|病重|病況|病勢|病位|病纏|剛生的病|久病|近病|拖很久的病|好轉|持續治療|好好休養|積極就醫|務必就醫|你問自己的病|代表病的官鬼|自占疾病|病好|病痛|病何時好/;
 const WEATHER_CLAIM_RE=/一定會(?:下雨|放晴|下雪)|必定(?:下雨|放晴|下雪)|肯定(?:下雨|放晴|下雪)|降雨機率|機率|[0-9]+\s*%/;
 
 const records=[];
@@ -63,7 +69,7 @@ function record(f,fn){try{
 for(const f of cases){
  if(f.kind==='medical-matter')record(f,()=>{
   const verdicts=new Set();
-  for(const state of states){
+  for(const state of statesOf(f)){
    const x=cast(f.q,f.sel,state),line=conclusion(x),at=' state='+state+' '+x.r.verdict+'：';
    verdicts.add(x.r.verdict);
    if(!line)fail('沒有結論'+at);
@@ -86,7 +92,7 @@ for(const f of cases){
  // 卦象不能決定去不去，所以每個判詞下的結論相同，只交給實際症狀與專業評估，也不憑卦象指示去或不去、用藥。
  else if(f.kind==='care')record(f,()=>{
   const lines=new Set(),verdicts=new Set();
-  for(const state of states){
+  for(const state of statesOf(f)){
    const x=cast(f.q,f.sel,state),line=conclusion(x),at=' state='+state+' '+x.r.verdict+'：';
    verdicts.add(x.r.verdict);lines.add(line);
    if(!line)fail('沒有結論'+at);
@@ -110,11 +116,14 @@ for(const f of cases){
  // 明說對方「願意、答應、肯不肯」幫忙：主問是對方肯不肯，失物只是請對方幫的事，不是物品找不找得回。
  else if(f.kind==='help-consent')record(f,()=>{
   let seen=0;
-  for(const state of states){
+  for(const state of statesOf(f)){
    const x=cast(f.q,f.sel,state),line=conclusion(x),at=' state='+state+'：';
    if(x.e.questionCategory(f.sel)!=='')fail('主問是對方肯不肯幫忙，卻被當成「'+x.e.questionCategory(f.sel)+'」類事'+at);
    if(LOST_ANSWER_RE.test(line)||/物品|失物/.test(line))fail('結論回答的是物品找不找得回，不是對方肯不肯幫'+at+line);
    if(!/幫忙|答應|願意|協助/.test(line))fail('結論沒有回答對方肯不肯幫忙'+at+line);
+   // 前句吃藥、打針只是背景：三分頁都不能把這一題說成用藥或接種安排
+   const medAll=line+'\n'+analysisText(x)+'\n'+teachingLook(x)+'\n'+sayText(x.jie);
+   if(MED_MARK_RE.test(medAll))fail('藥物背景蓋過對方肯不肯幫忙的主問'+at+medAll.match(MED_MARK_RE)[0]);
    if(!firstParagraph(x.jie).includes(line))fail('解卦第一段沒有先答同一句結論'+at);
    if(x.plain.items.some(i=>SOCIAL_RE.test(i.text)))seen++;
   }
@@ -122,7 +131,7 @@ for(const f of cases){
   return {states:states.length,seen};
  });
  else if(f.kind==='patient')record(f,()=>{
-  for(const state of states){
+  for(const state of statesOf(f)){
    const x=cast(f.q,f.sel,state),line=conclusion(x),at=' state='+state+'：';
    if(CARE_MARK_RE.test(line))fail('問病況會不會好卻套用「要不要就醫」的說明'+at+line);
    if(!/病|好轉/.test(line))fail('問患者病況卻沒有病況結論'+at+line);
@@ -133,7 +142,7 @@ for(const f of cases){
  });
  else if(f.kind==='nonsocial')record(f,()=>{
   let neutral=0;
-  for(const state of states){
+  for(const state of statesOf(f)){
    const x=cast(f.q,f.sel,state),all=analysisText(x),say=sayNarrative(x.jie),at=' state='+state+'：';
    const plainAll=x.plain.items.map(i=>i.text).join('\n');
    if(INVENTED_RE.test(plainAll))fail('白話解讀出現未指明對方的心理／相處敘述'+at+plainAll.match(INVENTED_RE)[0]);
@@ -150,7 +159,7 @@ for(const f of cases){
  });
  else if(f.kind==='social')record(f,()=>{
   let seen=0;
-  for(const state of states){
+  for(const state of statesOf(f)){
    const x=cast(f.q,f.sel,state);
    if(x.plain.items.some(i=>SOCIAL_RE.test(i.text)))seen++;
   }
@@ -158,7 +167,7 @@ for(const f of cases){
   return {states:states.length,seen};
  });
  else if(f.kind==='weather')record(f,()=>{
-  for(const state of states){
+  for(const state of statesOf(f)){
    const x=cast(f.q,f.sel,state),line=conclusion(x),say=sayText(x.jie),first=firstParagraph(x.jie),at=' state='+state+' '+x.r.verdict+'：';
    if(!/天氣|下雨|放晴|下雪|降雨|氣象/.test(line))fail('結論沒有對題'+at+line);
    if(!/氣象預報/.test(line))fail('結論沒有建議參考氣象預報'+at+line);
@@ -173,12 +182,89 @@ for(const f of cases){
   return {states:states.length};
  });
  else if(f.kind==='weather-background')record(f,()=>{
-  for(const state of states){
+  for(const state of statesOf(f)){
    const x=cast(f.q,f.sel,state),line=conclusion(x),at=' state='+state+'：';
    if(!/出行|行程|安全|旅遊|平安/.test(line))fail('天氣只是背景卻蓋過出行主問'+at+line);
    if(/氣象預報/.test(line))fail('出行主問被當成天氣題'+at+line);
   }
   return {states:states.length};
+ });
+ // 問尚未發生的健康風險（會不會生病、感冒）：不能說成已有病情或病位，也不拿卦象當診斷；背景人物不蓋過末句的本人。
+ else if(f.kind==='future-illness')record(f,()=>{
+  for(const state of statesOf(f)){
+   const x=cast(f.q,f.sel,state),line=conclusion(x),at=' state='+state+' '+x.r.verdict+'：';
+   if(!line)fail('沒有結論'+at);
+   // 解卦的爻辭與卦名象義是經文原意的提醒（可能出現「損其疾」等字句），只檢查依這一題推出的敘述
+   const all=analysisText(x)+'\n'+teachingLook(x)+'\n'+sayNarrative(x.jie);
+   if(FUTURE_ILL_BAD_RE.test(line))fail('結論把尚未發生的健康風險說成已有病情'+at+line);
+   if(FUTURE_ILL_BAD_RE.test(all))fail('分析、教學或解卦造出已有的病情或病位'+at+all.match(FUTURE_ILL_BAD_RE)[0]);
+   if(!/還沒有?發生|尚未|將來|未來/.test(line))fail('結論沒有交代問的是還沒發生的健康風險'+at+line);
+   if(!/醫師|醫療專業|專業/.test(line))fail('結論沒有交代實際身體狀況由醫療專業評估'+at+line);
+   if(!/不是診斷|不當診斷|不能(?:當|作)?診斷|不代表/.test(line))fail('結論沒有說明卦象不是診斷'+at+line);
+   if(/一定(?:會|不會)生病|必定|肯定|機率|[0-9]+\s*%/.test(line+sayText(x.jie)))fail('用卦象保證會不會生病或臆造機率'+at);
+   if(/氣象預報|降雨/.test(line+sayText(x.jie)))fail('健康風險題被當成天氣題'+at);
+   if(DIRECTIVE_RE.test(line))fail('憑卦象指示治療或用藥'+at+line);
+   const first=firstParagraph(x.jie);
+   if(!first.includes('你問的是「'+f.q+'」'))fail('解卦第一段沒有先說明所問'+at);
+   if(!first.includes(x.r.verdict)||!first.includes(line))fail('解卦第一段沒有先答判詞與結論'+at);
+   if(!/專業意見/.test(sayText(x.jie)))fail('解卦缺少專業意見提醒'+at);
+   if(/undefined|NaN/.test(x.jie+analysisText(x)))fail('出現 undefined 或 NaN'+at);
+  }
+  return {states:statesOf(f).length};
+ });
+ // 未明身分的他／她：沒有手選時先待確認，不套任何人的病況；手選後才恢復患者病況分析。
+ else if(f.kind==='unknown-person')record(f,()=>{
+  const rule=rt.env.inferYong(f.q,'男');
+  if(!rule||rule.value||!rule.requiresConfirmation)fail('未明身分的他／她應先待確認用神，實際取到 '+JSON.stringify(rule));
+  const pending=cast(f.q,'',0);
+  if(pending.r.verdict!=='待確認用神'||conclusion(pending))fail('未手選用神卻已經判吉凶：'+pending.r.verdict);
+  for(const state of statesOf(f)){
+   const x=cast(f.q,f.sel,state),line=conclusion(x),at=' state='+state+'：';
+   if(x.r.verdict==='待確認用神')fail('手選用神後仍待確認'+at);
+   if(!/病|好轉/.test(line))fail('手選後沒有恢復病況結論'+at+line);
+   if(!firstParagraph(x.jie).includes(line))fail('解卦第一段沒有先答同一句病況結論'+at);
+  }
+  return {states:statesOf(f).length};
+ });
+ // 藥價、買藥費用、藥局生意、附子當公司名、醫院工作：不是問用藥安排或副作用，不套醫藥主問。
+ else if(f.kind==='not-medical')record(f,()=>{
+  const q=rt.env.effectiveQuestion(f.q);
+  if(rt.env.medicalMatter(q)!=='')fail('不是用藥主問卻被判為醫藥：'+rt.env.medicalMatter(q));
+  for(const state of statesOf(f)){
+   const x=cast(f.q,f.sel,state),line=conclusion(x),at=' state='+state+'：';
+   if(/是否接種或用藥|副作用的實際情況|效果傾向|實際療效|醫師、藥師/.test(line))fail('不是用藥主問卻套用醫藥結論'+at+line);
+   if(/問疫苗接種或用藥的事|問藥物或治療的效果/.test(sayText(x.jie)))fail('解卦把非用藥問題說成醫藥主問'+at);
+  }
+  return {states:statesOf(f).length};
+ });
+ // 用藥已經發生、末句問出門、旅遊、開車等行程：先回應這個行程的主問，不換成「要不要吃藥」；
+ // 卦象不能判斷吃藥後適不適合出行，所以不鼓勵去或不去、不編造病況，並交代依藥品說明與個人狀況詢問醫師、藥師；三分頁一致。
+ else if(f.kind==='after-drug')record(f,()=>{
+  const verdicts=new Set(),PLAN_RE=/是否接種或用藥|疫苗、用藥或治療這件事本身|問疫苗接種或用藥的事|問藥物或治療的效果|副作用的實際情況|實際療效|效果傾向/;
+  const ENCOURAGE_RE=/放心|安心|儘管|大膽|沒問題|可以去|可以出門|可以出國|可以開車|可以旅遊|適合出門|適合出行|可以積極/;
+  const kind=rt.env.medicalMatter(rt.env.effectiveQuestion(f.q));
+  if(kind!=='after')fail('已吃完藥、末句問出行，應走「用藥後出行」而不是 '+JSON.stringify(kind));
+  for(const state of statesOf(f)){
+   const x=cast(f.q,f.sel,state),line=conclusion(x),at=' state='+state+' '+x.r.verdict+'：';
+   verdicts.add(x.r.verdict);
+   if(!line)fail('沒有結論'+at);
+   if(!/吃完藥後出行/.test(line))fail('結論沒有先回應吃完藥後出行這個主問'+at+line);
+   if(PLAN_RE.test(line))fail('結論換題成是否接種或用藥'+at+line);
+   if(!/不能當成吃完藥後適合出門/.test(line))fail('結論沒有說明卦象不能當成吃藥後適合出行的依據'+at+line);
+   if(!/醫師|藥師/.test(line)||!/藥品說明/.test(line)||!/身體狀況/.test(line))fail('結論沒有交代依藥品說明與身體狀況詢問醫師、藥師'+at+line);
+   if(ENCOURAGE_RE.test(line.replace(/不能當成[^；。]*依據/,''))||DIRECTIVE_RE.test(line)||CARE_MARK_RE.test(line))fail('結論憑卦象鼓勵出行或開車，或套用其他說明'+at+line);
+   const all=analysisText(x)+'\n'+teachingLook(x)+'\n'+sayNarrative(x.jie);
+   if(PLAN_RE.test(all))fail('分析、教學或解卦把這題說成用藥安排'+at+all.match(PLAN_RE)[0]);
+   if(PATIENT_RE.test(all))fail('編造病況'+at+all.match(PATIENT_RE)[0]);
+   if(!/不是在問要不要吃藥/.test(teachingLook(x)))fail('教學沒有說明這題不是在問要不要吃藥'+at);
+   const first=firstParagraph(x.jie);
+   if(!first.includes('你問的是「'+f.q+'」'))fail('解卦第一段沒有先說明所問'+at);
+   if(!first.includes(x.r.verdict)||!first.includes(line))fail('解卦第一段沒有先答判詞與結論'+at);
+   if(!/專業意見/.test(sayText(x.jie)))fail('解卦缺少專業意見提醒'+at);
+   if(/undefined|NaN/.test(x.jie+analysisText(x)))fail('出現 undefined 或 NaN'+at);
+  }
+  for(const need of ['吉','偏吉','偏凶（阻礙較多）','凶'])if(!verdicts.has(need))fail('掃描沒有涵蓋判詞 '+need);
+  return {states:statesOf(f).length};
  });
  else records.push({id:f.id,kind:f.kind,q:f.q,pass:false,error:'未知案例類型 '+f.kind});
 }

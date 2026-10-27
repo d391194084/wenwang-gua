@@ -1,5 +1,5 @@
 // 文王聖卦離線快取：頁面先抓網路、其他檔案先回快取；更新檔案後請調高版本號
-var CACHE = "wenwang-gua-v48";
+var CACHE = "wenwang-gua-v49";
 var FILES = [
   "./",
   "./index.html",
@@ -21,12 +21,17 @@ self.addEventListener("install", function(e) {
 
 self.addEventListener("activate", function(e) {
   e.waitUntil(caches.keys().then(function(keys) {
-    return Promise.all(keys.filter(function(k) { return k !== CACHE; }).map(function(k) { return caches.delete(k); }));
+    return Promise.all(keys.filter(function(k) { return k !== CACHE && k.indexOf("wenwang-gua-v") === 0; }).map(function(k) { return caches.delete(k); }));
   }));
   self.clients.claim();
 });
 
-// 頁面（HTML）先抓網路，有網路時一定拿到最新版；離線或 4 秒沒回應才用快取
+// 先比對精確網址（含查詢參數），沒有才換成忽略查詢參數；ignoreSearch 會回清單中第一筆同頁快取，可能是舊的 canonical
+function matchCache(c, req) {
+  return c.match(req).then(function(hit) { return hit || c.match(req, { ignoreSearch: true }); });
+}
+
+// 頁面（HTML）先抓網路，有網路時一定拿到最新版；離線、4 秒沒回應或伺服器回 4xx/5xx 才用該頁既有快取
 function networkFirst(c, req) {
   var net = fetch(req).then(function(res) {
     if (res && res.ok) c.put(req, res.clone());
@@ -34,15 +39,16 @@ function networkFirst(c, req) {
   });
   var timeout = new Promise(function(resolve) { setTimeout(resolve, 4000); });
   return Promise.race([net, timeout]).then(function(res) {
-    return res || c.match(req, { ignoreSearch: true }).then(function(hit) { return hit || net; });
+    if (res && !(res.status >= 400)) return res;
+    return matchCache(c, req).then(function(hit) { return hit || res || net; });
   }).catch(function() {
-    return c.match(req, { ignoreSearch: true });
+    return matchCache(c, req);
   });
 }
 
 // 其他檔案（曆法、經文、圖示）先回快取、背景更新
 function cacheFirst(c, req) {
-  return c.match(req, { ignoreSearch: true }).then(function(hit) {
+  return matchCache(c, req).then(function(hit) {
     var net = fetch(req).then(function(res) {
       if (res && res.ok && new URL(req.url).origin === location.origin) c.put(req, res.clone());
       return res;

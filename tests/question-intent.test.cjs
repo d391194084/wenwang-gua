@@ -36,6 +36,14 @@ test('未知主體清除舊自動選擇並說明確認原因',()=>{
 test('手動選擇仍優先於需確認的問句',()=>{
  const rt=load('');rt.env.yongManual=true;rt.el('yongShen').value='兄弟';rt.el('question').value='他最近還好嗎';rt.env.autoPickYong();assert.equal(rt.el('yongShen').value,'兄弟');
 });
+test('吃完藥後問開車：自動取世且三分頁不再說車輛父母；手動選父母保持',()=>{
+ const q='我吃完藥了，我能開車嗎',rt=load('男');rt.el('question').value=q;rt.env.autoPickYong();
+ assert.equal(rt.el('yongShen').value,'世');assert(/吃完藥|出行|開車/.test(rt.env.yongAutoNote));assert(!/房屋|文書|車輛|證件/.test(rt.env.yongAutoNote));
+ const g=cast(rt,q,rt.el('yongShen').value),e=rt.env,text=[e.analysisHtml(g),e.teachingHtml(g),e.jieguaHtml(g)].join('\n').replace(/<[^>]+>/g,'');
+ assert(/吃完藥後出行/.test(text));assert(!/證件、文書、車輛取父母|房屋、車、文書消息取父母|房車文書/.test(text));
+ const manual=load('男');manual.env.yongManual=true;manual.el('yongShen').value='父母';manual.el('question').value=q;manual.env.autoPickYong();
+ assert.equal(manual.el('yongShen').value,'父母');
+});
 test('起卦後補選性別須實際套用用神才恢復分析',()=>{
  const rt=load(''),g=cast(rt,'前任會不會回頭找我',''),e=rt.env;
  assert(e.buildDetailedAnalysis(g).requiresConfirmation);rt.selected.gender='男';e.autoPickYong(true);

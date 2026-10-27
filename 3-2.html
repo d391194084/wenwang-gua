@@ -1067,6 +1067,7 @@
   /* ---------- 彈出視窗 ---------- */
 
   function openDialog(id) {
+    if (id === "dlgHistory") renderHistory(); // 其他分頁可能已新增或刪除紀錄，開啟前重新讀取
     var d = document.getElementById(id);
     if (d.showModal) d.showModal(); else d.setAttribute("open", "");
   }
@@ -1102,9 +1103,16 @@
     } catch (e) { /* 無法讀取本機儲存時沿用預設 */ }
   }
 
-  function saveSettings() {
+  // 只把這次改的欄位合併進最新保存的設定，避免另一個分頁剛改好的欄位被本分頁舊畫面蓋回
+  function saveSettings(field) {
     try {
-      localStorage.setItem(SETTINGS_KEY, JSON.stringify({ castMode: getRadio("castMode"), ziMode: getRadio("ziMode"), gender: getRadio("gender") }));
+      var value = getRadio(field);
+      if (value === null) return;
+      var saved = null;
+      try { saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) || "null"); } catch (e) { /* 損毀的設定當作沒有 */ }
+      if (!saved || typeof saved !== "object" || Array.isArray(saved)) saved = {};
+      saved[field] = value;
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify(saved));
     } catch (e) { /* 忽略 */ }
   }
 
@@ -1562,7 +1570,7 @@
   var CRYPTO_RE = /比特幣|以太幣|加密貨幣|虛擬貨幣/;
   var VACCINE_USE_RE = /(?:接種|施打|注射|打)[^，,。；;]{0,6}疫苗|疫苗(?:的)?(?:效力|效果|防護|保護力|副作用)/;
   function vaccineTreatment(q) {
-    return VACCINE_USE_RE.test(q) && !/工作|上班|應徵|應聘|公司|股票|投資/.test(q);
+    return VACCINE_USE_RE.test(q) && !/工作|上班|應徵|應聘|公司|股票|投資/.test(q) && !treatmentBackgroundOnly(q);
   }
   // 醫藥效用看主問（最後一句）有沒有問「藥、疫苗、治療有沒有效」；「我的」只是所有權，不代表問的是患者病況。
   var MEDICAL_EFFECT_RE = /(?:醫生|醫師|醫院|診所|醫療|治療|療程|藥物|藥|醫藥|疫苗)(?:的|之)?[^，,。；;]{0,6}?(?:效果|效力|效用|療效|有效|有用|防護|保護力)/;
@@ -1576,7 +1584,8 @@
     return isVaccineOrTreatmentEffect(q) && !/(?:去|到|往)[^，,。；;]{0,6}(?:買|購|採買|進貨)/.test(q);
   }
   // 疫苗接種安排、副作用、藥物效果問的是醫藥本身，不推定問的人已經生病；
-  // 主句明確問病情、病會不會好時才依患者病況（疫苗只是背景）。回傳 "effect" | "side" | "plan" | ""。
+  // 主句明確問病情、病會不會好時才依患者病況（疫苗只是背景）。回傳 "effect" | "side" | "plan" | ""；
+  // "after" 是已經吃了藥、末句問出門、旅遊、開車等行程：主問是行程，藥只是前提。
   var PATIENT_ASK_RE = /病情|病況|病勢|病痛|的病|病會|病能|病是否|病好|生病|患病|痊癒|康復|復原|好轉|恢復/;
   // 已經有明確症狀、末句問會不會好（退、緩解、治好…）時，主問是這個人的病況；疫苗、打針只是過去的背景。
   // 「接種後會不會發燒」只問會不會有反應（副作用），沒有問好轉，不算已生病。
@@ -1600,18 +1609,69 @@
     return symptomAt >= 0 && concernAt >= 0 && concernAt < symptomAt && !SYMPTOM_RE.test(lead) &&
       !EXISTING_ILL_RE.test(main) && !RECOVER_RE.test(main.replace(/惡化|加重|嚴重/g, ""));
   }
+  // 一般用藥（吃藥、服藥、藥的副作用）沿用疫苗接種的邊界：問的是用藥安排或可能的反應，不推定已經生病。
+  // 藥價、買藥費用、藥局生意、藥廠、公司名、工作等不是用藥主問。
+  var DRUG_USE_RE = /(?:吃|服用?|喝|擦|塗|敷|貼|用)[^，,。；;]{0,6}?(?:藥|藥物|藥丸|藥片|藥膏|膠囊|抗生素)|(?:藥|藥物|藥丸|藥片|藥膏|膠囊|抗生素)(?:的)?(?:副作用|不良反應|劑量|用量|服法)|(?:藥|藥物|藥丸|藥片|藥膏|膠囊|抗生素)[^，,。；;]{0,4}?(?:可以|可不可以|能不能|適合|該不該|要不要|還要|得)?(?:吃|服用|服)/;
+  var DRUG_EXCLUDE_RE = /工作|上班|應徵|應聘|公司|股票|投資|生意|藥(?:局|房|廠|商|材|價|費|學|業|妝|膳)|費用|多少錢|價格|價錢|貴|便宜|買藥|進貨|批貨|採購|開店/;
+  var PAST_DRUG_RE = /吃完|吃了|吃過|服用後|服完|服了|用完|用過|吃後|藥後|服藥後|吃藥後/;
+  // 前句自己有主詞地說「我吃完藥了、我明天吃藥、我明天去打疫苗」，末句卻換成另一個明說的人物、也沒有再問藥、疫苗、症狀或反應
+  // （朋友願不願意幫我）：用藥、接種只是背景，主問不是醫藥。前句沒有主詞（吃完這個藥，媽媽會不會嗜睡）時，
+  // 末句的人就是吃藥的人；末句仍有藥、疫苗、症狀、恢復等字詞，或同一個人物，也是承接前句的藥。用藥與疫苗共用這一條。
+  var MAIN_MEDICAL_RE = /藥|疫苗|接種|施打|注射|打針|治療|療程|副作用|不良反應|過敏|痛|腫|癢|痠/;
+  // 主問問的是車輛本身（這輛車能不能開、煞車修好了沒）：人自己開車、騎車、搭車不算，暈車是身體反應也不算；用藥、疫苗只是背景。
+  var VEHICLE_COND_RE = /維修|修理|修好|修得好|故障|煞車|剎車|車況|修車|保養|引擎|檢驗/;
+  function vehicleThingAsk(main) {
+    var rest = String(main || "").replace(/(?:開|駕|搭|坐|乘|騎)[^，,。；;？?！!]{0,3}?車|自駕/g, "");
+    return VEHICLE_COND_RE.test(rest) || /(?<!暈)車(?!禍)/.test(rest);
+  }
+  function treatmentBackgroundOnly(q) {
+    var clauses = String(q || "").split(/[，,。；;]/).filter(function(t) { return t.trim(); });
+    if (clauses.length < 2) {
+      var bare = (clauses[0] || "").replace(new RegExp(DRUG_USE_RE.source, "g"), "").replace(new RegExp(PAST_DRUG_RE.source, "g"), "");
+      return !MAIN_MEDICAL_RE.test(bare) && !SYMPTOM_RE.test(bare) && !RECOVER_RE.test(bare) && !PATIENT_ASK_RE.test(bare) && vehicleThingAsk(bare);
+    }
+    var main = clauses[clauses.length - 1], lead = clauses.slice(0, -1).join("，");
+    if (MAIN_MEDICAL_RE.test(main) || SYMPTOM_RE.test(main) || RECOVER_RE.test(main) || PATIENT_ASK_RE.test(main)) return false;
+    if (vehicleThingAsk(main)) return true;
+    if (!/我/.test(lead) && !personRule(lead) && !YONG_OTHERS.re.test(lead)) return false;
+    var who = personRule(main, true), other = YONG_OTHERS.re.exec(main), actor = who ? who.text : other ? other[0] : "";
+    return !!actor && lead.indexOf(actor) < 0;
+  }
+  function drugUse(q) {
+    q = String(q || "");
+    return DRUG_USE_RE.test(q) && !DRUG_EXCLUDE_RE.test(q) && !treatmentBackgroundOnly(q);
+  }
+  // 末句還在問（尚未發生的）疫苗、用藥安排本身；已吃完的藥只是背景。
+  function treatmentPlanMain(main) {
+    return vaccinePlanMain(main) || (/藥/.test(main) && !PAST_DRUG_RE.test(main));
+  }
   function medicalMatter(q) {
     q = String(q || "");
     var clauses = q.split(/[，,。；;]/).filter(function(t) { return t.trim(); });
     var main = clauses.length ? clauses[clauses.length - 1] : "", lead = clauses.slice(0, -1).join("，");
     if (isVaccineOrTreatmentEffect(q)) return "effect";
-    if (!vaccineTreatment(q)) return "";
+    var vaccine = vaccineTreatment(q);
+    if (!vaccine && !drugUse(q)) return "";
     if (/副作用|不良反應/.test(main)) return "side";
     if (symptomHypothetical(main, lead)) return "side";
-    if (RECOVER_RE.test(main) && (SYMPTOM_RE.test(main) || SYMPTOM_RE.test(lead)) && !vaccinePlanMain(main)) return "";
+    if (RECOVER_RE.test(main) && (SYMPTOM_RE.test(main) || SYMPTOM_RE.test(lead)) && !(vaccine ? vaccinePlanMain(main) : treatmentPlanMain(main))) return "";
     if (PATIENT_ASK_RE.test(main)) return "";
     if ((SYMPTOM_RE.test(main) || /痛|腫|癢|痠/.test(main)) && REACTION_ASK_RE.test(main) && !RECOVER_RE.test(main)) return "side";
+    if (!vaccine) {
+      if (afterDrugActivity(q) && !RECOVER_RE.test(main)) return "after";   // 吃完藥後問出門、旅遊、開車：主問是行程，不是用藥安排
+      if (PAST_DRUG_RE.test(q) && REACTION_ASK_RE.test(main) && !RECOVER_RE.test(main) && !SYMPTOM_RE.test(lead)) return "side";
+      if (RECOVER_RE.test(main)) return "";   // 吃這個藥會不會好：問病況或療效，不是用藥安排
+    }
     return "plan";
+  }
+  // 問尚未發生的健康風險（會不會生病、感冒）：末句沒有說已經生病、也沒有問好轉；前句已有症狀則是病況，疫苗、用藥另有醫藥主問。
+  var HEALTH_RISK_RE = /(?:會不會|是否會|有沒有可能|有無可能|有機會|容易|可能會|將會|會)(?:不|有)?(?:生病|患病|得病|染病|感冒|發燒|被傳染|被感染)|(?:生病|患病|得病|感冒|感染)(?:的)?(?:機率|風險|機會|可能)/;
+  function futureHealthAsk(q) {
+    q = String(q || "");
+    var clauses = q.split(/[，,。；;]/).filter(function(t) { return t.trim(); });
+    var main = clauses.length ? clauses[clauses.length - 1] : "", lead = clauses.slice(0, -1).join("，");
+    return HEALTH_RISK_RE.test(main) && !/生病了|病了|感冒了|發燒了|已經|病情|病況|病勢|的病|好轉|康復|痊癒|恢復|退燒|治好|會好|能好/.test(main) &&
+      !SYMPTOM_RE.test(lead) && !vaccineTreatment(q) && !drugUse(q);
   }
   // 主問（末句）問「要不要看醫生、需不需要去醫院」：問的是就醫與否，不是接種、療效或病情；
   // 去醫院打疫苗（接種安排）、探病、上班等不算。卦象不能決定要不要就醫，三分頁共用同一句交代，不憑判詞指示去或不去。
@@ -1628,12 +1688,22 @@
   function weatherAsk(q) {
     var clauses = String(q || "").replace(/以(?:父母|兄弟|子孫|妻財|官鬼)為用/g, "").split(/[，,。；;]/).filter(function(t) { return t.trim(); });
     var main = clauses.length ? clauses[clauses.length - 1].trim() : "";
-    if (!/(?:下雨|下雪|降雨|放晴|晴天)[嗎呢？?。\s]*$/.test(main)) return "";
-    return /放晴|晴天/.test(main) ? "clear" : /下雪/.test(main) ? "snow" : "rain";
+    if (!/(?:下雨|下雪|降雨|放晴|晴天)[嗎呢？?。\s]*$/.test(main) && !RAIN_DEGREE_RE.test(main)) return "";
+    return /放晴|晴天/.test(main) ? "clear" : /雪/.test(main) ? "snow" : "rain";
   }
+  // 問雨勢、雨量、會不會下大雨（大雪）：主問仍是天氣，旅遊、出遊只是背景；「淋雨會生病嗎」這類不算。
+  var RAIN_DEGREE_RE = /(?:(?:會|會不會|是否|有沒有|將)?下得?(?:很|太|超)?(?:大雨|暴雨|豪雨|傾盆大雨|大雪|小雨|毛毛雨|很大的雨|很大的雪)|雨(?:勢|量)?(?:會|將|會不會|是否|有沒有)?(?:下得|變得|變|下)?(?:很|太|更|特別|有點|越來越)?(?:大|小|多|少|強|猛|久|急)(?:不大|不小|不多)?|雨(?:勢|量)(?:如何|怎樣|怎麼樣|多少|有多大)|雪(?:勢|量)(?:如何|怎樣|怎麼樣|大不大))[嗎呢吧？?。\s]*$/;
   // 主問（末句）是出門、旅遊、出國等行程的平安或順利：前句的天氣、颱風只是背景。
   // 行程字詞要直接接平安、順利，並且到句尾為止；「出國的簽證順利嗎」「出國工作順利嗎」「出國能順利拿到簽證嗎」是文件、工作的主問，不算。
   var TRIP_WORD_RE = /出門|出遠門|旅遊|旅行|出國|出遊|出差/;
+  var TRAVEL_MODE_RE = /開車|騎(?:機)?車|自駕|駕車|搭船|搭飛機|搭機|搭車|通勤|轉機|出行/;
+  // 已經吃了藥（吃完藥了、吃藥後）、末句問的是出門、旅遊、開車等行程：藥只是前提，主問是這個行程。
+  // 去掉末句裡的「吃完藥」字詞後仍有行程字詞才算；末句仍問藥的反應、症狀或好轉，維持原本的醫藥判斷。
+  function afterDrugActivity(q) {
+    var clauses = String(q || "").split(/[，,。；;]/).filter(function(t) { return t.trim(); });
+    var main = (clauses.length ? clauses[clauses.length - 1] : "").replace(new RegExp(DRUG_USE_RE.source, "g"), "");
+    return PAST_DRUG_RE.test(q) && (TRIP_WORD_RE.test(main) || TRAVEL_MODE_RE.test(main));
+  }
   var TRIP_SAFE_RE = /(?:出門|出遠門|旅遊|旅行|出國|出遊|出差)(?:之旅|行程|期間|途中|一路|的時候|時)?的?(?:會不會|能不能|能否|是否|可否|能|會|可以|都)?(?:一路|全程)?(?:平安(?:無事)?|安全|順利)(?:回來|到達|抵達)?[嗎呢吧啊呀？?。！!\s]*$/;
   function fertilityTreatment(q) {
     return /試管(?:嬰兒|療程)|胚胎植入|人工受孕/.test(q) && !/實驗室|採購|器材|股|投資|公司|工作|費用|退費|退款/.test(q);
@@ -1697,6 +1767,8 @@
       var helper = actor(main, "");
       return helper ? result(helper, "", "主問對方肯不肯幫忙，找東西只是請對方幫的事，取對方的六親") : unknown("");
     }
+    // 本人明確表態要離職或要留任：親友的希望、勸說只是背景，主問是自己的工作去留（沒有他人時仍走原有的離職、工作字詞）。
+    if ((person || YONG_OTHERS.re.test(q)) && ownJobDecision(q)) return result("官鬼", "名", "本人已表明要離職或要留任，主問是自己的工作去留，親友的意見只是背景，取官鬼");
     // 「最近」「很差」「會好起來」只是時間與泛用結果：要有明確的心情、近況等主題才算近況題；
     // 主題在前句時，主問必須只剩泛用結果；只有「最近」時，全句除了人物與泛用結果不能另有事物主題（生意等）。
     function plainStateAsk(text) {
@@ -1710,12 +1782,30 @@
       var av = /^我|我自己/.test(main) ? "世" : actor(main, person ? person.value : "世");
       return av ? result(av, "", "主問本人或親友近況心情，不推定超自然原因") : unknown("");
     }
-    var travel = /開車|騎(?:機)?車|自駕|駕車|搭船|搭飛機|搭機|搭車|通勤|轉機|出行/.exec(q);
+    // 問尚未發生的健康風險：背景人物（爸爸在醫院工作、朋友失業）不蓋過末句所指的人，也不推定已經生病。
+    if (futureHealthAsk(q)) {
+      var mainPerson = personRule(main), rv = mainPerson ? mainPerson.value : /我/.test(main) ? "世" : actor(main, person ? person.value : "世");
+      return rv ? result(rv, "病", "主問尚未發生的健康風險，不推定已經生病；背景人物不代替末句所指的人") : unknown("病");
+    }
+    var travel = TRAVEL_MODE_RE.exec(q);
     if (travel && /平安|安全|順利|小心|出事|趕得上|趕上/.test(main) && !/維修|故障|煞車|車況|修車|保養/.test(main) &&
       !/賺|費用|退款|理賠|投資|買|賣|錄取|工作結果/.test(main)) {
       var subject = clauses.length > 1 && /我|他|她|媽媽|爸爸|朋友|哥|弟|姐|妹|對方/.test(main) ? main : q.slice(0, travel.index);
       var av = actor(subject, "世");
       return av ? result(av, "行", "主問出行平安或行程，不以車輛或天氣背景取用") : unknown("行");
+    }
+    // 已吃完藥、末句問開車、騎車等出行（medicalMatter 判為 after）：主問是這個人的這趟出行，「車」字不代表在問車輛。
+    // 主體看末句；末句沒說誰，就看說吃藥的那一句；他／她沒有前文時交由 actor 要求確認。末句問車況（煞車、維修）時仍照車輛取用。
+    if (medicalMatter(q) === "after") {
+      var afterMain = main.replace(new RegExp(DRUG_USE_RE.source, "g"), ""), afterMode = TRAVEL_MODE_RE.exec(afterMain);
+      if (afterMode) {
+        var afterSubject = afterMain.slice(0, afterMode.index);
+        if (!(/我|(?<!其)[他她]|對方|別人|有人/.test(afterSubject) || personRule(afterSubject) || YONG_OTHERS.re.test(afterSubject))) {
+          afterSubject = clauses.slice(0, -1).filter(function(t) { return PAST_DRUG_RE.test(t); })[0] || "";
+        }
+        var afterWho = actor(afterSubject, "世");
+        return afterWho ? result(afterWho, "病", "已吃完藥、主問是這個人的出行或開車，藥只是前提，用神依這個人取") : unknown("病");
+      }
     }
     // 主問是出門、旅遊、出國的平安或順利：旅行者看末句所指的人；末句沒有指明人、前句另有親友，或旅行者是另一半、夫妻時，交回人物規則，不在這裡取世。
     var tripSubject = TRIP_SAFE_RE.test(main) ? main.slice(0, main.search(TRIP_WORD_RE)) : null;
@@ -1761,7 +1851,7 @@
     var otherOutcome = /應徵|錄取|職缺|工作|上班|面試|申請書|合約|文件/.test(main);
     // 主問是費用退款等金流結果時，孕產只是背景，不能因此取子孫
     var moneyResult = !otherOutcome && INTENT_MONEY_RE.test(main) && moneyGoal;
-    if ((becomeParent || birthTopic(q, /懷孕|懷上|受孕|孕婦|產婦|(?<!輪|備|爆)胎|求子|出生|預產|流產|坐月子|生小孩/) ||
+    if ((becomeParent || birthTopic(q, /懷孕|懷上|受孕|孕婦|產婦|(?<!輪|備|爆)胎|求子|出生|預產|分娩|臨盆|流產|坐月子|生小孩|生寶寶|生孩子/) ||
         /懷的是|懷的男|懷的女|生育|生子|生女|男生還是女生|女生還是男生/.test(q) || fetalGender) && !/懷念|懷舊/.test(q) && !moneyResult) {
       return result("子孫", "胎", "主問胎兒性別或分娩方式取子孫");
     }
@@ -1922,8 +2012,8 @@
     var money = /錢|款項|貨款|資金|投資|股|基金|回本|借|欠|債|貸|生意|開店/.test(q);
     var job = JOB_STATUS_RE.test(q) || /工作|上班|職位|職場|升職|升遷|晉升|面試|求職|轉職|調動|事業|應聘|應徵|公司/.test(q);
     var T = {
-      胎: { test: function(t) { return fertilityTreatment(t) || birthTopic(t, /懷孕|懷上|受孕|有孕|孕婦|產婦|(?<!輪|備|爆)胎|求子|出生|預產|流產|坐月子|生小孩|有孩子|生孩子|子女緣/); } },
-      病: { test: function(t) { return vaccineTreatment(t) || medicalEffectTopic(t) || /病|疾|手術|開刀|住院|健康|身體|痊癒|失眠|疼痛|頭痛|牙痛|胃痛|感冒|發燒|癌|腫瘤|看醫生|就醫|醫治/.test(t); } },
+      胎: { test: function(t) { return fertilityTreatment(t) || birthTopic(t, /懷孕|懷上|受孕|有孕|孕婦|產婦|(?<!輪|備|爆)胎|求子|出生|預產|分娩|臨盆|流產|坐月子|生小孩|生寶寶|有孩子|生孩子|子女緣/); } },
+      病: { test: function(t) { return vaccineTreatment(t) || medicalEffectTopic(t) || drugUse(t) || /病|疾|手術|開刀|住院|健康|身體|痊癒|失眠|疼痛|頭痛|牙痛|胃痛|感冒|發燒|癌|腫瘤|看醫生|就醫|醫治/.test(t); } },
       訟: /官司|訴訟|起訴|提告|被告|告(他|她|對方|我|人)|判決|判刑|仲裁|坐牢|牢獄|入獄|糾紛|犯罪|罪名|有罪|無罪/,
       尋: /走失|失物|遺失|找回|尋人|尋物|下落|何時回|什麼時候回|回來|歸期|不見|弄丟|掉了|被偷|失竊|在哪/,
       行: /出差|出遊|旅遊|旅行|出國|出門|出行|搬家|搬寢室|搬宿舍|回老家|成行/,
@@ -2069,7 +2159,7 @@
       kong: timeInfo.xunKong.indexOf(branch) >= 0, yuePo: false, riPo: false, anDong: false,
       heBan: false, chongSan: false, riHe: false, yueHe: false, ruMu: [], jue: false,
       stage: stageOf(el, dz), chgTags: [], fuYin: false, kongType: "", poType: "", muType: "",
-      mdScore: 0, actSheng: [], actKe: [], actShengIdx: [], actKeIdx: [], poRescue: "", dayKe: false
+      mdScore: 0, actSheng: [], actKe: [], actShengIdx: [], actKeIdx: [], poRescue: "", dayKe: false, anWhy: ""
     };
     function add(text, delta, kind) {
       a.parts.push({ text: text, delta: delta });
@@ -2160,6 +2250,7 @@
           var anWhy = opt.anDong !== undefined ? opt.anDong : anDongReason(branch, opt.actors);
           if (anWhy) {
             a.anDong = true;
+            a.anWhy = anWhy;
             if (a.stage === "墓") a.parts.push({ text: "被日辰" + dz + "沖動（" + anWhy + "），但入日墓，暫失生剋之權，不論暗動之力", delta: 0 });
             else add("被日辰" + dz + "沖動：" + anWhy + (opt.idx === -1 ? "，伏神逢日沖短期可沖起（伏神不能生剋他爻）" : "，靜爻逢日沖為暗動，能生剋他爻"), 0.5, "");
           } else {
@@ -2178,6 +2269,7 @@
     // 旺相靜爻被動爻沖，短期論暗動（第 50、62 集）
     if (!a.moving && !a.anDong && opt.anDong && !isClash(branch, dz)) {
       a.anDong = true;
+      a.anWhy = opt.anDong;
       if (a.stage === "墓") a.parts.push({ text: opt.anDong + "；但入日墓，暫失生剋之權", delta: 0 });
       else add(opt.anDong, 0.5, "");
     }
@@ -2650,10 +2742,72 @@
     return out;
   }
 
+  // 產期主問：問生產、出生的日期或時間；「已經懷孕了」只是背景，何時懷孕、有沒有孩子不算
+  function birthTimingAsk(q) {
+    var t = q.replace(/(?<!(?:何時|什麼時候|幾時|哪天|哪一天|哪個月|幾月)[^，。；？?]{0,4})(?:已經|已|現在|目前)?(?:懷孕|懷上|有孕)了?/g, "");
+    if (/有孩子|懷孕|懷上/.test(t)) return false;
+    var plainT = t.replace(/產檢|產假|產後|產婦|產品|生日|生病|生活|生意|生氣|生命|學生|醫生|先生|衛生|生理|生效|生長|生存|生物|生態/g, "");
+    var word = t === q ? /生|產|分娩|臨盆/ : /生產|分娩|臨盆|出生|生下|預產|順產|剖腹|生寶寶|生小孩/;
+    return (/何時|什麼時候|幾時|哪天|哪一天|哪個月|幾月|幾號|什麼日期|哪個日期|什麼時間|預產|出生時間/.test(t) && word.test(plainT)) ||
+      /(?:生產|分娩|臨盆|出生)(?:的)?(?:日期|時間|日子)(?!會?(?:很|太)?(?:久|長|短)|.{0,2}多久)|(?:幾月|哪個月|幾號|哪一天)(?:會|能|要|將|可以)?(?:出生|生產|分娩|臨盆|生下)/.test(t);
+  }
+  // 主問是「有沒有懷孕」：問句出現在末句，或該句本身就是疑問；「我已經懷孕了，胎兒平安嗎」的懷孕只是背景，不算。
+  var PREGNANCY_ASK_RE = /是否懷孕|有沒有懷孕|懷孕了|懷上|有孕|受孕|是不是懷孕|有喜/;
+  function pregnancyAsk(q) {
+    if (!PREGNANCY_ASK_RE.test(q) || /何時|什麼時候|幾時/.test(q) || birthTimingAsk(q)) return false;
+    var clauses = String(q || "").split(/[，,。；;！!？?]/).map(function(t) { return t.trim(); }).filter(Boolean);
+    if (clauses.length < 2) return true;
+    return clauses.some(function(cl, i) { return PREGNANCY_ASK_RE.test(cl) && (i === clauses.length - 1 || /是否|是不是|有沒有|嗎|呢|吧/.test(cl)); });
+  }
+
+  // 問離職（要反看）還是想留任：先看本人最後表態的一句，他人「希望我…、勸我…」只是背景；
+  // 本人沒有表態時，整句還原「要不要離職」、拿掉被否定的離職字詞後，仍有離職字詞才算問離職。
+  var QUIT_WORD_RE = /(辭職|離職|辭呈|退休|裸辭)(?!後|之後|以後)|離開(公司|工作|職場|這份)/;
+  var QUIT_NEG_RE = /(?:不|沒有?|別|莫|勿|避免|免於|免得)(?:想|要|用|必|須|會|能|可以|願意|打算|被|被迫|遭到?|遭受|得)*(?:辭職|離職|辭呈|退休|裸辭|離開(?:公司|工作|職場|這份))/g;
+  var STAY_WORD_RE = /留任|留下|留在(?:公司|原公司|原單位|這裡|這份)|繼續(?:做|工作|上班|待)|保住(?:這份)?工作|做得下去|做下去/;
+  var OTHERS_OPINION_RE = /(?:希望|期望|期待|要求|建議|勸|叫|逼|想要|想叫|想讓|讓|要|說|請|不讓|不准|不許|反對|不贊成|不同意|不支持|不答應|不允許)我/;
+  // 他人明說態度的陳述句（「但媽媽反對」「爸媽都不贊成」）：句首就是那個人、緊接態度字詞、沒有我，也不是問句。
+  // 「說服媽媽同意」「媽媽同意嗎」的人物不在句首或是問句，仍是本人的行動或主問。
+  var othersStanceRe = null;
+  function othersStance(cl) {
+    if (!othersStanceRe) {
+      var people = YONG_PEOPLE.map(function(p) { return p.re.source; }).concat(YONG_OTHERS.re.source, "大家|家人|親友|別人|他們|她們|所有人").join("|");
+      othersStanceRe = new RegExp("^(?:但是?|可是|不過|只是|卻|而)?(?:我(?:的|家)?)?(?:" + people + ")+(?:都|也|還|卻|一直|堅決|強烈)*不?(?:反對|贊成|同意|支持|答應|允許)(?:了|的)?$");
+    }
+    return othersStanceRe.test(cl);
+  }
+  function quitClean(t) { return t.replace(/(想|要|能|會|可以|可|該|應|應該|願意|願|敢|肯|需要|需|必)不\1/g, "$1"); }
+  // 本人最後表態的子句：quit 為想離職或想留任；last 表示它是最後一個本人子句（之後沒有別的本人問句）。
+  function ownJobStance(q) {
+    var own = String(q || "").split(/[，,。；;！!？?]/).map(function(t) { return t.trim(); }).filter(function(cl) {
+      return cl && !(OTHERS_OPINION_RE.test(cl) && !/^我(?:自己|本人)?(?:希望|期望|期待|想要)/.test(cl)) && !othersStance(cl) && !/^(?:還是|或是|或者)/.test(cl);
+    });
+    for (var i = own.length - 1; i >= 0; i--) {
+      var c = quitClean(own[i]), kept = c.replace(QUIT_NEG_RE, "");
+      if (QUIT_WORD_RE.test(kept)) return { quit: true, last: i === own.length - 1, clause: own[i] };
+      if (kept !== c || STAY_WORD_RE.test(c)) return { quit: false, last: i === own.length - 1, clause: own[i] };
+    }
+    return null;
+  }
+  function quitJobAsk(q) {
+    var stance = ownJobStance(q);
+    return stance ? stance.quit : QUIT_WORD_RE.test(quitClean(String(q || "")).replace(QUIT_NEG_RE, ""));
+  }
+  // 本人明確表態要離職或要留任（最後一句本人子句，且不是別人的事）時，主問是自己的工作去留，
+  // 他人「希望我…、勸我…」只是背景；用神、事類與 quitJobAsk 的方向共用同一個判斷。
+  // 表態句要明說「我」（省略主詞時可能承接前句的親友，如「長輩已辦退休，想問…離職」）；單說「想留下」要全句另有離職或工作字詞；
+  // 表態句本身提到別的人物或他她，仍照人物規則。
+  function ownJobDecision(q) {
+    var stance = ownJobStance(q);
+    if (!stance || !stance.last || !/我/.test(stance.clause)) return false;
+    if (personRule(stance.clause) || YONG_OTHERS.re.test(stance.clause) || /(?<!其)[他她]/.test(stance.clause)) return false;
+    return stance.quit || QUIT_WORD_RE.test(q) || /工作|上班|公司|職場|職位/.test(q);
+  }
+
   // 各類占事的專門斷法與靜卦斷法（安易芳《六爻中級課程》第 40–96 集）
   // 回傳要併入總斷的有利、不利、現況，分數調整（delta、cap 上限、floor 下限、replace 改以此分數為準），以及說明與白話
   function categoryRules(c) {
-    var r = { favor: [], against: [], neutral: [], delta: 0, cap: null, floor: null, staticCap: null, staticFloor: null, replace: null, effort: false, keepUseless: false, advice: "", verdictText: "", timing: null, notes: [], plain: [] };
+    var r = { favor: [], against: [], neutral: [], delta: 0, cap: null, floor: null, staticCap: null, staticFloor: null, replace: null, effort: false, keepUseless: false, advice: "", verdictText: "", timing: null, notes: [], plain: [], decide: null };
     var gua = c.gua, A = c.A, f = c.focus, shi = c.shiA, ying = c.yingA, q = c.q, cat = c.cat;
     var mz = timeInfo.monthZhi, dz = timeInfo.dayZhi;
     function note(t, tone) { r.notes.push({ text: t, tone: tone || "" }); }
@@ -2705,7 +2859,7 @@
 
     // ---------- 靜卦斷法（第 40–44 集）：只用於自占 ----------
     var selfAsk = (!personRule(q) || dealClosingQuestion(q)) && sel !== "應" && sel !== "世";
-    var askPregnant = cat === "胎" && /是否懷孕|有沒有懷孕|懷孕了|懷上|有孕|受孕|是不是懷孕|有喜/.test(q) && !/何時|什麼時候|幾時/.test(q);
+    var askPregnant = cat === "胎" && pregnancyAsk(q);
     var lostQ = isLostItem(q);
     if (c.activeCount === 0 && selfAsk && onGua && !askPregnant) {
       var ttl = "靜卦（自占）";
@@ -2751,9 +2905,11 @@
         if (p[1].kong && sel !== p[0]) { r.against.push(p[0] + "爻旬空：" + p[2] + "誠意不足（感情卦中影響很大，旺空也一樣）"); r.delta -= 0.5; }
       });
       if (sel !== "應" && onGua && c.yongPick && c.yongPick.idx !== gua.ying && odd(ying) && !odd(f)) {
-        r.neutral.push("應爻有異（" + [ying.moving ? "發動" : ying.anDong ? "暗動" : "", ying.kong ? "旬空" : "", ying.yuePo ? "月破" : "", ying.riPo ? "日破" : "", ying.ruMu.length ? "入墓" : ""].filter(Boolean).join("、") +
-          "），用神平常：依課程以應爻（對方）判成敗，應爻「" + ying.level + "」");
+        var yingNote = "應爻有異（" + [ying.moving ? "發動" : ying.anDong ? "暗動" : "", ying.kong ? "旬空" : "", ying.yuePo ? "月破" : "", ying.riPo ? "日破" : "", ying.ruMu.length ? "入墓" : ""].filter(Boolean).join("、") +
+          "），用神平常：依課程以應爻（對方）判成敗，應爻「" + ying.level + "」";
+        r.neutral.push(yingNote);
         r.replace = ying.useless ? -3.5 : ying.score;
+        r.decide = { kind: "ying", texts: [yingNote] };
       }
       if (c.tanSheng && r.replace === null) { r.neutral.push("感情卦不能用動爻接續相生斷吉，貪生忘剋的加分不計"); r.delta -= 1.5; }
       var syBad = chong(shi, ying) || ke(shi, ying) || ke(ying, shi);
@@ -2892,8 +3048,8 @@
     if (cat === "胎") {
       var ziEl = elementOfRelative(gua.palace.element, "子孫");
       var taiZ = TAI_ZHI[ziEl];
-      var askPreg = /是否懷孕|有沒有懷孕|懷孕了|懷上|有孕|受孕|是不是懷孕|有喜/.test(q) && !/何時|什麼時候|幾時/.test(q);
-      var askBirth = /何時|什麼時候|幾時|哪天|預產|出生時間/.test(q) && /生|產/.test(q) && !/有孩子|懷孕|懷上/.test(q);
+      var askBirth = birthTimingAsk(q);
+      var askPreg = pregnancyAsk(q);
       var askChild = /何時|什麼時候|幾時|能不能|會不會|有沒有/.test(q) && /有孩子|懷孕|懷上|求子|生小孩|子女/.test(q);
       if (askPreg) {
         var tai = A.lines.filter(function(a) { return a.branch === taiZ; }).sort(function(p, s) { return s.score - p.score; })[0];
@@ -2905,23 +3061,28 @@
           if (a.idx === 1 && A.actors.some(function(m) { return isClash(m.branch, a.branch); })) w.push("在胎位被動爻沖");
           return w;
         };
-        var preg, why;
-        if (tai) { why = hurt(tai); preg = !why.length; note("問是否懷孕看胎爻（子孫屬" + ziEl + "，胎在" + taiZ + "）：" + tai.name + "上卦" + (preg ? "，沒有空破墓絕、回頭剋" : "，但" + why.join("、")) + "。"); }
-        else if (taiZ === mz || taiZ === dz) { preg = true; note("胎爻" + taiZ + "不上卦，但臨" + (taiZ === mz ? "月建" : "日辰") + "，也算有。"); }
-        else { preg = false; note("胎爻" + taiZ + "不上卦，論沒有懷孕。"); }
+        var preg, why, taiNote, taiSay;
+        if (tai) { why = hurt(tai); preg = !why.length; taiSay = preg ? "代表胚胎的「胎爻」有出現、沒有受損，顯示有懷孕的跡象。" : "代表胚胎的「胎爻」雖然在卦上，但" + why.join("、") + "，已經受損，顯示目前沒有懷孕的跡象。"; taiNote = "問是否懷孕看胎爻（子孫屬" + ziEl + "，胎在" + taiZ + "）：" + tai.name + "上卦" + (preg ? "，沒有空破墓絕、回頭剋" : "，但" + why.join("、")) + "。"; }
+        else if (taiZ === mz || taiZ === dz) { preg = true; taiSay = "代表胚胎的「胎爻」雖然沒有在卦上出現，但剛好是這個" + (taiZ === mz ? "月的月建" : "日的日辰") + "，依規則也算有，顯示有懷孕的跡象。"; taiNote = "胎爻" + taiZ + "不上卦，但臨" + (taiZ === mz ? "月建" : "日辰") + "，也算有。"; }
+        else { preg = false; taiSay = "代表胚胎的「胎爻」沒有出現在卦上，月建、日辰也不是它，顯示目前沒有懷孕的跡象。"; taiNote = "胎爻" + taiZ + "不上卦，論沒有懷孕。"; }
+        note(taiNote);
         note("問是否懷孕以胎爻為主、子孫只作參考（老師自己驗證過的方法，和古書看法不同），約可解決八成的懷孕卦。");
+        r.decide = { kind: "pregnancy", texts: [taiNote] };
         r.replace = preg ? 2.5 : -3.5;
         r.keepUseless = true;
         r.advice = preg ? "有懷孕的跡象，建議到醫院確認。" : "目前看不出懷孕的跡象。";
         r.timing = [{ text: "本題以胎爻判斷是否懷孕，沒有推算受孕或生產日期。", tone: "note" }];
-        say(preg ? "代表胚胎的「胎爻」有出現、沒有受損，顯示有懷孕的跡象。" : "代表胚胎的「胎爻」沒有出現或已受損，顯示目前沒有懷孕的跡象。", preg ? "good" : "bad");
+        say(taiSay, preg ? "good" : "bad");
       } else if (askBirth) {
-        note("問產期只斷應期，不必論吉凶。胎產宜沖：子孫或妻財逢沖多順產，逢合多難產或剖腹；臨產時子孫臨白虎不必擔心。");
+        var birthNote = "問產期只斷應期，不必論吉凶。胎產宜沖：子孫或妻財逢沖多順產，逢合多難產或剖腹；臨產時子孫臨白虎不必擔心。";
+        note(birthNote);
+        r.decide = { kind: "birth", texts: [birthNote], weak: null };
         var bd = [clashOf(shi.branch) + "日（世爻逢沖）"];
         if (isWeakLv(f.level)) {
           var birthSupport = uniq(zhisOfEl(findKey(ELEM_GEN, f.el)).concat(zhisOfEl(f.el))).filter(function(z) { return z !== clashOf(f.branch); });
           bd = bd.concat(birthSupport.map(function(z) { return z + "日（生旺子孫）"; }));
           note("子孫太衰，沖它的日子沖不起，改取生它、讓它旺起來的日子（" + birthSupport.join("、") + "日）。");
+          r.decide.weak = { clash: clashOf(f.branch), days: birthSupport };
         } else bd.unshift(clashOf(f.branch) + "日（子孫逢沖）");
         var cai2 = ofRel("妻財")[0];
         if (cai2) bd.push(clashOf(cai2.branch) + "日（妻財逢沖）");
@@ -3036,8 +3197,9 @@
     if (cat === "病") {
       var gui2 = ofRel("官鬼");
       // 接種安排、副作用問的是醫藥，不推定問的人有病位或病勢（效果題沿用原本的醫藥效用處理）
-      var medKind = medicalMatter(q), medArr = medKind === "plan" || medKind === "side";
-      if (sel === "世" && !medArr) {
+      // 問用藥、疫苗、治療的安排、副作用、效果，或問尚未發生的健康風險：不推定問的人已有病位、病勢，手選世爻也不改寫成自己有病
+      var medKind = medicalMatter(q), noPatient = !!medKind || futureHealthAsk(q);
+      if (sel === "世" && !noPatient) {
         if (shi.rel === "官鬼") {
           if (isStrongLv(shi.level)) r.against.push("官鬼（病）持世又旺：病纏在身、較重");
           else if (shi.kong || isWeakLv(shi.level)) r.favor.push("官鬼持世但衰或空：病不重");
@@ -3047,11 +3209,11 @@
         gui2.forEach(function(a) {
           if (act(a) && a.idx !== gua.shi && (hits(keBy(shi), a) || chong(a, shi))) { r.against.push(a.name + "（病）發動來沖剋世爻：大忌"); r.delta -= 1; }
         });
-      } else if ((sel === "官鬼" || sel === "父母") && !medArr) {
+      } else if ((sel === "官鬼" || sel === "父母") && !noPatient) {
         note("占" + (sel === "官鬼" ? "丈夫" : "長輩") + "的病：官鬼是" + (sel === "官鬼" ? "用神" : "原神") + "，宜旺不宜衰（衰代表免疫力、後勁不足），病改看忌神。");
       }
-      var illSelf = sel === "世" && shi.rel === "官鬼" && !medArr;   // 反看：世爻就是病
-      var medEffect = !!medKind && !illSelf;   // 問藥、疫苗或治療的安排、副作用與效果，不推定問的人已有病位
+      var illSelf = sel === "世" && shi.rel === "官鬼" && !noPatient;   // 反看：世爻就是病
+      var medEffect = noPatient && !illSelf;
       if (!illSelf && !medEffect && c.yuan.some(function(y) { return c.damagedYuan(y).length; })) note("原神（免疫力、抵抗力）受傷：多主神經、思想、頭部方面的毛病。");
       var pt = medEffect ? null : sel === "世" ? shi : onGua ? f : null;
       if (pt) {
@@ -3172,10 +3334,10 @@
     var cat = questionCategory(roles ? roles.sel : "");
     // 疫苗接種安排、副作用、藥物效果：問醫藥本身，不當成患者病況；天氣主問沒有專門的晴雨判斷
     var medKind = medicalMatter(effectiveQuestion(document.getElementById("question").value));
-    var medArr = medKind === "plan" || medKind === "side";
+    var healthRisk = futureHealthAsk(effectiveQuestion(document.getElementById("question").value));   // 尚未發生的健康風險，不當成已有病情
     var weather = weatherAsk(effectiveQuestion(document.getElementById("question").value));
     var care = careAsk(effectiveQuestion(document.getElementById("question").value));
-    var catName = cat === "病" && medKind ? "醫藥" : CAT_NAMES[cat];
+    var catName = cat === "病" && medKind ? (medKind === "after" ? "吃藥後出行" : "醫藥") : CAT_NAMES[cat];
     var spirits = getSixSpirits();
     var mz = timeInfo.monthZhi, dz = timeInfo.dayZhi;
     var sections = [];
@@ -3229,7 +3391,7 @@
       return uniq(why);
     }
     // 疾病自占、官鬼持世：子孫剋世是醫藥剋去病，不當忌神（第 41、84 集）
-    var illness = cat === "病" && !medArr && !!roles && roles.sel === "世" && !!focus && !focusIsFu && A.lines[gua.shi].rel === "官鬼";
+    var illness = cat === "病" && !medKind && !healthRisk && !!roles && roles.sel === "世" && !!focus && !focusIsFu && A.lines[gua.shi].rel === "官鬼";
     // 反看時，實際剋到官鬼（世）的子孫是醫藥，不當阻力
     var medicine = illness ? jiActive.filter(function(j) { return focus.actKeIdx.indexOf(j.idx) >= 0; }).map(function(j) { return j.idx; }) : [];
     // 實際剋到、生到用神的忌神、原神（依作用方向）
@@ -3343,8 +3505,8 @@
     // 遺失物、出行、換匯、考試等沒有指明對方的題目，只說外在條件，不編造對方的心理或相處。
     // 句中出現人物不夠：失主、同行者、消息來源只是背景。要主問本身在問對方的意願、幫忙、態度或雙方互動才算。
     var socialQ = cat === "情" || cat === "訟" || (!!roles && roles.sel === "應") || interpersonalAsk(qText);
-    // 問離職才反轉；問「辭職後的下一份工作」不算
-    var quitJob = !!roles && roles.sel === "官鬼" && /(辭職|離職|辭呈|退休|裸辭)(?!後|之後|以後)|離開(公司|工作|職場|這份)/.test(qText) &&
+    // 問離職才反轉；問「辭職後的下一份工作」不算；「不離職」「避免離職」「保住工作」「想留任」是想留下，仍照一般工作方向。
+    var quitJob = !!roles && roles.sel === "官鬼" && quitJobAsk(qText) &&
       !/新工作|下一份|找到.{0,6}工作|換工作/.test(qText);
     // 先保留第一層有利，再依疾病或離職的方向反看；一般原神等加減不能推翻自身的變化。
     if (innerGood) vScore = Math.max(vScore, 1);
@@ -3450,7 +3612,7 @@
     push(ov, pattern);
 
     function relText(kind) {
-      var relCat = medKind ? "" : cat;   // 問醫藥安排時，不套用「近病、久病」的病情說法
+      var relCat = medKind || healthRisk ? "" : cat;   // 問醫藥安排或尚未發生的健康風險時，不套用「近病、久病」的病情說法
       if (kind === "六沖") {
         return { "病": "近病逢沖即癒，久病逢沖則凶", "情": "主分散、不合，不利婚姻感情", "訟": "官非易散（不代表勝訴）", "財": "變動快、不穩，合作易意見不合", "名": "主變動快，工作易調動", "尋": "主散，難以聚合", "行": "主東奔西跑、在外不安", "胎": "臨產宜沖，主生得快；懷孕期間則主不穩" }[relCat] ||
           "主散、變動、衝突；所惡之事宜沖，所好之事不宜";
@@ -3873,12 +4035,12 @@
       else if (ELEM_GEN[shiA.el] === focus.el || ELEM_KE[shiA.el] === focus.el) say("這件事要你主動去追求，會比較辛苦。");
     }
     // 問疫苗接種、用藥等醫藥安排時，不說剛生的病、久病
-    if (gua.mainRel === "六沖") say(cat === "病" && !medKind ? "整體氣氛是「散」：剛生的病容易好，拖很久的病則要小心。" : "整體氣氛是「散」：事情變動快、不容易穩定。");
-    if (gua.mainRel === "六合") say(cat === "病" && !medKind ? "整體氣氛是「合」：剛生的病容易拖，久病反而撐得住。" : "整體氣氛是「合」：事情容易聚合、穩定，但也可能拖延。");
-    if (gua.mainRel === "六合" && gua.chgRel === "六沖") say("先聚後散：一開始談得攏，後來可能生變。", "bad");
-    if (gua.mainRel === "六沖" && gua.chgRel === "六合") say("先散後聚：一開始不順，後來會好轉。", "good");
+    if (gua.mainRel === "六沖") say(cat === "病" && !medKind && !healthRisk ? "整體氣氛是「散」：剛生的病容易好，拖很久的病則要小心。" : "整體氣氛是「散」：事情變動快、不容易穩定。");
+    if (gua.mainRel === "六合") say(cat === "病" && !medKind && !healthRisk ? "整體氣氛是「合」：剛生的病容易拖，久病反而撐得住。" : "整體氣氛是「合」：事情容易聚合、穩定，但也可能拖延。");
+    if (gua.mainRel === "六合" && gua.chgRel === "六沖") say(healthRisk ? "先聚後散：一開始比較穩，後來可能有變化。" : "先聚後散：一開始談得攏，後來可能生變。", "bad");
+    if (gua.mainRel === "六沖" && gua.chgRel === "六合") say(healthRisk ? "先散後聚：一開始不太穩，後來會比較穩定。" : "先散後聚：一開始不順，後來會好轉。", "good");
     if (yaoFan.length || fanFu.some(function(f) { return f.kind === "反吟"; })) {
-      say("過程會反反覆覆、來回折騰" + (yongChongKe ? "，而且對這件事傷害較大。" : cr.verdictText || vTone === "bad" ? "。" : "，但最後仍有機會成。"), yongChongKe ? "bad" : "");
+      say("過程會反反覆覆、來回折騰" + (yongChongKe ? "，而且對這件事傷害較大。" : cr.verdictText || vTone === "bad" || healthRisk || medKind ? "。" : "，但最後仍有機會成。"), yongChongKe ? "bad" : "");
     }
     if (yaoFu.length || fanFu.some(function(f) { return f.kind === "伏吟"; })) say("事情容易停滯、卡住，進度比較難推動。");
     var advice = {
@@ -3923,6 +4085,17 @@
       "偏凶（阻礙較多）": "從卦象看，效果的阻礙比較多、不容易看到明顯成果" + effectNote + "要不要調整，請和醫療專業人員討論。",
       "凶": "從卦象看，效果不太樂觀" + effectNote + "要不要調整，請和醫療專業人員討論。"
     }[verdict] || "從卦象看，效果的傾向要綜合卦中的各項因素" + effectNote;
+    else if (cat === "病" && healthRisk) {
+      var riskNote = "這是還沒發生的事，不能當成已經有病來看；卦象只能當參考，不是診斷，實際的身體狀況要由醫療專業人員評估。";
+      advice = {
+        "吉": "從卦象看，近期健康方面的傾向偏平順。" + riskNote,
+        "偏吉": "從卦象看，大致偏平順，卦中顯示的不利因素要留意。" + riskNote,
+        "平（成敗參半，看後續變化）": "從卦象看，好壞參半，要看後續變化。" + riskNote,
+        "平（需努力，有機會）": "從卦象看，還有機會平順，但要看個別狀況與平常的照顧。" + riskNote,
+        "偏凶（阻礙較多）": "從卦象看，這方面的阻礙比較多，平常的作息和身體的變化可以多留意；這不代表一定會出問題。" + riskNote,
+        "凶": "從卦象看，目前不太樂觀，平常的作息和身體的變化要多留意；這不代表一定會出問題。" + riskNote
+      }[verdict] || "從卦象看，傾向要綜合卦中的各項因素。" + riskNote;
+    }
     else if (cat === "病") advice = {
       "吉": "病情可望好轉，持續治療、好好休養。",
       "偏吉": "病情大致會好轉，留意卦中顯示的不利因素。",
@@ -3982,8 +4155,19 @@
       "凶": "目前看來這筆款項拿到的把握不高，所以我會先保守看待，暫時別當作已經到手；金額和期限先確認清楚，也留好備案。"
     };
     if (!isMedicalEffect && !quitJob && cat === "財" && receiptQuestion(qText)) advice = RECEIPT_ADVICE[verdict] || advice;
+    // 已經吃了藥、問出門旅遊或開車：先回應這個出行主問的傾向；卦象不能判斷吃藥後適不適合出行，不鼓勵去或不去，也不編造病況，
+    // 交給藥品說明與醫師、藥師。這一句不隨事類（醫藥或出行）改變。
+    var afterNote = "；另外，這只是卦象對這件事順不順的參考，不能當成吃完藥後適合出門、搭車或開車的依據，實際要依藥品說明和你當下的身體狀況，向醫師或藥師確認。";
+    if (medKind === "after" && !weather && !care) advice = {
+      "吉": "從卦象看，吃完藥後出行這件事的傾向偏順利" + afterNote,
+      "偏吉": "從卦象看，吃完藥後出行這件事大致偏順利，卦中顯示的限制因素要留意" + afterNote,
+      "平（成敗參半，看後續變化）": "從卦象看，吃完藥後出行這件事好壞參半，要看後續變化" + afterNote,
+      "平（需努力，有機會）": "從卦象看，吃完藥後出行這件事還有機會，但要看個別狀況與配合" + afterNote,
+      "偏凶（阻礙較多）": "從卦象看，吃完藥後出行這件事的阻礙比較多、不太順，行程可以多留一點彈性" + afterNote,
+      "凶": "從卦象看，吃完藥後出行這件事目前不太順，行程要多留意、多留彈性" + afterNote
+    }[verdict] || "從卦象看，吃完藥後出行這件事的傾向要綜合卦中的各項因素" + afterNote;
     // 天氣主問：程式沒有獨立的晴雨專斷，通用吉凶不等於晴雨；不臆造機率，也不把判詞說成一定下雨或放晴
-    if (weather) advice = "這一題問的是天氣，但這個程式的吉凶推算是通用規則，沒有專門的晴雨判斷，所以不能用這個判詞直接說天氣會怎樣；要安排行程，請以氣象預報為準，卦象只當參考。";
+    if (weather) advice = "這一題問的是天氣。這一卦只有通用的吉凶判斷，沒有專門的晴雨判斷，不能直接用來看晴雨或雨勢大小；要安排行程或活動，請以氣象預報為準，卦象只當參考。";
     // 要不要就醫：卦象不能決定，不依判詞變動，也不用接種、療效或病情的說法代答
     if (care) advice = CARE_ADVICE;
     cr.plain.forEach(function(p) { say(p.text, p.tone); });
@@ -4020,7 +4204,8 @@
       var re = /([子丑寅卯辰巳午未申酉戌亥](?:、[子丑寅卯辰巳午未申酉戌亥])*)日/g, m;
       while ((m = re.exec(it.text))) m[1].split("、").forEach(function(z) { if (dayZhis.indexOf(z) < 0) dayZhis.push(z); });
     });
-    if (focusUseless && !illness && !quitJob && !cr.keepUseless) say("時間上：這件事目前看不到明確的好轉時機。", "bad");   // 反看及改判主體時不以一般用神無用否定應期
+    if (healthRisk) say("時間上：這是還沒發生的健康風險，卦象沒有辦法推算哪一天會不會生病。");
+    else if (focusUseless && !illness && !quitJob && !cr.keepUseless) say("時間上：這件事目前看不到明確的好轉時機。", "bad");   // 反看及改判主體時不以一般用神無用否定應期
     else if (dayZhis.length) say("可能有變化或結果的日子：" + dayZhis.slice(0, 4).map(nextDay).sort(function(a, b) { return a.d - b.d; }).map(function(x) { return x.text; }).join("、") + "。若是長期的事，則看相同地支的月份或年份。");
     else if (cr.timing) say("時間上：" + cr.timing.map(function(n) { return n.text; }).join(""));
     else if (quitJob) say("時間上：目前只能看出離職的難易，沒有足夠線索推算確切日期。");
@@ -4098,6 +4283,8 @@
     TERM_PLAIN.forEach(function(t) { if (allText.indexOf(t[0]) >= 0) gl.items.push({ text: t[0] + "：" + t[1], tone: "" }); });
     if (gl.items.length) sections.push(gl);
 
+    // 實際定案條件與一般「用神旺衰」通則不同的題目，掛在 sections 上供教學第 7、8 步說明
+    sections.decision = cr.decide || (quitJob && focus ? { kind: "quit", texts: [] } : illness ? { kind: "illness", texts: [] } : null);
     return { verdict: verdict, tone: vTone, sections: sections };
   }
 
@@ -4178,7 +4365,13 @@
     return how;
   }
 
-  function dayReason(branch, moving) {
+  // 日沖靜爻的結果：沿用整卦評估的暗動、日破與實際生源，不以同五行的動爻重算
+  function passedAimText(a) {
+    return a.parts.filter(function(p) { return /本可生之，但它的作用方向在/.test(p.text); }).map(function(p) { return p.text.replace(/（動爻作用方向唯一），不論$/, ""); }).join("；");
+  }
+
+  function dayReason(a) {
+    var branch = a.branch, moving = a.moving;
     var el = FIVE_ELEMENTS[branch], dz = timeInfo.dayZhi, dEl = FIVE_ELEMENTS[dz];
     var r = [];
     if (branch === dz) return "就是日辰本身（值日），如日中天";
@@ -4189,7 +4382,8 @@
     if (ZHI_HE[dz] === branch) r.push(moving ? "日辰來合動爻為合絆，綁住不能動" : ELEM_GEN[dEl] === el ? "日辰生合靜爻為合旺" : ELEM_KE[dEl] === el ? "日辰剋合，合中帶剋，仍以剋論" : "日辰平合，只合住、不加分");
     if (isClash(branch, dz)) {
       if (moving) r.push("日辰沖動爻：旺則越沖越動，衰則沖散");
-      else { var aw = anDongReason(branch, currentMovers()); r.push("日辰沖靜爻：" + (aw ? aw + "，沖起為暗動" : "本爻月令休囚、無動爻生、不旬空，沖成日破")); }
+      else if (a.anDong) r.push("日辰沖靜爻：" + a.anWhy + "，沖起為暗動" + (a.stage === "墓" ? "，但本爻入日墓，暫失生剋之權" : ""));
+      else r.push("日辰沖靜爻：本爻月令休囚、無動爻生、不旬空，沖成日破" + (passedAimText(a) ? "；" + passedAimText(a) + "，不算是它的生源" : ""));
     }
     var stg = stageOf(el, dz);
     if (stg === "長生" || stg === "帝旺" || stg === "墓" || stg === "絕") r.push("十二長生在日辰為「" + stg + "」");
@@ -4252,7 +4446,9 @@
     var apply2 = [];
     var q = document.getElementById("question").value.trim();
     if (careAsk(effectiveQuestion(q))) apply2.push("所問「" + q + "」問的是要不要看醫生。這不是卦象能替你決定的事：是否需要就醫，要看實際症狀與嚴重程度，並由醫師、藥師等專業人員評估；下面的取用神與斷法只當參考。");
+    else if (medicalMatter(effectiveQuestion(q)) === "after") apply2.push("所問「" + q + "」問的是吃完藥之後的出行或行程，不是在問要不要吃藥，也不推定問的人已經生病；用藥只是前提，卦象只回答出行這件事順不順，吃藥後適不適合出門、搭車或開車，要由醫師、藥師依藥品說明與個人狀況評估。");
     else if (cat === "病" && medicalMatter(effectiveQuestion(q))) apply2.push("所問「" + q + "」問的是疫苗、用藥或治療這件事本身，不推定問的人已經生病，一般取子孫（醫藥）為用神；是否接種或用藥，要由醫師、藥師依個別狀況評估。");
+    else if (cat === "病" && futureHealthAsk(effectiveQuestion(q))) apply2.push("所問「" + q + "」問的是還沒發生的健康風險，不當成已經生病；問自己取世爻，問家人取該家人所屬六親。卦象只能當參考，實際的身體狀況要由醫療專業人員評估。");
     else if (cat) apply2.push("所問「" + q + "」屬於" + CAT_NAMES[cat] + "，一般" + CAT_YONG[cat] + "。");
     if (roles) {
       var yongEl = lineYongIdx(gua, roles.sel) >= 0 ? gua.lines[lineYongIdx(gua, roles.sel)].element : elementOfRelative(pEl, roles.sel);
@@ -4308,13 +4504,14 @@
     // 4. 日辰
     var clashed = A.lines.filter(function(a) { return !a.moving && isClash(a.branch, dz); })[0];
     var quiz4 = clashed ?
-      { q: clashed.name + "是靜爻，被日辰" + dz + "所沖，是暗動還是日破？", a: monthReason(clashed.branch) + "。" + (clashed.anDong ? "本爻" + anDongReason(clashed.branch, currentMovers()) + "，逢日沖為暗動，能像動爻一樣生剋他爻。" : "本爻月令休囚、沒有動爻生、也不旬空，逢日沖為日破，與月破一樣無力。") } :
+      { q: clashed.name + "是靜爻，被日辰" + dz + "所沖，是暗動還是日破？", a: monthReason(clashed.branch) + "。" + (clashed.anDong ? "本爻" + clashed.anWhy + "，逢日沖為暗動，" + (clashed.stage === "墓" ? "但本爻入日墓，暫失生剋之權。" : "能像動爻一樣生剋他爻。") : "本爻月令休囚、沒有動爻生、也不旬空，逢日沖為日破，與月破一樣無力。" + (passedAimText(clashed) ? "本卦" + passedAimText(clashed) + "，不算是它的生源。" : "")) } :
       { q: "假如卦中有一個" + clashOf(dz) + FIVE_ELEMENTS[clashOf(dz)] + "靜爻，被日辰" + dz + "沖，會是暗動還是日破？", a: monthReason(clashOf(dz)) + "。" + (anDongReason(clashOf(dz), []) ? "月令有氣（或旬空），所以沖成暗動。" : "月令休囚，若沒有未化廢的動爻來生，就沖成日破。") };
     steps.push({
       title: "看日辰：長期的主宰",
       goal: "日辰是「六爻之主宰」，對靜爻、動爻、變爻、伏神都能生、合、扶、拱，也能沖、剋、墓、絕。",
-      apply: [focusLabel + "：" + dayReason(focus.branch, focus.moving) + "。",
-        "月建與日辰合起來，" + focusLabel + "判為「" + focus.level + "」。"],
+      apply: [focusLabel + "：" + dayReason(focus) + "。",
+        "月建與日辰合起來，" + focusLabel + "判為「" + levelOf(focus.mdScore) + "」。" +
+        (focus.level !== levelOf(focus.mdScore) ? "再加上動爻的生剋、發動和變爻自化（見第 5 步與詳細分析），最後算成「" + focus.level + "」。" : "")],
       rule: [
         "值日最旺；日生、日扶為旺；日剋為衰（第 11 集）。",
         "日合靜爻：生合為合旺，平合只合住不加分，剋合仍以剋論；日合動爻為合絆，動不了，但月建沖它則合中帶沖、絆不住（第 11 集；安易芳課程第 3、5、60 集）。",
@@ -4341,6 +4538,8 @@
         });
         apply5.push(act.label + "（" + act.el + "）：" + (effects.join("、") || "對其他爻沒有直接生剋") + "。");
       });
+    } else if (A.lines.some(function(a) { return a.moving; })) {
+      apply5.push("本卦" + A.lines.filter(function(a) { return a.moving; }).map(function(a) { return a.name; }).join("、") + "明動，但沒有能生剋他爻的動爻或暗動爻（見下面合絆、化廢的說明），所以不算靜卦：它們暫時生剋不到別的爻，旺衰主要仍看月建與日辰，等合絆被沖開、化廢的條件解除，才會發揮作用。");
     } else {
       apply5.push("本卦沒有能生剋他爻的動爻或暗動爻，屬靜卦：旺衰主要看月建與日辰，應期多看用神之病與逢沖之日。");
     }
@@ -4412,30 +4611,58 @@
         "卦最凶是用神空亡，最善是忌神旬空（第 30 集）。"
       ],
       quiz: [kongLine ?
-        { q: kongLine.name + "旬空，是真空還是假空？", a: kongLine.kongType + "。判斷依據：" + monthReason(kongLine.branch) + "；" + dayReason(kongLine.branch, kongLine.moving) + "；" + (kongLine.moving ? "而且是動爻。" : "是靜爻。") } :
+        { q: kongLine.name + "旬空，是真空還是假空？", a: kongLine.kongType + "。判斷依據：" + monthReason(kongLine.branch) + "；" + dayReason(kongLine) + "；" + (kongLine.moving ? "而且是動爻。" : "是靜爻。") } :
         { q: "「動不為空」和「動而化空」有什麼不同？", a: "動不為空：動爻本身旬空，因為發動自帶能量，不算真空。動而化空：動爻化出的變爻旬空，也不是真空，待填實之日應事。" }]
     });
 
-    // 7. 斷吉凶
+    // 7. 斷吉凶：定案條件與一般通則不同的題目，先講實際定案的依據，再列通則與練習
+    var dec = full.sections.decision, apply7 = ["整體傾向：" + full.verdict + "。"], special7 = "";
+    var quiz7 = { q: "如果把本卦的忌神改成安靜、原神發動，結論會怎麼變？", a: "忌神不動就不直接剋用神，原神發動又來生，用神會更旺，結論往吉的方向走。這就是為什麼斷卦一定要先看「誰在動」。" };
+    if (dec && dec.kind === "pregnancy") {
+      apply7.push("本題是特別斷法，結論由胎爻決定：" + dec.texts[0], "胎爻在卦上又沒有受損，或胎爻不上卦但臨月建、日辰，才論有懷孕，否則論沒有；子孫自己的旺衰只作參考，不決定結果，所以下面用神（子孫）面的有利、不利只當背景，不改變結論。");
+      special7 = "本題是特別斷法：問是否懷孕改看胎爻——胎爻上卦且沒有空破墓絕、回頭剋，或胎爻不上卦但臨月建、日辰，論有懷孕；胎爻不上卦又不臨月日，或受損，論沒有。下面一般題目的「用神旺衰」通則不直接決定吉凶。";
+      quiz7 = { q: "問是否懷孕時，子孫很衰是不是就沒有懷孕？", a: "不是。這一題看胎爻：胎爻上卦且沒有空破墓絕、回頭剋，或不上卦但臨月建、日辰，都算有；子孫自己的旺衰只作參考。本卦：" + dec.texts[0] };
+    } else if (dec && dec.kind === "birth") {
+      apply7.push("本題是特別斷法，只看產期、不判成敗吉凶：" + dec.texts[0], "下面是用神（子孫）的現況，只當背景；產期看的是時間（見第 8 步），不拿這些有利、不利來斷好壞。");
+      special7 = "本題是特別斷法：問產期只看時間、不論吉凶，不照下面「用神旺相為吉、休囚為凶」的通則下結論。";
+      quiz7 = { q: "問產期時，這一步還要不要斷吉凶？", a: "不用。產期題只看時間，不論吉凶；用神的旺衰、生剋只用來決定哪些日子可以當候選日（第 8 步）。" };
+    } else if (dec && dec.kind === "ying") {
+      apply7.push("本題是特別斷法，應爻有異而用神平常，改看應爻（對方）判成敗：" + dec.texts[0] + "。");
+      special7 = "本題是特別斷法：感情題應爻有異、而用神平常時，改以應爻（對方）的旺衰判成敗，不單看用神。";
+      quiz7 = { q: "感情題應爻有異、用神平常時，結論改看哪一爻？", a: "改看應爻（對方）：以應爻在月日動變之下的分數判成敗，應爻無用時直接判凶，不單看用神。" };
+    } else if (dec && dec.kind === "quit") {
+      var zsKeNames = focus.actKeIdx.filter(function(i) { return A.lines[i].rel === "子孫"; }).map(function(i) { return YAO_SHORT[i] + A.lines[i].rel + A.lines[i].branch + (A.lines[i].moving ? "動" : "暗動"); });
+      apply7.push("離職題要反著斷：工作（官鬼）越旺越難離開，越衰或被子孫剋越容易離開。本卦" + focusLabel + "在月日動變之下判為「" + focus.level + "」，" +
+        (isStrongLv(focus.level) ? "這份工作本身偏強，本來較難離開" : isWeakLv(focus.level) ? "這份工作本身偏弱，本來較容易離開" : "這份工作本身力量普通") +
+        (zsKeNames.length ? (isStrongLv(focus.level) ? "；但有" : "；而且有") + zsKeNames.join("、") + "來剋它（子孫剋官鬼，是離職較容易的直接依據）" : "") +
+        "。整體傾向「" + full.verdict + "」是把這些依反看合算出來的結果，各項依據見下面。");
+      special7 = "本題是特別斷法：問離職要反著斷，工作（官鬼）越旺越難離開，越衰或被子孫剋越容易離開。";
+      quiz7 = { q: "離職這題，如果把本卦的忌神改成安靜、原神發動，結論會怎麼變？", a: "忌神（剋官鬼的子孫）不動就不會來剋工作，原神發動又來生官鬼，工作會更旺、更難離開。離職題要反著看，所以結論往較難離開的方向走。" };
+    } else if (dec && dec.kind === "illness") {
+      special7 = "本題是特別斷法：自占疾病而官鬼持世，官鬼就是病，病越旺越不好、越衰越好，吉凶要反過來看。";
+      quiz7 = { q: "自占疾病、官鬼持世時，如果把本卦的忌神（剋病的子孫）改成安靜、原神發動，結論會怎麼變？", a: "子孫（醫藥）不動就不來剋病，原神發動又來生官鬼，病會更旺，結論往凶的方向走。" };
+    }
     steps.push({
       title: "斷吉凶：以用神為主，原忌為輔",
       goal: "把前面幾步合起來：用神旺不旺？有沒有原神生、忌神剋？空破墓絕是真是假？世爻擔不擔得起？",
-      apply: ["整體傾向：" + full.verdict + "。"].concat(secItems("總斷").filter(function(t) { return /^(有利|不利|現況)/.test(t); })),
-      rule: [
+      apply: apply7.concat(secItems("總斷").filter(function(t) { return /^(有利|不利|現況)/.test(t); })),
+      rule: (special7 ? [special7] : []).concat([
         "欲問吉凶，研究用神生剋；要知禍福，須詳用忌（第 15 集）。",
         "用神旺相、有原神生、忌神不動或受制為吉；用神休囚、忌神旺動、原神受傷為凶（第 07、26 集）。",
         "財來就我終須易，我去求財必是難（《增刪卜易》原文作「我去尋財必是難」）：用神生剋沖世是事來就我，世去生剋用神是我去求（第 12 集）。",
         "重內輕外：自身變化（回頭生剋、化進退、化廢）最重，其次是卦中動爻的生剋，日月最外層；日月雖旺但被動爻剋，以被剋論（安易芳課程第 28 集）。",
         "靜卦而問自己的事：看用神與世爻的關係分五型（用神持世、忌神持世、用神生世、用神剋世、世生用神），各有成立條件（安易芳課程第 40–44 集）。"
-      ],
+      ]),
       pitfall: [
         "分數只是幫你整理，重點是能說出每一項為什麼加、為什麼減。",
         "六獸、神煞、遊魂歸魂、反伏吟、三刑都是象法，不能拿來決定吉凶（第 20、21、37 集）。"
       ],
-      quiz: [{ q: "如果把本卦的忌神改成安靜、原神發動，結論會怎麼變？", a: "忌神不動就不直接剋用神，原神發動又來生，用神會更旺，結論往吉的方向走。這就是為什麼斷卦一定要先看「誰在動」。" }]
+      quiz: [quiz7]
     });
 
-    // 8. 應期
+    // 8. 應期；產期題子孫太衰時，沖它的日子本卦並未採用，練習不拿它當肯定應期
+    var quiz8 = { q: "用神" + focus.branch + "如果旬空又旺相，可能哪兩天應事？", a: "出空填實的" + focus.branch + "日，或沖空的" + clashOf(focus.branch) + "日。旺相是假空，所以會應。" };
+    if (dec && dec.kind === "birth" && dec.weak) quiz8 = { q: "本卦子孫" + focus.branch + "太衰，問產期時還取沖它的" + dec.weak.clash + "日嗎？", a: "不取。子孫太衰，沖它的日子沖不起，改取生旺子孫的日子（" + dec.weak.days.join("、") + "日）。「旺相逢沖才有力」是通則，本卦子孫偏衰，所以沒有把" + dec.weak.clash + "日當應期。" };
     steps.push({
       title: "斷應期：找病，病解之時就是應期",
       goal: "「天機盡洩於有病之間，斷法總在於藥醫之處」（《卜筮正宗》原文；課程講者念作「醫藥之處」）：用神的病（空、破、合、墓、絕）就是線索，解病的日子就是應期。",
@@ -4449,7 +4676,7 @@
         "沖空只有一半力道，出空填實才是完整的力道（第 39 集還錢例：卯日還一半，酉日才還清）。",
         "吉事看病解之日應吉，凶事看病發（忌神最旺、用神被沖）之日應凶。"
       ],
-      quiz: [{ q: "用神" + focus.branch + "如果旬空又旺相，可能哪兩天應事？", a: "出空填實的" + focus.branch + "日，或沖空的" + clashOf(focus.branch) + "日。旺相是假空，所以會應。" }]
+      quiz: [quiz8]
     });
 
     // 9. 象法
@@ -4510,6 +4737,7 @@
     var moving = [];
     for (var i = 0; i < 6; i++) if (yaos[i].isChanging) moving.push(i);
     if (moving.length === 6 && m.yao.length > 6) moving.push(6);   // 乾坤六爻全動，加看用九、用六
+    var darkLabels = assessGua(gua).actors.filter(function(a) { return !a.moving; }).map(function(a) { return a.label; }).join("、");   // 分析確認有效的暗動；暗動不生成變卦與爻辭
 
     var r = buildDetailedAnalysis(gua);
     var plain = r.sections.filter(function(s) { return s.title === "白話解讀"; })[0] || { items: [] };
@@ -4564,7 +4792,7 @@
     var jieMedKind = isVaccineOrTreatmentEffect(qText) ? "effect" : medicalMatter(effectiveQuestion(qText));
     var medicalEffect = !!jieMedKind && (jieCat === "病" || !!jieRoles && jieRoles.sel === "子孫");
     var jieCare = careAsk(effectiveQuestion(qText));
-    if (medicalEffect && !jieCare) intro = intro.map(function(t) { return t.replace(/^這件事我看的是「子孫」這一爻$/, jieMedKind === "effect" ? "問藥物或治療的效果，我看的是代表醫藥的「子孫」這一爻" : "問疫苗接種或用藥的事，我看的是代表醫藥的「子孫」這一爻"); });
+    if (medicalEffect && !jieCare && jieMedKind !== "after") intro = intro.map(function(t) { return t.replace(/^這件事我看的是「子孫」這一爻$/, jieMedKind === "effect" ? "問藥物或治療的效果，我看的是代表醫藥的「子孫」這一爻" : "問疫苗接種或用藥的事，我看的是代表醫藥的「子孫」這一爻"); });
     var jieWeather = weatherAsk(effectiveQuestion(qText));
     var dateWhen = pick(/^可能有變化或結果的日子：/), timeNote = pick(/^時間上：/);
     var timeSentence = dateWhen ? "時間上，可以留意" + dateWhen : timeNote ? "時間上，" + timeNote : "";
@@ -4589,23 +4817,27 @@
 
     // 3. 卦名象義：只講一般道理，當提醒，不當這件事的結果
     html += para(["至於卦名，這一卦起出來是「" + gua.mainName + "」",
-      c ? "，動了之後變成「" + gua.chgName + "」。" : "，六個爻都沒有動，是個靜卦。",
+      c ? "，動了之後變成「" + gua.chgName + "」。" : darkLabels ? "，沒有爻明著發動，所以沒有變卦。" : "，六個爻都沒有動，是個靜卦。",
       mainShort + "卦講的是" + keyWords(m.k) + "：" + m.s + "。",
       c ? "後來變成" + chgShort + "卦，講的是" + keyWords(c.k) + "：" + c.s + "。" : "",
       "這些是卦名本身的一般道理，只能當提醒，不是" + (qText ? "這件事的結果；" : "運勢的結論；") + (isTiming ? "這一題只看時間，以上面的日期為準。" : qText ? "真正的結果還是要看卦裡代表這件事的那一爻。" : "運勢好壞還是要看代表你自己的世爻。")]);
 
     // 4. 動爻：一爻為焦點，兩爻逐一說，三爻以上說明變卦象義但不當最終結論；爻辭只是提醒
-    if (!yaoLines.length) {
+    var darkSentence = darkLabels ? "暗動的爻是靜爻被沖動、暗中發揮作用，同樣會生剋其他爻，只是不會變出變卦，也沒有爻辭可看。" : "";
+    if (!yaoLines.length && darkLabels) {
+      html += para(["卦中沒有爻明著在動，但有" + darkLabels + "。" + darkSentence + "所以不能說這一卦完全沒有變化；" + (isTiming ? "這一題只看日期，以上面的時間為準。" : "結論仍以上面的推算為準。")]);
+    } else if (!yaoLines.length) {
       html += para(["卦中沒有爻在動，表示短期內不會有太大的變化，事情會照目前的樣子發展。"]);
     } else if (moving.length >= 3) {
       html += para(["卦中有 " + Math.min(moving.length, 6) + " 個爻在動，變化比較大，所以變成的" + chgShort + "卦的氣氛也可以參考（卦辭與解釋見下方經文對照）。" +
         (isTiming ? "不過這一題只看日期，變卦的象義不影響上面的時間。" : "不過最終的結論還是要看吉凶推算，而不是光看卦的象義" + (r.tone === "bad" ? "，這也不代表事情最後就會成。" : "。"))]);
       if (moving.length > 6) html += para(["六個爻全動，再看" + yaoLines[yaoLines.length - 1].pos + "：「" + yaoLines[yaoLines.length - 1].src + "」，" + yaoLines[yaoLines.length - 1].text]);
+      if (darkLabels) html += para(["另外還有" + darkLabels + "。" + darkSentence]);
     } else {
-      html += para([yaoLines.length === 1 ? "卦中只有" + yaoLines[0].pos + "在動，它就是這件事變化的焦點。" : "卦中有兩個爻在動。"].concat(yaoLines.map(function(y) {
+      html += para([yaoLines.length === 1 ? (darkLabels ? "卦中明著在動的只有" + yaoLines[0].pos + "。" : "卦中只有" + yaoLines[0].pos + "在動，它就是這件事變化的焦點。") : darkLabels ? "卦中有兩個爻明著在動。" : "卦中有兩個爻在動。"].concat(yaoLines.map(function(y) {
         var who = y.k === gua.shi ? "（這一爻正好是代表你自己的世爻）" : y.k === gua.ying ? "（這一爻正好是代表對方的應爻）" : "";
         return y.pos + who + "的爻辭說「" + y.src.replace(/。$/, "") + "」，意思是" + y.text.replace(/。?$/, "。");
-      }), [isTiming ? "爻辭只是提醒方向，不影響上面的日期。" : "爻辭只是提醒方向，結論仍以上面的推算為準。"]));
+      }), [isTiming ? "爻辭只是提醒方向，不影響上面的日期。" : "爻辭只是提醒方向，結論仍以上面的推算為準。"], darkLabels ? ["另外還有" + darkLabels + "。" + darkSentence] : []));
     }
 
     // 5. 時間與提醒；應期卦不再加宜忌與比喻，避免像在另判成敗
@@ -4616,7 +4848,7 @@
       html += para(["用生活的畫面來比喻卦象本身（不代表這件事的結果）：就像" + m.b.replace(/^像/, ""), c && r.tone !== "bad" ? "變卦則像" + c.b.replace(/^像/, "") : ""]);
     }
     html += '<p class="setting-note">吉凶與時間是依六爻規則推算，和「詳細分析」相同；卦辭、爻辭說明事情的性質和走向，兩者不一致時以吉凶推算為準。實際還要配合你自己的狀況判斷。' +
-      (jieCat === "病" || medicalEffect || jieCare ? '涉及身體或用藥的事，請以醫師、藥師的專業意見為準。' : '') + '</p></section>';
+      (jieCat === "病" || medicalEffect || jieCare || jieMedKind === "after" ? '涉及身體或用藥的事，請以醫師、藥師的專業意見為準。' : '') + '</p></section>';
 
     // 三、經文對照（收起來，想看再點開）
     html += '<details class="teach-quiz"><summary>卦辭、爻辭對照</summary>' +
@@ -5114,7 +5346,7 @@
     { re: /男占|本人男|我是男|男生問|男問|（男）|\(男\)/, gender: "男" },
     { re: /女占|本人女|我是女|女生問|女問|（女）|\(女\)|女追男/, gender: "女" },
     { re: { test: function(t) { return /(孩子|兒子|女兒|小孩|小朋友).{0,12}(考試|考上|考取|成績|學業|功課|升學|會考|學測)|(考試|考上|成績|學業|功課).{0,12}(孩子|兒子|女兒|小孩)/.test(t) || (EXAM_ADMISSION_RE.test(t) && /孩子|兒子|女兒|小孩|小朋友/.test(t)); } }, value: "父母", why: "代占孩子的考試學業：父母看學業，子孫看孩子狀態" },
-    { re: { test: function(t) { return fertilityTreatment(t) || birthTopic(t, /懷孕|懷上|受孕|孕|(?<!輪|備|爆)胎|求子|生子|出生|預產|坐月子|後代|繁衍|產婦/); } }, value: "子孫", why: "胎孕、生產取子孫" },
+    { re: { test: function(t) { return fertilityTreatment(t) || birthTopic(t, /懷孕|懷上|受孕|孕|(?<!輪|備|爆)胎|求子|生子|出生|預產|分娩|臨盆|坐月子|後代|繁衍|產婦|生寶寶|生孩子/); } }, value: "子孫", why: "胎孕、生產取子孫" },
     { re: { test: function(t) { return !!payoutQuestion(t); } }, value: "妻財", why: "問理賠、分紅、股利或退稅款項取妻財" },
     { re: /財利|財力|貨價|賺|獲利|財運|錢途|偏財|薪|獎金|資遣費|工資|貨款|收款|營收|營業|業績|股價|價位|押金|租金|房租|加薪|貸款|借錢|還錢|欠錢|借款|討債|追債|索債|債|金額|現金|消費券|\d+元|錢/, value: "妻財", why: "問錢財得失取妻財" },
     // 問非家人邀約、來找的用意，看對方的來意取應；家人仍依人物規則
@@ -5524,11 +5756,11 @@
   /* ---------- 初始化 ---------- */
 
   document.querySelectorAll('input[name="castMode"]').forEach(function(el) {
-    el.addEventListener("change", function() { saveSettings(); applyCastMode(); });
+    el.addEventListener("change", function() { saveSettings("castMode"); applyCastMode(); });
   });
   document.querySelectorAll('input[name="ziMode"]').forEach(function(el) {
     el.addEventListener("change", function() {
-      saveSettings();
+      saveSettings("ziMode");
       refreshTime();
       renderPan();
       updateLatestHistory();
@@ -5536,7 +5768,7 @@
   });
   document.querySelectorAll('input[name="gender"]').forEach(function(el) {
     el.addEventListener("change", function() {
-      saveSettings();
+      saveSettings("gender");
       autoPickYong(true);
       renderPan();
       updateLatestHistory();
@@ -5573,7 +5805,7 @@
     var m = /[?&]mode=(auto|manual)/.exec(location.search);
     if (m && yaos.length === 0) {
       setRadio("castMode", m[1]);
-      saveSettings();
+      saveSettings("castMode");
       applyCastMode();
     }
     var dlg = { "#history": "dlgHistory", "#rules": "dlgRules", "#settings": "dlgSettings" }[location.hash];
