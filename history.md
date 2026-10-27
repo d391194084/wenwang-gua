@@ -639,3 +639,8 @@
 - Codex 重新執行固定完整驗收、實際 Chrome 三分頁及經文對照開合，並以固定 3000 卦比較本輪顯示調整前後的數值、判詞及傾向。
 - 本輪已明確取得使用者「確認沒有問題就請 Claude 上傳」的授權；驗收通過後交由 Claude 提交及推送，另由 Codex 核實遠端提交與 GitHub Pages。發布範圍包含先前已驗證而未提交的 v45～v47 成果，歷史紀錄保留當時狀態。
 - 新報告：output/review/文王聖卦_解卦頁尾來源移除與發布驗收_2026-10-27.html；本機證據：tmp/claude-collaboration/2026-10-27-source-note-01。暫存、CLI 回執及瀏覽器資料不加入 Git。
+
+## 2026-10-28：從 GitHub 移除不公開的檔案
+
+- 從 GitHub 移除檢查報告（output/）、計畫文件（docs/）與兩個 Python 腳本，本機檔案保留。
+- .gitignore 加入 output/、docs/ 與教學 PDF，避免之後再被上傳。
