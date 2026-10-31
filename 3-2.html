@@ -83,6 +83,7 @@
     /* ---------- 標題列 ---------- */
     .topbar {
       display: flex;
+      flex-wrap: wrap;
       align-items: center;
       justify-content: space-between;
       gap: 8px;
@@ -101,8 +102,10 @@
 
     .top-actions {
       display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
       gap: 6px;
-      flex-shrink: 0;
+      margin-left: auto;
     }
 
     /* ---------- 時間資訊 ---------- */
@@ -559,6 +562,62 @@
       color: var(--muted);
     }
 
+    /* ---------- 書本卦例輸入 ---------- */
+    .book-form {
+      display: grid;
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    .book-pair {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(7.5em, 1fr));
+      gap: 10px;
+      align-items: end;
+    }
+
+    .book-field {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      font-weight: bold;
+      min-width: 0;
+    }
+
+    .book-field select,
+    .book-field input {
+      font-size: 1em;
+      padding: 4px 6px;
+      border: 1.5px solid var(--frame);
+      border-radius: 5px;
+      background: #fcf9f2;
+      color: var(--ink);
+      min-width: 0;
+      width: 100%;
+    }
+
+    /* 手機上表單要捲動，錯誤與排盤鈕固定在視窗底部才不會被擠出畫面 */
+    .book-foot {
+      position: sticky;
+      bottom: 0;
+      background: var(--paper);
+      padding-top: 6px;
+      border-top: 1px solid var(--line);
+    }
+
+    .book-error {
+      min-height: 1.7em;
+      color: var(--red);
+      font-weight: bold;
+    }
+
+    .book-actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
     .history-body details {
       border-top: 1px solid var(--line);
       padding: 6px 0;
@@ -770,6 +829,7 @@
       <h1>文王聖卦<span class="h1-sub">六爻排盤</span></h1>
       <div class="top-actions">
         <button class="secondary small" onclick="location.href='./'">首頁</button>
+        <button class="secondary small" onclick="openBookCase()">書本卦例</button>
         <button class="secondary small" onclick="openDialog('dlgSettings')">設定</button>
         <button class="secondary small" onclick="openDialog('dlgHistory')">紀錄</button>
         <button class="secondary small" onclick="openDialog('dlgRules')">法則</button>
@@ -822,6 +882,11 @@
             </div>
             <button class="secondary" onclick="undoLast()">撤銷上一爻</button>
             <button class="secondary" onclick="resetAll()">重新卜卦</button>
+          </div>
+          <div class="controls hidden" id="bookControls">
+            <div class="manual-hint">書本卦例（依輸入的卦與月日排盤，不用搖錢）</div>
+            <button onclick="openBookCase()">修改本例</button>
+            <button class="secondary" onclick="resetAll()">返回一般起卦</button>
           </div>
         </div>
       </section>
@@ -882,7 +947,7 @@
       <h3>子時換日</h3>
       <label><input type="radio" name="ziMode" value="00" checked>00:00 換日（晚子時仍算當日）</label>
       <label><input type="radio" name="ziMode" value="23">23:00 換日（子時起算次日）</label>
-      <div class="setting-note">影響日辰、六獸與旬空；起卦後修改會依起卦時間重算。</div>
+      <div class="setting-note">影響日辰、六獸與旬空；起卦後修改會依起卦時間重算。書本卦例的日辰由你輸入，不受此設定影響。</div>
     </div>
     <div class="setting-group">
       <h3>問卦者性別</h3>
@@ -890,6 +955,45 @@
       <label><input type="radio" name="gender" value="男">男</label>
       <label><input type="radio" name="gender" value="女">女</label>
       <div class="setting-note">問感情、婚姻時自動選用神：男占取妻財、女占取官鬼。</div>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="dlgBook">
+  <div class="dlg-head">書本卦例 <button class="secondary small" onclick="closeDialog('dlgBook')">取消</button></div>
+  <div class="dlg-body">
+    <div class="setting-note">對照書上的卦例用：直接選本卦、變卦、月建與日辰就能排盤，不用搖錢，也不用輸入國曆日期。變卦留空代表六爻安靜的靜卦。</div>
+    <div class="book-form" onchange="clearBookError()" oninput="clearBookError()">
+      <div class="book-pair">
+        <div class="book-field"><label for="bookMain">本卦</label><select id="bookMain"></select></div>
+        <div class="book-field"><label for="bookChanged">變卦（可空）</label><select id="bookChanged"></select></div>
+      </div>
+      <div class="book-pair">
+        <div class="book-field"><label for="bookMonth">月建（地支）</label><select id="bookMonth"></select></div>
+        <div class="book-field"><label for="bookDay">日辰（干支）</label><select id="bookDay"></select></div>
+      </div>
+      <div class="book-field"><label for="bookQuestion">所問（選填）</label><input type="text" id="bookQuestion" maxlength="80" placeholder="書上這個卦例問的事"></div>
+      <div class="book-field">
+        <label for="bookYong">用神</label>
+        <select id="bookYong">
+          <option value="">自動判斷（依所問）</option>
+          <option value="世">自身・世爻</option>
+          <option value="應">對方・應爻</option>
+          <option value="父母">父母</option>
+          <option value="兄弟">兄弟</option>
+          <option value="子孫">子孫</option>
+          <option value="妻財">妻財</option>
+          <option value="官鬼">官鬼</option>
+        </select>
+      </div>
+      <div class="setting-note">只用你輸入的月建與日辰推旬空、六獸；年柱、時柱、節令與國曆日期都不會補上。</div>
+      <div class="book-foot">
+        <div class="book-error" id="bookError" aria-live="polite"></div>
+        <div class="book-actions">
+          <button class="secondary" onclick="closeDialog('dlgBook')">取消</button>
+          <button onclick="applyBookCase()">排盤</button>
+        </div>
+      </div>
     </div>
   </div>
 </dialog>
@@ -1009,6 +1113,7 @@
   var yaos = [];
   var castTime = null;      // 第一爻起出的時間；未起卦前為 null，顯示即時時間
   var timeInfo = null;      // 目前採用的時間干支資訊
+  var bookCase = null;      // 書本卦例：{ mainName, chgName, monthZhi, dayGZ }；一般起卦時為 null
   var isAnimating = false;
   var clockTimer = null;
   var lastSavedId = null;
@@ -1068,7 +1173,12 @@
   /* ---------- 彈出視窗 ---------- */
 
   function openDialog(id) {
+    if (id === "dlgBook") { openBookCase(); return; }
     if (id === "dlgHistory") renderHistory(); // 其他分頁可能已新增或刪除紀錄，開啟前重新讀取
+    showDialog(id);
+  }
+
+  function showDialog(id) {
     var d = document.getElementById(id);
     if (d.showModal) d.showModal(); else d.setAttribute("open", "");
   }
@@ -1143,7 +1253,23 @@
     };
   }
 
+  // 書本卦例沒有國曆日期；分析、教學、解卦與紀錄都以此判斷，不能拿今天去換算
+  function isBookMode() {
+    return !!bookCase || !!(timeInfo && timeInfo.source === "book");
+  }
+
+  // 書本卦例的月建、日辰是使用者輸入的，不能被今天的時間覆寫
+  function showBookTime() {
+    timeInfo = makeBookTimeInfo(bookCase.monthZhi, bookCase.dayGZ);
+    document.getElementById("solarDate").textContent = timeInfo.solarText;
+    document.getElementById("fourPillars").textContent = "年柱・時柱未提供";
+    document.getElementById("yueRi").textContent = "月建" + timeInfo.monthZhi + "・日辰" + timeInfo.dayGZ;
+    document.getElementById("xunKong").textContent = "旬空" + timeInfo.xunKong;
+    document.getElementById("timeNote").textContent = "書本卦例：月建與日辰依你輸入；沒有國曆日期、年柱、時柱與節令。";
+  }
+
   function refreshTime() {
+    if (bookCase) { showBookTime(); return; }
     if (!hasLunar) return;
     timeInfo = computeTimeInfo(castTime || new Date());
     document.getElementById("solarDate").textContent = timeInfo.solarText;
@@ -1159,6 +1285,7 @@
   function startClock() {
     stopClock();
     refreshTime();
+    if (bookCase) return;
     clockTimer = setInterval(refreshTime, 20000);
   }
 
@@ -1169,7 +1296,7 @@
 
   // 起第一爻時鎖定起卦時間
   function lockCastTime() {
-    if (castTime) return;
+    if (castTime || bookCase) return;
     castTime = new Date();
     stopClock();
     refreshTime();
@@ -2973,7 +3100,7 @@
   // 應期參考：找出用神的「病」，解病之時即應期
   function yingQiNotes(a, label, isFu) {
     var out = [];
-    var today = function(z) { return z === timeInfo.dayZhi ? z + "日（今日即是）" : z + "日"; };
+    var today = function(z) { return z === timeInfo.dayZhi ? z + (isBookMode() ? "日（本例日辰）" : "日（今日即是）") : z + "日"; };
     var z = a.branch;
     if (a.useless) {
       out.push({ text: label + "無用（" + [a.kongType, a.poType, a.muType, a.riPo ? "日破" : ""].filter(Boolean).join("、") + "），出空出破之時也難成事，應期以凶論或事終不成", tone: "bad" });
@@ -4442,20 +4569,24 @@
     }
     say("結論：" + (care ? advice : cr.advice || advice), vTone);
 
-    // 應期換成實際日期：從起卦日起算 60 天內，最近的那一天
-    var ziAt23 = getRadio("ziMode") === "23";
-    var baseDay = new Date((castTime || new Date()).getTime());
-    var shifted = ziAt23 && baseDay.getHours() >= 23;
-    if (shifted) baseDay.setDate(baseDay.getDate() + 1);   // 23 點後已換到下一個日柱，那一天不是起卦的國曆日
-    var nextDay = function(zhi) {
-      for (var d = 0; d < 60; d++) {
-        var day = new Date(baseDay.getFullYear(), baseDay.getMonth(), baseDay.getDate() + d, 12);
-        var lun = Solar.fromDate(day).getLunar();
-        var gz = ziAt23 ? lun.getDayInGanZhiExact() : lun.getDayInGanZhiExact2();
-        if (gz.charAt(1) === zhi) return { d: d, text: (day.getMonth() + 1) + "/" + day.getDate() + (d === 0 ? (shifted ? "（起卦的日柱，" : "（起卦當天，") : "（") + zhi + "日）" };
-      }
-      return { d: 99, text: zhi + "日" };
-    };
+    // 應期換成實際日期：從起卦日起算 60 天內，最近的那一天；書本卦例沒有國曆日期，不換算
+    var book = isBookMode();
+    var nextDay = null;
+    if (!book) {
+      var ziAt23 = getRadio("ziMode") === "23";
+      var baseDay = new Date((castTime || new Date()).getTime());
+      var shifted = ziAt23 && baseDay.getHours() >= 23;
+      if (shifted) baseDay.setDate(baseDay.getDate() + 1);   // 23 點後已換到下一個日柱，那一天不是起卦的國曆日
+      nextDay = function(zhi) {
+        for (var d = 0; d < 60; d++) {
+          var day = new Date(baseDay.getFullYear(), baseDay.getMonth(), baseDay.getDate() + d, 12);
+          var lun = Solar.fromDate(day).getLunar();
+          var gz = ziAt23 ? lun.getDayInGanZhiExact() : lun.getDayInGanZhiExact2();
+          if (gz.charAt(1) === zhi) return { d: d, text: (day.getMonth() + 1) + "/" + day.getDate() + (d === 0 ? (shifted ? "（起卦的日柱，" : "（起卦當天，") : "（") + zhi + "日）" };
+        }
+        return { d: 99, text: zhi + "日" };
+      };
+    }
     var dayZhis = [];
     yq.items.forEach(function(it) {
       if (it.tone === "note" || it.tone === "bad") return;
@@ -4468,7 +4599,8 @@
       var dateReference = /^應期卦/.test(verdict) ? "這些只是卦象推算的參考日期，不是確定的生產日期，實際仍以醫院安排為準。" :
         cat === "訟" ? "這些是卦象推算的參考日期，可以留意官司是否有新消息或進展，不代表一定會在當天結案，也不表示當天就會轉好。" :
         "這些是卦象推算的參考日期，可以留意事情是否有新消息或變化，不代表事情一定會在當天解決，也不表示當天就會轉好。";
-      say("可能有變化或結果的日子：" + dayZhis.slice(0, 4).map(nextDay).sort(function(a, b) { return a.d - b.d; }).map(function(x) { return x.text; }).join("、") + "。" + dateReference + "若你問的是幾個月或幾年後的結果，這次沒有推算出具體月份或年份。");
+      if (book) say("時間上：可留意" + dayZhis.slice(0, 4).join("、") + "日（只列地支日）。" + dateReference + "書本卦例未提供國曆年月日，不能換算幾月幾日；若你問的是幾個月或幾年後的結果，這次也沒有推算出具體月份或年份。");
+      else say("可能有變化或結果的日子：" + dayZhis.slice(0, 4).map(nextDay).sort(function(a, b) { return a.d - b.d; }).map(function(x) { return x.text; }).join("、") + "。" + dateReference + "若你問的是幾個月或幾年後的結果，這次沒有推算出具體月份或年份。");
     }
     else if (cr.timing) say("時間上：" + cr.timing.map(function(n) { return n.text; }).join(""));
     else if (quitJob) say("時間上：目前只能看出離職的難易，沒有足夠線索推算確切日期。");
@@ -4484,7 +4616,8 @@
       "動爻與暗動": "會動的爻是卦中正在發生的變化，會去幫助或傷害其他爻；暗動是暗中發生、你可能沒察覺的變化。",
       "三合局與三刑": "三合局是幾股力量結成一夥，力量很大；三刑代表摩擦、傷害，只作輔助參考。",
       "六獸與神煞（象法，只作參考）": "六獸、神煞描述事情的性質和人的個性（例如口舌、喜慶、奔波），不決定吉凶。",
-      "應期參考": "事情可能發生或有結果的時間。「○日」是依地支推算的日子，最上面的白話解讀已換成實際日期。",
+      "應期參考": book ? "事情可能發生或有結果的時間。「○日」是依地支推算的日子；書本卦例沒有國曆日期，所以不換算成幾月幾日。" :
+        "事情可能發生或有結果的時間。「○日」是依地支推算的日子，最上面的白話解讀已換成實際日期。",
       "各爻旺衰明細": "每一爻的力量評分表，數字越大越強，供進階對照。"
     };
     sections.forEach(function(s) {
@@ -4500,8 +4633,8 @@
       ["仇神", "剋原神、生忌神的爻，間接不利"],
       ["世爻", "代表你自己"],
       ["應爻", "代表對方、環境或你要面對的事"],
-      ["月建", "起卦當月的地支，決定這個月誰當令、誰有力"],
-      ["日辰", "起卦當天的地支，影響較長遠"],
+      ["月建", book ? "書本卦例所標月份的地支，決定這個月誰當令、誰有力" : "起卦當月的地支，決定這個月誰當令、誰有力"],
+      ["日辰", book ? "書本卦例所標日子的地支，影響較長遠" : "起卦當天的地支，影響較長遠"],
       ["月令", "依月建看旺、相、休、囚、死：旺最強、死最弱"],
       ["旬空", "暫時落空、還沒到位；分真空（真的沒有）與假空（時候到了才有機會到位，還要看其他生剋）"],
       ["月破", "被月建沖壞，這個月不順；分真破與假破"],
@@ -4550,6 +4683,7 @@
     sections.decision = cr.decide || (quitJob && focus ? { kind: "quit", texts: [] } : illness ? { kind: "illness", texts: [] } : null);
     var multiNote = multiAskNote();
     if (multiNote) sections.unshift({ title: "一次問多件事", items: [{ text: multiNote, tone: "note" }] });
+    if (book) sections.unshift({ title: "卦例來源", items: [{ text: "這是依書本卦例輸入排的盤：月建" + timeInfo.monthZhi + "、日辰" + timeInfo.dayGZ + "（旬空" + timeInfo.xunKong + "）。未提供國曆年月日、年柱、時柱與節令，所以不換算實際日期，應期只列地支日。", tone: "note" }] });
     return { verdict: verdict, tone: vTone, sections: sections };
   }
 
@@ -4682,11 +4816,13 @@
     var shiRule = { "本宮卦": "八純卦世在上爻", "一世卦": "一世卦世在初爻", "二世卦": "二世卦世在二爻", "三世卦": "三世卦世在三爻",
       "四世卦": "四世卦世在四爻", "五世卦": "五世卦世在五爻", "遊魂卦": "遊魂卦世在四爻", "歸魂卦": "歸魂卦世在三爻" }[gua.palaceType];
     var spiritStart = { "甲": "青龍", "乙": "青龍", "丙": "朱雀", "丁": "朱雀", "戊": "勾陳", "己": "螣蛇", "庚": "白虎", "辛": "白虎", "壬": "玄武", "癸": "玄武" }[ds];
+    var bookTeach = isBookMode();
     steps.push({
       title: "排盤基礎：先確認盤沒有排錯",
-      goal: "由起卦時間定出月建、日辰、旬空，再找卦宮、安世應、安六親、起六獸。盤一錯，後面全錯。",
+      goal: bookTeach ? "依書本卦例給的月建、日辰定出旬空，再找卦宮、安世應、安六親、起六獸。盤一錯，後面全錯。" : "由起卦時間定出月建、日辰、旬空，再找卦宮、安世應、安六親、起六獸。盤一錯，後面全錯。",
       apply: [
-        "起卦時間 " + timeInfo.solarText + "，上一個「節」是" + timeInfo.jieName + "（" + timeInfo.jieText + "），所以月建為" + mz + "。",
+        bookTeach ? "這是書本卦例：月建" + mz + "與日辰" + timeInfo.dayGZ + "是依書本輸入的月、日，不是從國曆日期與節氣換算出來的；日辰可以推出旬空與六獸，年柱、時柱與節令沒有提供，所以不列。" :
+          "起卦時間 " + timeInfo.solarText + "，上一個「節」是" + timeInfo.jieName + "（" + timeInfo.jieText + "），所以月建為" + mz + "。",
         "日辰" + timeInfo.dayGZ + "：" + ds + "是第 " + (sIdx + 1) + " 個天干，往回數 " + sIdx + " 位到甲，旬首是甲" + xunHead + "；這一旬十天用不到的兩個地支是" + timeInfo.xunKong + "，就是旬空。",
         "本卦" + gua.mainName + "是" + gua.palace.name + "宮的" + gua.palaceType + "，" + shiRule + "，應爻與世爻相隔兩位，在" + YAO_SHORT[gua.ying] + "。",
         "六親以宮的五行" + pEl + "為「我」：同我為兄弟（" + pEl + "）、我生為子孫（" + ELEM_GEN[pEl] + "）、我剋為妻財（" + ELEM_KE[pEl] + "）、剋我為官鬼（" + findKey(ELEM_KE, pEl) + "）、生我為父母（" + findKey(ELEM_GEN, pEl) + "）。",
@@ -4697,7 +4833,10 @@
         "世應歌訣：八純世在上，一世初、二世二……五世五，遊魂四、歸魂三；應爻與世爻隔兩位（第 04、05 集）。",
         "六獸：甲乙青龍、丙丁朱雀、戊勾陳、己螣蛇、庚辛白虎、壬癸玄武，從初爻往上排（第 06、20 集）。"
       ],
-      pitfall: [
+      pitfall: bookTeach ? [
+        "書本卦例要照書上的月建、日辰原文輸入；這裡不會再用今天的日期或節氣去改它。",
+        "日辰決定旬空與六獸，日辰換了，這兩項都會跟著變。"
+      ] : [
         "月初幾天常常還沒交節，仍屬上個月；看月建一定要查交節時刻。",
         "晚上 23 點後起卦，日辰依「子時換日」設定而不同，會連帶改變旬空與六獸。"
       ],
@@ -5016,6 +5155,7 @@
     var readableTime = function(text) {
       return text.replace(/(\d{1,2})\/(\d{1,2})（[^（）]*[子丑寅卯辰巳午未申酉戌亥]日）/g, "$1月$2日");
     };
+    var jieBook = isBookMode(), dateWord = jieBook ? "時間" : "日期";
     var dateWhen = pick(/^可能有變化或結果的日子：/), timeNote = pick(/^時間上：/);
     var when = readableTime(dateWhen || timeNote);
     var qText = document.getElementById("question").value.trim();
@@ -5057,6 +5197,7 @@
       '<div class="jie-names">' + escapeHtml(gua.mainName) + (c ? ' → ' + escapeHtml(gua.chgName) : '') + '</div>' +
       '<div class="jie-keys">' + escapeHtml(m.k) + (c ? ' → ' + escapeHtml(c.k) : '') + '</div>' +
       '<div class="ana-verdict ana-' + (r.tone || "mid") + '">' + escapeHtml(r.verdict) + '</div>' +
+      (jieBook ? row("卦例來源", "書本卦例（" + timeInfo.monthZhi + "月 " + timeInfo.dayGZ + "日）。月建與日辰依書本輸入，未提供國曆年月日、年柱、時柱與節令。") : '') +
       (when ? row(dateWhen ? "近期可留意的日期" : "時間參考", (dateWhen ? "國曆 " : "") + when) : '') + '</section>';
 
     // 二、像懂六爻的人面對面說話：先回答所問，再說依據，卦名象義與宜忌只當提醒
@@ -5093,24 +5234,24 @@
       c ? "，動了之後變成「" + gua.chgName + "」。" : darkLabels ? "，沒有爻明著發動，所以沒有變卦。" : "，六個爻都沒有動，是個靜卦。",
       mainShort + "卦講的是" + keyWords(m.k) + "：" + m.s + "。",
       c ? "後來變成" + chgShort + "卦，講的是" + keyWords(c.k) + "：" + c.s + "。" : "",
-      "這些是卦名本身的一般道理，只能當提醒，不是" + (qText ? "這件事的結果；" : "運勢的結論；") + (isTiming ? "這一題只看時間，以上面的日期為準。" : qText ? "真正的結果還是要看卦裡代表這件事的那一爻。" : "運勢好壞還是要看代表你自己的世爻。")]);
+      "這些是卦名本身的一般道理，只能當提醒，不是" + (qText ? "這件事的結果；" : "運勢的結論；") + (isTiming ? "這一題只看時間，以上面的" + dateWord + "為準。" : qText ? "真正的結果還是要看卦裡代表這件事的那一爻。" : "運勢好壞還是要看代表你自己的世爻。")]);
 
     // 4. 動爻：一爻為焦點，兩爻逐一說，三爻以上說明變卦象義但不當最終結論；爻辭只是提醒
     var darkSentence = darkLabels ? "暗動的爻是靜爻被沖動、暗中發揮作用，同樣會生剋其他爻，只是不會變出變卦，也沒有爻辭可看。" : "";
     if (!yaoLines.length && darkLabels) {
-      html += para(["卦中沒有爻明著在動，但有" + darkLabels + "。" + darkSentence + "所以不能說這一卦完全沒有變化；" + (isTiming ? "這一題只看日期，以上面的時間為準。" : "結論仍以上面的推算為準。")]);
+      html += para(["卦中沒有爻明著在動，但有" + darkLabels + "。" + darkSentence + "所以不能說這一卦完全沒有變化；" + (isTiming ? "這一題只看" + dateWord + "，以上面的時間為準。" : "結論仍以上面的推算為準。")]);
     } else if (!yaoLines.length) {
       html += para(["卦中沒有爻在動，表示短期內不會有太大的變化，事情會照目前的樣子發展。"]);
     } else if (moving.length >= 3) {
       html += para(["卦中有 " + Math.min(moving.length, 6) + " 個爻在動，變化比較大，所以變成的" + chgShort + "卦的氣氛也可以參考（卦辭與解釋見下方經文對照）。" +
-        (isTiming ? "不過這一題只看日期，變卦的象義不影響上面的時間。" : "不過最終的結論還是要看吉凶推算，而不是光看卦的象義" + (r.tone === "bad" ? "，這也不代表事情最後就會成。" : "。"))]);
+        (isTiming ? "不過這一題只看" + dateWord + "，變卦的象義不影響上面的時間。" : "不過最終的結論還是要看吉凶推算，而不是光看卦的象義" + (r.tone === "bad" ? "，這也不代表事情最後就會成。" : "。"))]);
       if (moving.length > 6) html += para(["六個爻全動，再看" + yaoLines[yaoLines.length - 1].pos + "：「" + yaoLines[yaoLines.length - 1].src + "」，" + yaoLines[yaoLines.length - 1].text]);
       if (darkLabels) html += para(["另外還有" + darkLabels + "。" + darkSentence]);
     } else {
       html += para([yaoLines.length === 1 ? (darkLabels ? "卦中明著在動的只有" + yaoLines[0].pos + "。" : "卦中只有" + yaoLines[0].pos + "在動，它就是這件事變化的焦點。") : darkLabels ? "卦中有兩個爻明著在動。" : "卦中有兩個爻在動。"].concat(yaoLines.map(function(y) {
         var who = y.k === gua.shi ? "（這一爻正好是代表你自己的世爻）" : y.k === gua.ying ? "（這一爻正好是代表對方的應爻）" : "";
         return y.pos + who + "的爻辭說「" + y.src.replace(/。$/, "") + "」，意思是" + y.text.replace(/。?$/, "。");
-      }), [isTiming ? "爻辭只是提醒方向，不影響上面的日期。" : "爻辭只是提醒方向，結論仍以上面的推算為準。"], darkLabels ? ["另外還有" + darkLabels + "。" + darkSentence] : []));
+      }), [isTiming ? "爻辭只是提醒方向，不影響上面的" + dateWord + "。" : "爻辭只是提醒方向，結論仍以上面的推算為準。"], darkLabels ? ["另外還有" + darkLabels + "。" + darkSentence] : []));
     }
 
     // 5. 時間與提醒；應期卦不再加宜忌與比喻，避免像在另判成敗
@@ -5188,7 +5329,7 @@
   function openAnalysis() {
     var gua = analyzeGua();
     if (!gua || !timeInfo) return;
-    document.getElementById("analysisTitle").textContent = guaTitle(gua);
+    document.getElementById("analysisTitle").textContent = guaTitle(gua) + (isBookMode() ? "　書本卦例" : "");
     document.getElementById("analysisContent").innerHTML = analysisHtml(gua);
     document.getElementById("teachContent").innerHTML = teachingHtml(gua);
     document.getElementById("jieContent").innerHTML = jieguaHtml(gua);
@@ -5824,8 +5965,13 @@
 
   function applyCastMode() {
     var manual = (getRadio("castMode") === "manual");
-    document.getElementById("autoControls").classList.toggle("hidden", manual);
-    document.getElementById("manualControls").classList.toggle("hidden", !manual);
+    var book = !!bookCase;
+    document.getElementById("autoControls").classList.toggle("hidden", book || manual);
+    document.getElementById("manualControls").classList.toggle("hidden", book || !manual);
+    document.getElementById("bookControls").classList.toggle("hidden", !book);
+    // 書本卦例的日辰是輸入的，子時換日設定不能改它
+    var ziRadios = document.querySelectorAll('input[name="ziMode"]');
+    for (var i = 0; i < ziRadios.length; i++) ziRadios[i].disabled = book;
     scheduleFitFont();
   }
 
@@ -5874,7 +6020,7 @@
   }
 
   function undoLast() {
-    if (yaos.length === 0) return;
+    if (yaos.length === 0 || bookCase) return;   // 書本卦例是整組輸入的，不能只撤一爻讓卦與月日對不起來
     var wasFull = (yaos.length === 6);
     yaos.pop();
     if (wasFull) removeLatestHistory();
@@ -5892,15 +6038,198 @@
     yaos = [];
     castTime = null;
     lastSavedId = null;
+    if (isBookMode()) { bookCase = null; timeInfo = null; }
     document.getElementById("question").disabled = false;
     document.getElementById("yongShen").value = "";
     yongManual = false;
     yongAutoNote = "";
     autoPickYong();
     startClock();
+    applyCastMode();
     drawCoins(null, 1, "請誠心定念，開始起卦");
     renderPan();
     updateButtons();
+  }
+
+  /* ---------- 書本卦例：直接輸入本卦、變卦、月建與日辰 ---------- */
+
+  var BOOK_YONG_VALUES = ["", "世", "應", "父母", "兄弟", "子孫", "妻財", "官鬼"];
+  var BOOK_TRIGRAM_IMAGE = { "乾": "天", "兌": "澤", "離": "火", "震": "雷", "巽": "風", "坎": "水", "艮": "山", "坤": "地" };
+  var bookGuaBitsMap = null;
+  var bookSelectsReady = false;
+
+  // 卦名對應六爻陰陽（初爻到上爻，1 為陽）
+  function bookGuaBits(name, label) {
+    if (!bookGuaBitsMap) {
+      bookGuaBitsMap = {};
+      Object.keys(TRIGRAM_BRANCHES).forEach(function(lowKey) {
+        Object.keys(TRIGRAM_BRANCHES).forEach(function(upKey) {
+          bookGuaBitsMap[getGuaName(TRIGRAM_BRANCHES[upKey].name, TRIGRAM_BRANCHES[lowKey].name)] = (lowKey + upKey).split("").map(Number);
+        });
+      });
+    }
+    if (typeof name !== "string" || !name) throw new Error("請選擇" + label + "。");
+    if (!Object.prototype.hasOwnProperty.call(bookGuaBitsMap, name)) throw new Error("找不到" + label + "「" + name + "」，請從清單中選擇六十四卦的卦名。");
+    return bookGuaBitsMap[name];
+  }
+
+  function bookDayIndex(dayGZ) {
+    if (typeof dayGZ !== "string" || dayGZ.length !== 2) return -1;
+    var s = STEMS.indexOf(dayGZ.charAt(0)), z = ZHI_ORDER.indexOf(dayGZ.charAt(1));
+    if (s < 0 || z < 0 || s % 2 !== z % 2) return -1;
+    for (var n = 0; n < 60; n++) if (n % 10 === s && n % 12 === z) return n;
+    return -1;
+  }
+
+  function bookDayList() {
+    var list = [];
+    for (var n = 0; n < 60; n++) list.push(STEMS.charAt(n % 10) + ZHI_ORDER.charAt(n % 12));
+    return list;
+  }
+
+  // 只由月建與日辰組成時間資訊；不補國曆日期、年柱、時柱與節令
+  function makeBookTimeInfo(monthZhi, dayGZ) {
+    if (typeof monthZhi !== "string" || monthZhi.length !== 1 || ZHI_ORDER.indexOf(monthZhi) < 0) {
+      throw new Error(monthZhi ? "月建「" + monthZhi + "」不是地支，請選擇子、丑、寅到亥其中一個月。" : "請選擇月建。");
+    }
+    if (!dayGZ) throw new Error("請選擇日辰。");
+    var n = bookDayIndex(dayGZ);
+    if (n < 0) throw new Error("日辰「" + dayGZ + "」不是合法的干支（天干與地支的陰陽要相配，例如沒有「甲丑」），請從六十甲子中選擇。");
+    var headZhi = (n - n % 10) % 12;
+    return {
+      source: "book",
+      date: null,
+      solarText: "書本卦例（" + monthZhi + "月 " + dayGZ + "日）",
+      yearGZ: null,
+      monthGZ: null,
+      timeGZ: null,
+      jieName: null,
+      jieText: null,
+      monthZhi: monthZhi,
+      dayGZ: dayGZ,
+      dayStem: dayGZ.charAt(0),
+      dayZhi: dayGZ.charAt(1),
+      xunKong: ZHI_ORDER.charAt((headZhi + 10) % 12) + ZHI_ORDER.charAt((headZhi + 11) % 12)
+    };
+  }
+
+  // 驗證並產生書本卦例的六爻與時間資訊；不改任何全域狀態
+  function prepareBookCase(input) {
+    input = input || {};
+    var main = bookGuaBits(input.mainName, "本卦");
+    var chg = input.chgName ? bookGuaBits(input.chgName, "變卦") : main;
+    var info = makeBookTimeInfo(input.monthZhi, input.dayGZ);
+    var list = [];
+    for (var k = 0; k < 6; k++) {
+      var coins;
+      if (main[k] && chg[k]) coins = [1, 0, 0];         // 少陽
+      else if (!main[k] && !chg[k]) coins = [1, 1, 0];  // 少陰
+      else if (main[k]) coins = [1, 1, 1];              // 老陽，變陰
+      else coins = [0, 0, 0];                           // 老陰，變陽
+      list.push(makeYao(coins));
+    }
+    return {
+      mainName: input.mainName,
+      chgName: input.chgName || "",
+      monthZhi: input.monthZhi,
+      dayGZ: input.dayGZ,
+      yaos: list,
+      timeInfo: info
+    };
+  }
+
+  function initBookSelects() {
+    if (bookSelectsReady) return;
+    var guaOptions = TRIGRAM_ORDER.map(function(up) {
+      return '<optgroup label="上卦' + up + '（' + BOOK_TRIGRAM_IMAGE[up] + '）">' + GUA_NAMES[up].map(function(name) {
+        return '<option value="' + name + '">' + name + '</option>';
+      }).join("") + '</optgroup>';
+    }).join("");
+    document.getElementById("bookMain").innerHTML = '<option value="">請選擇本卦</option>' + guaOptions;
+    document.getElementById("bookChanged").innerHTML = '<option value="">沒有變卦（靜卦）</option>' + guaOptions;
+    document.getElementById("bookMonth").innerHTML = '<option value="">請選擇月建</option>' + ZHI_ORDER.split("").map(function(z) {
+      return '<option value="' + z + '">' + z + '月</option>';
+    }).join("");
+    var days = bookDayList(), dayOptions = "";
+    for (var x = 0; x < 6; x++) {
+      var info = makeBookTimeInfo("子", days[x * 10]);
+      dayOptions += '<optgroup label="' + days[x * 10] + '旬（旬空' + info.xunKong + '）">' + days.slice(x * 10, x * 10 + 10).map(function(gz) {
+        return '<option value="' + gz + '">' + gz + '日</option>';
+      }).join("") + '</optgroup>';
+    }
+    document.getElementById("bookDay").innerHTML = '<option value="">請選擇日辰</option>' + dayOptions;
+    bookSelectsReady = true;
+  }
+
+  function clearBookError() {
+    document.getElementById("bookError").textContent = "";
+  }
+
+  // 打開書本卦例表單；只填表單，不動目前的卦。已有書本卦例時帶入原輸入，沒有的欄位明確留空
+  function openBookCase() {
+    initBookSelects();
+    var existing = bookCase;
+    var yongEl = document.getElementById("yongShen");
+    document.getElementById("bookMain").value = existing ? existing.mainName : "";
+    document.getElementById("bookChanged").value = existing ? existing.chgName : "";
+    document.getElementById("bookMonth").value = existing ? existing.monthZhi : "";
+    document.getElementById("bookDay").value = existing ? existing.dayGZ : "";
+    document.getElementById("bookQuestion").value = existing ? document.getElementById("question").value : "";
+    document.getElementById("bookYong").value = existing && yongManual ? yongEl.value : "";
+    document.getElementById("bookError").textContent = "";
+    showDialog("dlgBook");
+  }
+
+  function applyBookCase() {
+    var errBox = document.getElementById("bookError");
+    var question = document.getElementById("bookQuestion").value.trim().slice(0, 80);
+    var yong = document.getElementById("bookYong").value;
+    var prep;
+    try {
+      if (isAnimating) throw new Error("正在搖卦，請等動畫結束再套用書本卦例。");
+      if (BOOK_YONG_VALUES.indexOf(yong) < 0) throw new Error("用神的選項不正確，請重新選擇。");
+      prep = prepareBookCase({
+        mainName: document.getElementById("bookMain").value,
+        chgName: document.getElementById("bookChanged").value,
+        monthZhi: document.getElementById("bookMonth").value,
+        dayGZ: document.getElementById("bookDay").value
+      });
+    } catch (e) {
+      errBox.textContent = e.message;
+      return;
+    }
+    errBox.textContent = "";
+    if (yaos.length > 0 && !confirm(yaos.length >= 6 ?
+      "目前盤上已經有一個卦，套用書本卦例會取代它（已保存的紀錄仍會保留）。確定嗎？" :
+      "目前已搖出 " + yaos.length + " 爻，套用書本卦例會清除它們。確定嗎？")) return;
+
+    stopClock();
+    castTime = null;
+    lastSavedId = null;
+    bookCase = { mainName: prep.mainName, chgName: prep.chgName, monthZhi: prep.monthZhi, dayGZ: prep.dayGZ };
+    timeInfo = prep.timeInfo;
+    var questionEl = document.getElementById("question"), yongEl = document.getElementById("yongShen");
+    questionEl.value = question;
+    questionEl.disabled = true;
+    yaos = [];
+    yongAutoNote = "";
+    if (yong) {
+      yongEl.value = yong;
+      yongManual = true;
+      yongEl.classList.remove("auto-picked");
+    } else {
+      yongEl.value = "";
+      yongManual = false;
+      autoPickYong();   // 六爻還沒放進去，自動用神才會依所問重新判斷
+    }
+    yaos = prep.yaos;
+    refreshTime();
+    applyCastMode();
+    drawCoins(null, 1, "書本卦例，已依輸入排盤");
+    renderPan();
+    updateButtons();
+    saveHistory();
+    closeDialog("dlgBook");
   }
 
   /* ---------- 卦面文字與紀錄 ---------- */
@@ -5912,7 +6241,12 @@
     var q = document.getElementById("question").value.trim();
     var out = [];
     out.push("所問：" + (q || "（未填寫）"));
-    out.push("時間：" + timeInfo.solarText + "（" + timeInfo.yearGZ + "年 " + timeInfo.monthGZ + "月 " + timeInfo.dayGZ + "日 " + timeInfo.timeGZ + "時）");
+    if (isBookMode()) {
+      out.push("時間：" + timeInfo.solarText + "；未提供國曆年月日、年柱、時柱與節令");
+      out.push("來源：書本卦例，依輸入的本卦、變卦、月建與日辰排盤，不是實際起卦");
+    } else {
+      out.push("時間：" + timeInfo.solarText + "（" + timeInfo.yearGZ + "年 " + timeInfo.monthGZ + "月 " + timeInfo.dayGZ + "日 " + timeInfo.timeGZ + "時）");
+    }
     out.push("月建：" + timeInfo.monthZhi + "　日辰：" + timeInfo.dayGZ + "　旬空：" + timeInfo.xunKong);
     out.push("本卦：" + guaTitle(gua));
     out.push("");
@@ -5956,13 +6290,15 @@
     var gua = analyzeGua();
     var arr = readHistory();
     lastSavedId = String(Date.now());
-    arr.unshift({
+    var record = {
       id: lastSavedId,
       time: timeInfo.solarText,
       question: document.getElementById("question").value.trim(),
       title: gua.mainName + (gua.hasMoving ? "之" + gua.chgName : ""),
       text: text
-    });
+    };
+    if (bookCase) record.bookCase = { mainName: bookCase.mainName, chgName: bookCase.chgName, monthZhi: bookCase.monthZhi, dayGZ: bookCase.dayGZ };
+    arr.unshift(record);
     writeHistory(arr);
     renderHistory();
   }
@@ -6081,7 +6417,7 @@
   updateButtons();
   renderHistory();
 
-  // 從首頁進來：?mode=auto|manual 指定起卦方式，#history、#rules、#settings 直接打開對應視窗
+  // 從首頁進來：?mode=auto|manual 指定起卦方式，#history、#rules、#settings、#book 直接打開對應視窗
   (function() {
     var m = /[?&]mode=(auto|manual)/.exec(location.search);
     if (m && yaos.length === 0) {
@@ -6089,7 +6425,7 @@
       saveSettings("castMode");
       applyCastMode();
     }
-    var dlg = { "#history": "dlgHistory", "#rules": "dlgRules", "#settings": "dlgSettings" }[location.hash];
+    var dlg = { "#history": "dlgHistory", "#rules": "dlgRules", "#settings": "dlgSettings", "#book": "dlgBook" }[location.hash];
     if (dlg) openDialog(dlg);
     if (m || dlg) history.replaceState(null, "", location.pathname);
   })();
