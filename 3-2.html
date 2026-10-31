@@ -585,7 +585,8 @@
     }
 
     .book-field select,
-    .book-field input {
+    .book-field input,
+    .book-line select {
       font-size: 1em;
       padding: 4px 6px;
       border: 1.5px solid var(--frame);
@@ -594,6 +595,45 @@
       color: var(--ink);
       min-width: 0;
       width: 100%;
+    }
+
+    /* 六爻由上爻排到初爻，和書上卦圖的位置一樣；每列左邊是爻位、右邊是四種爻 */
+    .book-lines {
+      display: grid;
+      gap: 6px;
+      min-width: 0;
+      padding: 8px 10px;
+      border: 1.5px solid var(--frame);
+      border-radius: 6px;
+    }
+
+    .book-lines-title {
+      font-weight: bold;
+    }
+
+    .book-line {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .book-line label {
+      flex: 0 0 2.6em;
+      font-weight: bold;
+    }
+
+    .book-line select {
+      flex: 1 1 0;
+    }
+
+    .book-preview {
+      min-height: 1.7em;
+      padding-top: 4px;
+      border-top: 1px dashed var(--line);
+      color: var(--blue);
+      font-weight: bold;
+      overflow-wrap: anywhere;
     }
 
     /* 手機上表單要捲動，錯誤與排盤鈕固定在視窗底部才不會被擠出畫面 */
@@ -884,7 +924,7 @@
             <button class="secondary" onclick="resetAll()">重新卜卦</button>
           </div>
           <div class="controls hidden" id="bookControls">
-            <div class="manual-hint">書本卦例（依輸入的卦與月日排盤，不用搖錢）</div>
+            <div class="manual-hint">書本卦例（依輸入的六爻與月建、日辰排盤，不用搖錢）</div>
             <button onclick="openBookCase()">修改本例</button>
             <button class="secondary" onclick="resetAll()">返回一般起卦</button>
           </div>
@@ -962,11 +1002,18 @@
 <dialog id="dlgBook">
   <div class="dlg-head">書本卦例 <button class="secondary small" onclick="closeDialog('dlgBook')">取消</button></div>
   <div class="dlg-body">
-    <div class="setting-note">對照書上的卦例用：直接選本卦、變卦、月建與日辰就能排盤，不用搖錢，也不用輸入國曆日期。變卦留空代表六爻安靜的靜卦。</div>
-    <div class="book-form" onchange="clearBookError()" oninput="clearBookError()">
-      <div class="book-pair">
-        <div class="book-field"><label for="bookMain">本卦</label><select id="bookMain"></select></div>
-        <div class="book-field"><label for="bookChanged">變卦（可空）</label><select id="bookChanged"></select></div>
+    <div class="setting-note">對照書上的卦例用：照書上的卦圖選好六爻，再選月建與日辰就能排盤，不用搖錢，也不用輸入國曆日期。本卦與變卦會由六爻自動算出來；六爻都不動就是靜卦。</div>
+    <div class="book-form" onchange="clearBookError(); updateBookPreview()" oninput="clearBookError(); updateBookPreview()">
+      <div class="book-lines" role="group" aria-labelledby="bookLinesTitle">
+        <div class="book-lines-title" id="bookLinesTitle">六爻（上面是上爻、下面是初爻，請由下往上選）</div>
+        <div class="book-line"><label for="bookLine6">上爻</label><select id="bookLine6"></select></div>
+        <div class="book-line"><label for="bookLine5">五爻</label><select id="bookLine5"></select></div>
+        <div class="book-line"><label for="bookLine4">四爻</label><select id="bookLine4"></select></div>
+        <div class="book-line"><label for="bookLine3">三爻</label><select id="bookLine3"></select></div>
+        <div class="book-line"><label for="bookLine2">二爻</label><select id="bookLine2"></select></div>
+        <div class="book-line"><label for="bookLine1">初爻</label><select id="bookLine1"></select></div>
+        <div class="setting-note">老陽（○）、老陰（×）是會變的動爻；少陽、少陰不動。括號裡是銅錢的數字記法。</div>
+        <div class="book-preview" id="bookPreview" aria-live="polite"></div>
       </div>
       <div class="book-pair">
         <div class="book-field"><label for="bookMonth">月建（地支）</label><select id="bookMonth"></select></div>
@@ -6051,10 +6098,16 @@
     updateButtons();
   }
 
-  /* ---------- 書本卦例：直接輸入本卦、變卦、月建與日辰 ---------- */
+  /* ---------- 書本卦例：直接輸入六爻、月建與日辰 ---------- */
 
   var BOOK_YONG_VALUES = ["", "世", "應", "父母", "兄弟", "子孫", "妻財", "官鬼"];
-  var BOOK_TRIGRAM_IMAGE = { "乾": "天", "兌": "澤", "離": "火", "震": "雷", "巽": "風", "坎": "水", "艮": "山", "坤": "地" };
+  // 六爻選單的四種爻；值是三枚銅錢的記法：6 老陰、7 少陽、8 少陰、9 老陽
+  var BOOK_LINE_CHOICES = [
+    { value: 7, text: "少陽（7）陽爻不動" },
+    { value: 8, text: "少陰（8）陰爻不動" },
+    { value: 9, text: "老陽（9）○ 陽變陰" },
+    { value: 6, text: "老陰（6）× 陰變陽" }
+  ];
   var bookGuaBitsMap = null;
   var bookSelectsReady = false;
 
@@ -6138,15 +6191,95 @@
     };
   }
 
+  // 六爻陰陽（初爻到上爻，1 為陽）換成卦名
+  function bookNameFromBits(bits) {
+    return getGuaName(TRIGRAM_BRANCHES[bits.slice(3).join("")].name, TRIGRAM_BRANCHES[bits.slice(0, 3).join("")].name);
+  }
+
+  // 只認 6、7、8、9 這四個數字或剛好是單一數字的字串；其他一律回 0，不猜、不補
+  function bookLineCode(v) {
+    var n = typeof v === "number" ? v : (typeof v === "string" && /^[6-9]$/.test(v) ? Number(v) : 0);
+    return [6, 7, 8, 9].indexOf(n) >= 0 ? n : 0;
+  }
+
+  // 六爻（初爻到上爻）的值換成本卦、變卦名稱與動爻位置；沒有動爻時 chgName 為空字串
+  function bookNamesFromCodes(codes) {
+    var main = [], chg = [], moving = [];
+    for (var k = 0; k < 6; k++) {
+      var c = codes[k];
+      main.push(c === 7 || c === 9 ? 1 : 0);
+      chg.push(c === 7 || c === 6 ? 1 : 0);
+      if (c === 6 || c === 9) moving.push(YAO_SHORT[k]);
+    }
+    return { mainName: bookNameFromBits(main), chgName: moving.length ? bookNameFromBits(chg) : "", moving: moving };
+  }
+
+  // 由既有的本卦、變卦名稱還原六爻的值（舊的書本卦例只存了名稱）
+  function bookCodesFromNames(mainName, chgName) {
+    var main = bookGuaBits(mainName, "本卦");
+    var chg = chgName ? bookGuaBits(chgName, "變卦") : main;
+    var codes = [];
+    for (var k = 0; k < 6; k++) {
+      codes.push(main[k] ? (chg[k] ? 7 : 9) : (chg[k] ? 6 : 8));
+    }
+    return codes;
+  }
+
+  // 驗證六爻、月建與日辰，產生書本卦例的六爻與時間資訊；不改任何全域狀態
+  function prepareBookLines(input) {
+    input = input || {};
+    var lines = input.lines;
+    if (!Array.isArray(lines) || lines.length !== 6) throw new Error("書本卦例要有六爻，請由初爻到上爻全部選好。");
+    var codes = [];
+    for (var k = 0; k < 6; k++) {
+      var code = bookLineCode(lines[k]);
+      if (!code) {
+        throw new Error(lines[k] === "" ?
+          "請選擇" + YAO_SHORT[k] + "；六爻都要選好才能排盤。" :
+          YAO_SHORT[k] + "的選項不正確，請從少陽、少陰、老陽、老陰中重新選擇。");
+      }
+      codes.push(code);
+    }
+    var names = bookNamesFromCodes(codes);
+    return prepareBookCase({ mainName: names.mainName, chgName: names.chgName, monthZhi: input.monthZhi, dayGZ: input.dayGZ });
+  }
+
+  function bookLinesFromForm() {
+    var list = [];
+    for (var k = 1; k <= 6; k++) list.push(document.getElementById("bookLine" + k).value);
+    return list;
+  }
+
+  // 只更新表單上的預覽文字，完整六爻才顯示本卦與變卦；不動目前的卦、時間與紀錄
+  function updateBookPreview() {
+    var box = document.getElementById("bookPreview");
+    var raw = bookLinesFromForm(), codes = [], empty = [], bad = false;
+    for (var k = 0; k < 6; k++) {
+      var code = bookLineCode(raw[k]);
+      if (code) codes.push(code);
+      else if (raw[k] === "") empty.push(YAO_SHORT[k]);
+      else bad = true;
+    }
+    if (bad) {
+      box.textContent = "有一爻的選項不正確，請重新選擇。";
+    } else if (empty.length === 6) {
+      box.textContent = "六爻都選好後，這裡會自動顯示本卦與變卦。";
+    } else if (empty.length > 0) {
+      box.textContent = "還沒選：" + empty.join("、") + "。六爻都選好後才會顯示本卦與變卦。";
+    } else {
+      var names = bookNamesFromCodes(codes);
+      box.textContent = names.chgName ?
+        "本卦：" + names.mainName + "　變卦：" + names.chgName + "（動爻：" + names.moving.join("、") + "）" :
+        "本卦：" + names.mainName + "（六爻都不動，是靜卦，沒有變卦）";
+    }
+  }
+
   function initBookSelects() {
     if (bookSelectsReady) return;
-    var guaOptions = TRIGRAM_ORDER.map(function(up) {
-      return '<optgroup label="上卦' + up + '（' + BOOK_TRIGRAM_IMAGE[up] + '）">' + GUA_NAMES[up].map(function(name) {
-        return '<option value="' + name + '">' + name + '</option>';
-      }).join("") + '</optgroup>';
+    var lineOptions = '<option value="">請選擇</option>' + BOOK_LINE_CHOICES.map(function(c) {
+      return '<option value="' + c.value + '">' + c.text + '</option>';
     }).join("");
-    document.getElementById("bookMain").innerHTML = '<option value="">請選擇本卦</option>' + guaOptions;
-    document.getElementById("bookChanged").innerHTML = '<option value="">沒有變卦（靜卦）</option>' + guaOptions;
+    for (var k = 1; k <= 6; k++) document.getElementById("bookLine" + k).innerHTML = lineOptions;
     document.getElementById("bookMonth").innerHTML = '<option value="">請選擇月建</option>' + ZHI_ORDER.split("").map(function(z) {
       return '<option value="' + z + '">' + z + '月</option>';
     }).join("");
@@ -6170,13 +6303,14 @@
     initBookSelects();
     var existing = bookCase;
     var yongEl = document.getElementById("yongShen");
-    document.getElementById("bookMain").value = existing ? existing.mainName : "";
-    document.getElementById("bookChanged").value = existing ? existing.chgName : "";
+    var codes = existing ? bookCodesFromNames(existing.mainName, existing.chgName) : [];
+    for (var k = 0; k < 6; k++) document.getElementById("bookLine" + (k + 1)).value = existing ? String(codes[k]) : "";
     document.getElementById("bookMonth").value = existing ? existing.monthZhi : "";
     document.getElementById("bookDay").value = existing ? existing.dayGZ : "";
     document.getElementById("bookQuestion").value = existing ? document.getElementById("question").value : "";
     document.getElementById("bookYong").value = existing && yongManual ? yongEl.value : "";
     document.getElementById("bookError").textContent = "";
+    updateBookPreview();
     showDialog("dlgBook");
   }
 
@@ -6188,9 +6322,8 @@
     try {
       if (isAnimating) throw new Error("正在搖卦，請等動畫結束再套用書本卦例。");
       if (BOOK_YONG_VALUES.indexOf(yong) < 0) throw new Error("用神的選項不正確，請重新選擇。");
-      prep = prepareBookCase({
-        mainName: document.getElementById("bookMain").value,
-        chgName: document.getElementById("bookChanged").value,
+      prep = prepareBookLines({
+        lines: bookLinesFromForm(),
         monthZhi: document.getElementById("bookMonth").value,
         dayGZ: document.getElementById("bookDay").value
       });
@@ -6243,7 +6376,7 @@
     out.push("所問：" + (q || "（未填寫）"));
     if (isBookMode()) {
       out.push("時間：" + timeInfo.solarText + "；未提供國曆年月日、年柱、時柱與節令");
-      out.push("來源：書本卦例，依輸入的本卦、變卦、月建與日辰排盤，不是實際起卦");
+      out.push("來源：書本卦例，依輸入的六爻、月建與日辰排盤，本卦與變卦由六爻推得，不是實際起卦");
     } else {
       out.push("時間：" + timeInfo.solarText + "（" + timeInfo.yearGZ + "年 " + timeInfo.monthGZ + "月 " + timeInfo.dayGZ + "日 " + timeInfo.timeGZ + "時）");
     }
