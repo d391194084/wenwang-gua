@@ -1741,6 +1741,9 @@
     var clauses = q.split(/[，,。；;]/).filter(function(t) { return t.trim(); });
     if (!clauses.length) return null;
     var main = clauses[clauses.length - 1].trim();
+    // 「考上之後工作順利嗎」：之後、以後的前半只是前提，主問是後半的工作。
+    var premise = /(?:之後|以後)[，,]?((?:我(?:的)?)?(?:工作|上班).*)$/.exec(main);
+    if (premise) main = premise[1];
     var person = personRule(q.replace(/育嬰假/g, ""));
     // 尾句明示另一事件時，前句只提供人物／情境，不提供事件關鍵字。
     var explicitMain = INTENT_HEALTH_RE.test(main) || /工作|上班|面試|錄取|職缺|款|錢|入帳|合約|文件|資料|手續|護照|申訴書|可信|可靠|誠意|興趣|裝潢|套房|續約|稿子|稿件/.test(main);
@@ -1769,6 +1772,16 @@
     }
     // 本人明確表態要離職或要留任：親友的希望、勸說只是背景，主問是自己的工作去留（沒有他人時仍走原有的離職、工作字詞）。
     if ((person || YONG_OTHERS.re.test(q)) && ownJobDecision(q)) return result("官鬼", "名", "本人已表明要離職或要留任，主問是自己的工作去留，親友的意見只是背景，取官鬼");
+    // 明確問能否請假：問的是職務上的許可，依請假的人取用；家人生病、住院只是請假的理由，不以其病況為主問。
+    var LEAVE_RE = /請(?:[事病喪產婚休])?假|准假/;
+    if (LEAVE_RE.test(main) && /能不能|能否|可否|可以|會不會|准不准|批准|核准|同意|被准|請得到/.test(main)) {
+      var leaveSubject = main.slice(0, main.search(LEAVE_RE)), leaveWho = personRule(leaveSubject);
+      // 主詞是沒有前文的他／她時，交給下面既有的人物判斷（要求確認）。
+      if (leaveWho || !/(?<!其)[他她]/.test(leaveSubject)) {
+        var leaveSelf = /我們|我(?:跟|和|與)/.test(leaveSubject) || !leaveWho && !YONG_OTHERS.re.test(leaveSubject);
+        return result(leaveSelf ? "官鬼" : leaveWho ? leaveWho.value : "應", "名", "主問能否請假這項職務許可，依請假的人取用；請假的理由（例如家人住院）只是背景，不是主問");
+      }
+    }
     // 「最近」「很差」「會好起來」只是時間與泛用結果：要有明確的心情、近況等主題才算近況題；
     // 主題在前句時，主問必須只剩泛用結果；只有「最近」時，全句除了人物與泛用結果不能另有事物主題（生意等）。
     function plainStateAsk(text) {
@@ -1873,8 +1886,16 @@
     }
     // 明確問錄取結果（沒有面試）時，沿用既有錄取通知取法；只問工作順不順仍取官鬼。
     var admissionResult = /錄取|錄用/.test(main) && !/面試|口試/.test(main);
-    if (INTENT_JOB_RE.test(eventContext) || /^我(?:的)?(?:工作|上班)/.test(main) && /順|會|能|如何/.test(main) && !admissionResult || /育嬰假/.test(q) && /回得去|回原單位|復職/.test(main)) {
-      return result(/^我(?:的)?(?:工作|上班)/.test(main) ? "官鬼" : person ? person.value : "官鬼", "名", "主問職務、任用或回原單位，育嬰假等只是背景");
+    // 主問是薪資、待遇金額時，面試、職缺只是背景；問的是錢，不是職務結果。
+    if (/薪水|薪資|月薪|年薪|底薪|待遇|獎金/.test(main) && !/錄取|錄用|面試|口試|升職|升遷|晉升|轉正|工作|上班|職缺|聘|離職|辭職/.test(main) && /面試|口試|應徵|職缺|工作|上班|公司/.test(q)) {
+      return result("妻財", "財", "主問薪資待遇金額，面試等只是背景，取妻財");
+    }
+    // 主問直接問「工作順不順」，沒有指明是誰、前文也沒有親友時就是本人的工作；考上之後等只是前提。
+    var ownWork = /^我(?:的)?(?:工作|上班)/.test(main) || !person && !YONG_OTHERS.re.test(q) && /^(?:工作|上班)/.test(main);
+    // 前一句以「之後、以後」收尾（媽媽考上之後，工作順利嗎）：前句只是前提，主問是後句的工作，所問人物仍依前文。
+    var premiseJob = clauses.length > 1 && /(?:之後|以後)$/.test(clauses[clauses.length - 2].trim()) && /^(?:我(?:的)?)?(?:工作|上班)/.test(main) && /順|會|能|如何/.test(main) && !admissionResult;
+    if (INTENT_JOB_RE.test(eventContext) || ownWork && /順|會|能|如何/.test(main) && !admissionResult || premiseJob || /育嬰假/.test(q) && /回得去|回原單位|復職/.test(main)) {
+      return result(ownWork || selfSubjectMain(main) ? "官鬼" : person ? person.value : "官鬼", "名", "主問職務、任用或回原單位，育嬰假等只是背景");
     }
     var bodyGoal = /好|恢復|康復|要緊|嚴重|肺炎|復原/.test(main);
     // 明示症狀、末句問會不會好／退／緩解時，主問是這個人的病況（疫苗只是過去的背景）；
@@ -1961,9 +1982,229 @@
     return (m[1] || "") + split.rest;
   }
 
+  // 明確的問事範圍與排除句共用同一入口；原始輸入仍保留於畫面及紀錄。
+  var FOCUS_MARK_SRC = "(我)?(?:這次|現在|今天)?(?:只問|只想問|只想知道|要問的是|想問的是|問的是)\\s*";
+  var EXCLUDE_ASK_RE = /^(?:(?:我|也|並|但|但是|而且)\s*)*(?:不是(?:在|要|想)?問|並非(?:在|要|想)?問|(?:不想|不要|不需要|不必|無需|不用)問|不問|(?:要|想)?問的不是|問的並非)/;
+  var SWAP_ASK_RE = /^(?:我)?(?:不是|並非)(?:在|要|想)?問[^，,。；;]*?(?:而)?是(?:在|要|想)?問(.+)$/;
+  var COURTESY_RE = /^(?:先)?(?:謝謝|多謝|感謝|感恩|謝啦|謝了|麻煩了?|拜託了?|辛苦了?|請多指教|感激不盡)(?:你|您|大家|各位|老師|囉|喔|哦|啦)*[~～!！。.…\s]*$/;
+  var ASK_HINT_RE = /[嗎呢吧？?]|能否|是否|可否|會不會|能不能|可不可以|可以|有沒有|何時|什麼時候|幾時|多久|如何|怎樣|怎麼|好不好|順不順|成不成|該不該|要不要|行不行|是不是|^(?:能|會|可以)/;
+  var PARTNER_CLUE_RE = /老公|老婆|丈夫|太太|妻子|先生|男友|女友|男朋友|女朋友|另一半|伴侶|前任|前夫|前妻|未婚夫|未婚妻|女生|女孩|女方|男生|男孩|男方/;
+  // 主問是感情題時，前句只留下能判斷對象或性別的伴侶線索，不帶回其他親友背景。
+  function partnerClue(c) {
+    return PARTNER_CLUE_RE.test(c) && !questionPeople(c).some(function(v) { return v !== "官鬼" && v !== "妻財"; });
+  }
+  function loveMain(main) {
+    return LOVE_TEST.test(main) || LOVE_WEAK_RE.test(main) || /離婚|分手|復合|喜歡我|愛我|前任/.test(main);
+  }
+  // 「現在先問工作」是這次的主問；後面若還接著要問別的（再問、也問…），就是依序多問，不當成只問。
+  var NOW_FOCUS_RE = /^(?:(?:只是|但是|不過|而是)\s*)?(?:我)?(?:現在|目前|這次|今天)(?:想|要)?先(?:問|看)(?:一下)?\s*/;
+  var SEQ_ASK_RE = /再問|接著問|然後問|之後(?:再)?問|稍後(?:再)?問|等一下問|晚點問|還(?:想|要)?問|也(?:想|要)?問|另外|順便/;
+  // 「面試官是我朋友」只說明面試官是誰，不是所問的人；剩下的主問沒有另指他人才當背景，有他／她等代詞時說明句是前文，不拿掉。
+  var ROLE_NOUN_SRC = "(?:面試官|主考官|考官|口試官|面試委員|口試委員|評審|審查委員|招募人員|承辦人|負責人|老闆|主管|上司)";
+  var ROLE_IDENTITY_RES = [
+    new RegExp("^(?:這次|這場|這個|那個|該|本次)?" + ROLE_NOUN_SRC + "(?:就|剛好|正好)*是(?:我(?:的|家的)?)?[^，,。；;？?！!]*$"),
+    new RegExp("^[^，,。；;？?！!是]{1,8}(?:就|剛好|正好)*是(?:(?:這次|這場|這個|那個|該|本次)的?)?" + ROLE_NOUN_SRC + "[嗎呢]?$")
+  ];
+  var JOB_EVENT_RE = /面試|口試|考試|錄取|升職|升遷|轉正|工作|應徵|試用|考核/;
+  function dropRoleIdentity(clauses) {
+    var kept = clauses.filter(function(c) { return !ROLE_IDENTITY_RES.some(function(re) { return re.test(c); }); });
+    if (kept.length === clauses.length || !kept.length) return clauses;
+    var rest = kept.join("，");
+    if (personRule(rest) || YONG_OTHERS.re.test(rest) || /(?<!其)[他她]/.test(rest) || !JOB_EVENT_RE.test(rest)) return clauses;
+    return kept;
+  }
+  function questionScope(q) {
+    q = String(q || "").replace(/\r\n?|\n/g, "，").replace(/[？?！!](?=\s*[^，,。；;？?！!\s])/g, "$&，");
+    var named = /以(?:父母|兄弟|子孫|妻財|官鬼)為用/.exec(q);
+    var all = q.split(/[，,。；;]/).map(function(c) { return c.trim(); }).filter(function(c) { return c; });
+    var clauses = [], dropped = false;
+    all.forEach(function(c) {
+      if (COURTESY_RE.test(c)) return;
+      var swap = SWAP_ASK_RE.exec(c);
+      if (swap) { clauses.push("我問" + swap[1]); dropped = false; return; }
+      // 「不是問X，是問Y」「問的不是X，是Y」：被否定的問事不是主問；雙重否定（不是不問）不在此列。
+      if (EXCLUDE_ASK_RE.test(c) && !/而是|但是|不過/.test(c.replace(EXCLUDE_ASK_RE, ""))) { dropped = true; return; }
+      if (dropped) c = c.replace(/^(?:而)?是(?!否|不是)(?:在|要|想)?(?:問)?/, "");
+      dropped = false;
+      if (c) clauses.push(c);
+    });
+    if (!clauses.length) clauses = all;
+    clauses = dropRoleIdentity(clauses);
+    var genderHint = "";
+    for (var i = 0; i < clauses.length; i++) {
+      var re = new RegExp(FOCUS_MARK_SRC, "g"), m, hit = null;
+      // 句中的「我只問」也算；沒有「我」且不在句首（媽媽只問我…）是別人的問法，不當本人範圍。
+      while ((m = re.exec(clauses[i]))) { if (m[1] || m.index === 0) { hit = m; break; } }
+      if (!hit && !clauses.slice(i + 1).some(function(c) { return SEQ_ASK_RE.test(c); })) hit = NOW_FOCUS_RE.exec(clauses[i]);
+      if (!hit) continue;
+      var main = clauses[i].slice(hit.index + hit[0].length).trim();
+      if (!main) continue;
+      var leadList = clauses.slice(0, i), inlineLead = clauses[i].slice(0, hit.index).trim();
+      if (inlineLead) leadList = leadList.concat([inlineLead]);
+      var lead = leadList.join("，");
+      YONG_STEPS.some(function(st) { if (st.gender && st.re.test(lead)) { genderHint = st.gender + "占"; return true; } return false; });
+      if (/^(?:他|她)(?!人)/.test(main) && lead) {
+        var refs = questionPeople(lead), prior = personRule(lead, true);
+        // 單一六親前文可承接；多種六親保留前文，交給澄清檢查，不猜第一人。
+        if (refs.length > 1) return (named ? named[0] + "，" : "") + lead + "，" + main;
+        if (prior) main = main.replace(/^[他她]/, prior.text);
+        else if (YONG_OTHERS.re.test(lead)) main = main.replace(/^[他她]/, "對方");
+      }
+      var base = questionTopics(main);
+      // 「只問」之後只留續問本身：另指他人或另一事類的敘述、補充都不是主問。
+      var tail = clauses.slice(i + 1).filter(function(c) {
+        if (questionPeople(c).length || YONG_OTHERS.re.test(c) || !ASK_HINT_RE.test(c)) return false;
+        var t = questionTopics(c);
+        return !(base.length && t.some(function(x) { return base.indexOf(x) < 0; }));
+      });
+      var keepLead = loveMain(main) ? leadList.filter(partnerClue) : [];
+      clauses = keepLead.concat([main], tail);
+      break;
+    }
+    var result = (genderHint ? genderHint + "，" : "") + clauses.join("，");
+    return named && result.indexOf(named[0]) < 0 ? named[0] + "，" + result : result;
+  }
+
+  // 只用已支援的人物六親辨識歧義，不把泛稱「我」當作另一名親友。
+  function questionPeople(q) {
+    var values = [], rest = normalizeKin(q), who;
+    // personRule已處理「媽媽的朋友」等連屬稱謂；整段只算最終所指的人。切片須與personRule使用同一正規化字串。
+    while ((who = personRule(rest, true))) {
+      if (values.indexOf(who.rule.value) < 0) values.push(who.rule.value);
+      rest = rest.slice(who.end);
+    }
+    if (YONG_OTHERS.re.test(q) && values.indexOf("應") < 0) values.push("應");
+    return values;
+  }
+
+  // 同一分句以和、跟、或、頓號並列兩位不同六親（媽媽和朋友）：兩人都是所問對象，不能默選第一位；
+  // 「媽媽的朋友」是連屬稱謂，只算一人；同一六親（爸爸和媽媽）也只算一種。
+  var PEOPLE_JOIN_RE = /^[，,]?(?:和|跟|與|及|、|以及|還是|或是|或者|或|還有)(?:我(?:的|家的)?)?(?:[^，,。；;]{0,6}[的之])?$/;
+  // 其中一方是伴侶稱謂、問的是兩人的感情或關係（大表哥與女友感情關係）時，兩人是一對，不是兩個各別的所問對象。
+  function coordinatedPeople(q) {
+    var rest = normalizeKin(q), prev = null, who, couple = LOVE_TEST.test(q) || /關係|結婚|婚/.test(q);
+    while ((who = personRule(rest, true))) {
+      if (prev && who.rule.value !== prev.rule.value && PEOPLE_JOIN_RE.test(rest.slice(0, who.start)) &&
+        !(couple && (PARTNER_CLUE_RE.test(who.text) || PARTNER_CLUE_RE.test(prev.text)))) return true;
+      prev = who; rest = rest.slice(who.end);
+    }
+    return false;
+  }
+
+  // 「我和朋友誰會先好」「朋友和我都會康復嗎」：我與另一位親友直接並列，兩人都是所問對象。
+  // 只在同句要挑人或問都如何（誰、哪一位、分別、都…嗎）時才算；「我和朋友會在一起嗎」是一段關係，不在此列。
+  function selfCoordinated(q) {
+    var base = normalizeKin(q), rest = base, offset = 0, who;
+    if (!/誰|哪(?:一)?(?:個|位)|分別|兩位|兩個/.test(base) && !(/都/.test(base) && /[嗎呢？?]|能否|是否|可否|會不會|能不能/.test(base))) return false;
+    var couple = LOVE_TEST.test(base) || /關係|結婚|婚/.test(base);
+    while ((who = personRule(rest, true))) {
+      var s = offset + who.start, e = offset + who.end, partner = PARTNER_CLUE_RE.test(who.text);
+      var after = base.slice(e), joinedAfter = /^(?:和|跟|與|及|、|還是|或是|或者|或)我/.exec(after);
+      var nextAfterMe = joinedAfter ? personRule(after.slice(joinedAfter[0].length), true) : null;
+      var selfBefore = /我(?:和|跟|與|及|、|還是|或是|或者|或)$/.test(base.slice(0, s));
+      var selfAfter = joinedAfter && !/^[們的家]/.test(after.slice(joinedAfter[0].length)) && !(nextAfterMe && nextAfterMe.start === 0);
+      if ((selfBefore || selfAfter) && !(couple && partner)) return true;
+      offset += who.end; rest = rest.slice(who.end);
+    }
+    return false;
+  }
+
+  // 主問分句以「我」為主詞且沒有另指他人：前句的親友、面試官只是背景，不是所問之人。
+  function selfSubjectMain(main) {
+    main = String(main || "").trim();
+    return /^我(?!們)/.test(main) && !personRule(main) && !YONG_OTHERS.re.test(main) && !/(?<!其)[他她]/.test(main);
+  }
+  function lastClauseOf(q) {
+    var clauses = String(q || "").split(/[，,。；;]/).map(function(c) { return c.trim(); }).filter(function(c) { return c; });
+    return clauses.length ? clauses[clauses.length - 1] : "";
+  }
+
+  // 每個分句只辨識明確問事目標；同一事件的背景詞不自行拆成多問。
+  var TOPIC_RULES = [
+    ["工作", /工作|事業|升職|升遷|轉正|面試|離職|轉職|求職/],
+    ["感情", /感情|戀情|戀愛|復合|復婚|姻緣|婚姻|告白|前任.*回頭/],
+    ["考試", /考試|考上|考取|及格|上榜|英檢|統測|學測|成績/],
+    ["款項", /貨款|款項|退款|退稅|財運|入帳|還錢|賺錢|獲利|股票|股價|股市|基金|ETF|期貨|投資|生意/],
+    ["健康", /病情|病況|生病|康復|痊癒|健康|退燒|病.*會好/],
+    ["出行", /出行|出國|出門|旅遊|旅行|成行/],
+    ["訴訟", /官司|訴訟|勝訴|敗訴|判決/],
+    ["失物", /失物|遺失|走失|找回|尋回/],
+    ["孕產", /懷孕|受孕|生孩子|生寶寶|產期|分娩|寶寶|胎兒/],
+    ["物件", /汽車|機車|車子|房子|房屋|租約|合約|契約|證件|護照|簽證|文件/]
+  ];
+  function questionTopics(q) {
+    var topics = [];
+    TOPIC_RULES.forEach(function(r) { if (r[1].test(q)) topics.push(r[0]); });
+    // 寶寶、胎兒的健康與孕產是同一件事，不另算健康。
+    if (topics.indexOf("孕產") >= 0) topics = topics.filter(function(t) { return t !== "健康"; });
+    return topics;
+  }
+  // 同一分句內以頓號、和、跟、或等並列的不同事類（工作和感情好嗎）：共用同一個問句，各自都是所問。
+  function coordinatedTopics(t) {
+    var hits = [], out = [];
+    TOPIC_RULES.forEach(function(r) {
+      var re = new RegExp(r[1].source, "g"), m;
+      while ((m = re.exec(t))) { hits.push({ name: r[0], at: m.index, end: m.index + m[0].length }); if (!m[0].length) re.lastIndex++; }
+    });
+    // 寶寶、胎兒的健康與孕產是同一件事。
+    if (hits.some(function(h) { return h.name === "孕產"; })) hits.forEach(function(h) { if (h.name === "健康") h.name = "孕產"; });
+    hits.sort(function(a, b) { return a.at - b.at; });
+    for (var i = 0; i + 1 < hits.length; i++) {
+      var a = hits[i], b = hits[i + 1];
+      if (a.name !== b.name && /^(?:的?(?:事情|事|問題|方面))?(?:[、和跟與及或]|還是|或者)(?:我(?:的|自己的)|自己的)?$/.test(t.slice(a.end, b.at))) {
+        [a.name, b.name].forEach(function(n) { if (out.indexOf(n) < 0) out.push(n); });
+      }
+    }
+    return out;
+  }
+  var TIME_ADVERB_RE = /(?:之後|以後|之前|以前|的時候|時候|[^不]後|[^不]時)[？?。\s]*$|^(?:如果|假如|要是|若|萬一)/;
+  // 回傳這句明確問了哪些不同事類；需要兩個以上獨立問事目標才算多問。
+  function questionAsked(q) {
+    var list = String(q || "").replace(/[？?！!]+/g, "$&，")
+      .split(/以及|另外|也(?:想|要)?問|還(?:想|要)?問|順便(?:想|要)?問|還有|並且|而且|[，,。；;]/);
+    var asked = [], listFrame = /想問|要問|問工作|問感情|問財運|問考試|問健康/.test(q);
+    function add(n) { if (asked.indexOf(n) < 0) asked.push(n); }
+    list.forEach(function(c) {
+      var t = c.trim(), topics = questionTopics(t);
+      var isAsk = /[嗎呢？?]|能否|是否|可否|會不會|能不能|何時|什麼時候|多久|如何|怎樣|想問|要問|(?:先|再|也|還)問|能(?:復合|升職|及格|康復)/.test(t);
+      var bareTopic = /^(?:工作|事業|感情|戀情|財運|考試|健康)(?:問題)?[？?。\s]*$/.test(t);
+      var coord = coordinatedTopics(t);
+      if (coord.length && (isAsk || listFrame)) { coord.forEach(add); return; }
+      // 「考上之後」「如果…」是後面問題的前提，不是另一個問事目標。
+      if (TIME_ADVERB_RE.test(t)) return;
+      if (topics.length === 1 && (isAsk || listFrame && bareTopic)) add(topics[0]);
+    });
+    return asked;
+  }
+
+  function questionClarification(q) {
+    var clauses = q.split(/[，,。；;]/).map(function(c) { return c.trim(); }).filter(function(c) { return c; });
+    var asked = questionAsked(q);
+    if (asked.length > 1) return { value: "", requiresConfirmation: true, multi: true, why: "這句同時問了" + asked.join("、") + "，請先選一件最想問的事，或手動確認用神" };
+    // 他／她所在的分句（可接「我想問」）；其他分句出現不同六親的人物時，不猜是第一位。
+    for (var k = 0; k < clauses.length; k++) {
+      var pron = clauses[k].replace(/^(?:我)?(?:想請問|想問|要問|請問|想知道|只問)\s*/, "");
+      if (!/^[他她](?!人)/.test(pron) || personRule(pron) || LOVE_TEST.test(pron)) continue;
+      var refs = questionPeople(clauses.filter(function(c, j) { return j !== k; }).join("，"));
+      if (refs.length > 1) return { value: "", requiresConfirmation: true, why: "前文有不同的人物，請先說明「他／她」指的是誰，或手動確認用神" };
+    }
+    // 問句本身並列不同六親的人（媽媽和朋友誰會康復）；或問句只問「誰／都」、人物在前一句並列。
+    var coordWhy = "這句問的對象有不同身分的人（例如媽媽和朋友），請先選一位最想問的人，或手動確認用神";
+    var askMark = /[嗎呢？?]|誰|哪(?:一)?(?:個|位)|能否|是否|可否|會不會|能不能|何時|什麼時候|多久|如何|怎樣|好不好|順不順/;
+    for (var c = 0; c < clauses.length; c++) {
+      if (askMark.test(clauses[c]) && (coordinatedPeople(clauses[c]) || selfCoordinated(clauses[c]))) return { value: "", requiresConfirmation: true, why: coordWhy };
+    }
+    var last = clauses.length ? clauses[clauses.length - 1] : "";
+    // 「誰、哪一位、分別」是在人物之間挑一個；「都」要末句沒有「我」當主詞（媽媽和朋友都會去，我能否平安）才算。
+    if (clauses.length > 1 && !personRule(last) && (/誰|哪(?:一)?(?:個|位)|分別|兩位|兩個/.test(last) || /都/.test(last) && !/我/.test(last)) && coordinatedPeople(clauses.slice(0, -1).join("，"))) {
+      return { value: "", requiresConfirmation: true, why: coordWhy };
+    }
+    return null;
+  }
+
   // 明寫「只問」時以主問為準；前句人物只是背景、後句明問自己的工作時也不當代占。
   function effectiveQuestion(q) {
-    q = stripAttributiveActor((q || "").trim());
+    q = stripAttributiveActor(questionScope(q).trim());
     q = focusedQuestion(q);
     var only = /(?:^|[，,。；;])(?:我)?(?:只問|只想問|只想知道|要問的是|想問的是)(.+)$/.exec(q);
     if (only && !/他|她|對方|其/.test(only[1])) {
@@ -1972,7 +2213,7 @@
       if (prefix.some(excluded)) return personalPeaceQuestion(prefix.filter(function(cl) { return !excluded(cl); }).concat(only[1]).join("，"));
     }
     var clauses = q.split(/[，,。；;]/), last = clauses[clauses.length - 1].trim();
-    if (clauses.length > 1 && !/以(父母|兄弟|子孫|妻財|官鬼)為用/.test(q) && /^我(?:本人|自己|個人)?(?:能|會|是否|能否|可否|要|想|這次)/.test(last) &&
+    if (clauses.length > 1 && !/以(父母|兄弟|子孫|妻財|官鬼)為用/.test(q) && (/^我(?:本人|自己|個人)?(?:能|會|是否|能否|可否|要|想|這次)/.test(last) || selfSubjectMain(last)) &&
       /工作|上班|轉職|轉正|升職|升遷|晉升|裁員|資遣|面試|考試/.test(last)) return personalPeaceQuestion(last);
     return personalPeaceQuestion(q);
   }
@@ -2003,7 +2244,19 @@
   }
 
   // 依所問文字與用神判斷事類，用來調整沖合、進退等象義
+  // 一次問了兩件以上不同的事：不照最後一句套用某一事類的專門斷法，只依所選用神做概略分析。
+  function multiAskTopics() {
+    var q = effectiveQuestion(document.getElementById("question").value).replace(/^\s*[\[［【][^\]］】]{1,6}[\]］】]\s*/, "");
+    var asked = questionAsked(q);
+    return asked.length > 1 ? asked : [];
+  }
+  function multiAskNote() {
+    var topics = multiAskTopics();
+    return topics.length ? "你一次問了多件事（" + topics.join("、") + "），請先選一件最想問的事當主問。目前只依你選定的用神做概略分析，不代表每一件事都有結論。" : "";
+  }
+
   function questionCategory(sel) {
+    if (multiAskTopics().length) return "";
     var q = effectiveQuestion(document.getElementById("question").value).replace(/以(?:父母|兄弟|子孫|妻財|官鬼)為用/g, "").replace(/^[，,\s]+/, "");
     var namedItem = lostQuestion(q) && !helpConsentAsk(q) && YONG_ITEMS.some(function(it) { return it.re.test(q); });
     if (namedItem) return "尋";
@@ -2017,7 +2270,11 @@
       訟: /官司|訴訟|起訴|提告|被告|告(他|她|對方|我|人)|判決|判刑|仲裁|坐牢|牢獄|入獄|糾紛|犯罪|罪名|有罪|無罪/,
       尋: /走失|失物|遺失|找回|尋人|尋物|下落|何時回|什麼時候回|回來|歸期|不見|弄丟|掉了|被偷|失竊|在哪/,
       行: /出差|出遊|旅遊|旅行|出國|出門|出行|搬家|搬寢室|搬宿舍|回老家|成行/,
-      考: { test: function(t) { return EXAM_ADMISSION_RE.test(t) || /考試|考上|考取|考到|考得|考過|上榜|放榜|筆試|國考|公職|公務員|成績|分數|學測|會考|錄取|期末考|期中考|段考|及格|檢定|多益|托福|雅思|比賽|得名/.test(t); } },
+      考: { test: function(t) {
+        // 面試問的是錄取與否屬職務結果；有學校、升學字詞時才維持考試。
+        var u = /面試|口試/.test(t) && !/學校|大學|高中|研究所|入學|升學|志願|考試/.test(t) ? t.replace(/錄取|錄用/g, "") : t;
+        return EXAM_ADMISSION_RE.test(t) || /考試|考上|考取|考到|考得|考過|上榜|放榜|筆試|國考|公職|公務員|成績|分數|學測|會考|錄取|期末考|期中考|段考|及格|檢定|多益|托福|雅思|比賽|得名/.test(u);
+      } },
       名: { test: function(t) { return JOB_STATUS_RE.test(t) || /工作|上班|職位|職場|職務|辭職|離職|在職|求職|轉職|升職|升遷|晉升|面試|功名|官(?!司|非)|調動|調職|事業|應聘|應徵/.test(t); } },
       財: { test: function(t) { return !!payoutQuestion(t) || CRYPTO_RE.test(t) || /財|錢|投資|生意|股|薪|收入|買賣|借|債|業績|開店|回本/.test(t); } }
     };
@@ -4285,6 +4542,8 @@
 
     // 實際定案條件與一般「用神旺衰」通則不同的題目，掛在 sections 上供教學第 7、8 步說明
     sections.decision = cr.decide || (quitJob && focus ? { kind: "quit", texts: [] } : illness ? { kind: "illness", texts: [] } : null);
+    var multiNote = multiAskNote();
+    if (multiNote) sections.unshift({ title: "一次問多件事", items: [{ text: multiNote, tone: "note" }] });
     return { verdict: verdict, tone: vTone, sections: sections };
   }
 
@@ -4704,6 +4963,7 @@
     if (pending) return pendingYongHtml(pending);
     var steps = teachingSteps(gua);
     var html = '<div class="teach-intro">建議先自己照下面的步驟想一遍，再點開「練習」看答案，最後到「詳細分析」對照。每一步都以你這一卦的實際爻位示範，括號中的集數是《六爻神卦整理》課程出處。</div>';
+    if (multiAskNote()) html += '<p class="setting-note">' + escapeHtml(multiAskNote()) + '</p>';
     steps.forEach(function(s, n) {
       html += '<section class="teach-step"><h3>第 ' + (n + 1) + ' 步｜' + escapeHtml(s.title) + '</h3>' +
         '<p class="teach-goal">' + escapeHtml(s.goal) + '</p>';
@@ -4803,6 +5063,7 @@
       isTiming ? "這一題只看時間、不論成敗，所以這一卦是" : jieWeather || jieCare ? "我先直接回答你：照通用的吉凶推算，這一卦的判詞是" : "我先直接回答你：照這一卦推算，" + (qText ? "整體傾向是" : "整體運勢的傾向是"),
       { b: r.verdict }, "。", advice]);
     if (isTiming) html += para([timeSentence]);
+    html += para([multiAskNote()]);
 
     // 2. 再說為什麼：先說看哪一爻與最關鍵的原因，再補有利與要留意的地方
     if (!isTiming) {
@@ -5385,10 +5646,13 @@
   ];
 
   // 所問之人：從第一個人物往後接「的、之」或緊接的人物（女朋友媽媽→媽媽）；問卦的人（奶奶預測孫子）略過
-  function personRule(q, details) {
-    // 明確可合成的親屬稱呼，先換成相對於問卦者的世代；避免只取最後一個稱謂。
-    q = q.replace(/(?:媽媽|母親|爸爸|父親|父母|爸|媽)(?:的|之)(?:姐姐|姊姊|哥哥|弟弟|妹妹|兄弟|姊妹|姐妹|兄|姊|姐|弟|妹)/g, "長輩")
+  // 明確可合成的親屬稱呼，先換成相對於問卦者的世代；避免只取最後一個稱謂。
+  function normalizeKin(q) {
+    return String(q || "").replace(/(?:媽媽|母親|爸爸|父親|父母|爸|媽)(?:的|之)(?:姐姐|姊姊|哥哥|弟弟|妹妹|兄弟|姊妹|姐妹|兄|姊|姐|弟|妹)/g, "長輩")
       .replace(/女兒(?:的|之)(?:老公|丈夫|先生|夫君)/g, "女婿");
+  }
+  function personRule(q, details) {
+    q = normalizeKin(q);
     var hits = [];
     YONG_PEOPLE.forEach(function(p) {
       var re = new RegExp(p.re.source, "g"), m;
@@ -5415,13 +5679,14 @@
       var asker = cur;
       cur = hits.filter(function(h) { return h.at >= asker.end; })[0] || cur;
     }
+    var start = cur.at;
     for (var k = 0; k < hits.length; k++) {
       var h = hits[k];
       if (h.at < cur.end) continue;
       var gap = q.slice(cur.end, h.at);
       if (/^(的|之|家的|過世|過世的)?$/.test(gap)) cur = h; else break;
     }
-    return details ? cur : cur.rule;
+    return details ? { at: cur.at, end: cur.end, rule: cur.rule, text: cur.text, start: start } : cur.rule;
   }
 
   // 感情：先看所問明寫的性別或對象，再看設定的問卦者性別
@@ -5475,6 +5740,8 @@
     if (!q) return null;
     var named = /以(父母|兄弟|子孫|妻財|官鬼)為用/.exec(q);
     if (named) return { value: named[1], why: "所問已註明用神" };
+    var clarification = questionClarification(q);
+    if (clarification) return clarification;
     if (lostTag || (lostQuestion(q) && !helpConsentAsk(q))) {
       for (var i = 0; i < YONG_ITEMS.length; i++) if (YONG_ITEMS[i].re.test(q)) return YONG_ITEMS[i];
     }
@@ -5487,12 +5754,14 @@
       if (!romantic.value) romantic.requiresConfirmation = true;
       return romantic;
     }
+    // 主問明問「我能否平安／順利／成功」且沒有另指他人時，前句親友只是背景；「我該怎麼辦」等泛問仍維持原人物判斷，明確請假已由questionIntent處理。
+    var qMain = lastClauseOf(q), peopleScope = selfSubjectMain(qMain) && /平安|安全|順利|成功/.test(qMain) ? qMain : q;
     for (var k = 0; k < YONG_STEPS.length; k++) {
       var st = YONG_STEPS[k], r;
       if (st.people) {
         r = friendLoveRule(q, g);
         if (r) return r;
-        r = personRule(q);
+        r = personRule(peopleScope);
         if (r) return r;
         if (LOVE_PARTNER_RE.test(q)) return loveRule(q, g);   // 伴侶稱謂保留取對方六親，事類仍依實際問題判斷
         if (/劈腿|外遇|小三|偷吃|出軌/.test(q) && /對方|他|她/.test(q)) return loveRule(q, g);

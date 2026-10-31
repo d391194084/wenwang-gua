@@ -1,0 +1,1105 @@
+[
+  {
+    "id": "QUALITY-FOCUS-01",
+    "q": "媽媽住院了，我只問我的工作能不能升職？",
+    "sel": "官鬼",
+    "cat": "名"
+  },
+  {
+    "id": "QUALITY-FOCUS-02",
+    "q": "媽媽住院了，我只想知道我能升職嗎？",
+    "sel": "官鬼",
+    "cat": "名"
+  },
+  {
+    "id": "QUALITY-FOCUS-03",
+    "q": "我媽媽剛開刀。\n我只想問我能不能轉正？",
+    "sel": "官鬼",
+    "cat": "名"
+  },
+  {
+    "id": "QUALITY-FOCUS-04",
+    "q": "爸爸很擔心我。\n我只問這次面試能成功嗎？",
+    "sel": "官鬼",
+    "cat": "名"
+  },
+  {
+    "id": "QUALITY-FOCUS-05",
+    "q": "我有工作問題，也有感情問題，只問工作能否升職。",
+    "sel": "官鬼",
+    "cat": "名"
+  },
+  {
+    "id": "QUALITY-FOCUS-06",
+    "q": "媽媽住院了，我只問媽媽能不能升職？",
+    "sel": "父母",
+    "cat": "名"
+  },
+  {
+    "id": "QUALITY-FOCUS-07",
+    "q": "以兄弟為用，媽媽住院，我只想知道我能升職嗎？",
+    "sel": "兄弟",
+    "cat": "名"
+  },
+  {
+    "id": "QUALITY-FOCUS-08",
+    "q": "我只問她的工作能不能升職？",
+    "sel": "",
+    "confirm": true
+  },
+  {
+    "id": "QUALITY-FOCUS-09",
+    "q": "媽媽在家，我只問她的工作能不能升職？",
+    "sel": "父母",
+    "cat": "名"
+  },
+  {
+    "id": "QUALITY-FOCUS-10",
+    "q": "我只問媽媽的工作能不能升職？",
+    "sel": "父母",
+    "cat": "名"
+  },
+  {
+    "id": "QUALITY-FOCUS-11",
+    "q": "我不想問股票，只想問男朋友何時回來？",
+    "sel": "官鬼",
+    "cat": "尋"
+  },
+  {
+    "id": "QUALITY-FOCUS-12",
+    "q": "媽媽住院，我只問自己的工作能否升職？",
+    "sel": "官鬼",
+    "cat": "名"
+  },
+  {
+    "id": "QUALITY-EXCLUDE-01",
+    "q": "我想問明天面試能不能錄取，不是問感情。",
+    "sel": "官鬼",
+    "cat": "名"
+  },
+  {
+    "id": "QUALITY-EXCLUDE-02",
+    "q": "我這次面試能成功嗎？不是問媽媽的病情。",
+    "sel": "官鬼",
+    "cat": "名"
+  },
+  {
+    "id": "QUALITY-EXCLUDE-03",
+    "q": "我問面試是否成功，不問感情，也不問媽媽的病。",
+    "sel": "官鬼",
+    "cat": "名"
+  },
+  {
+    "id": "QUALITY-EXCLUDE-04",
+    "q": "我不是問媽媽，我問的是自己能否平安？",
+    "sel": "世",
+    "cat": ""
+  },
+  {
+    "id": "QUALITY-EXCLUDE-05",
+    "q": "我不問工作，只問我的感情會不會復合？",
+    "gender": "男",
+    "sel": "妻財",
+    "cat": "情"
+  },
+  {
+    "id": "QUALITY-EXCLUDE-06",
+    "q": "我不問工作，只問我的感情會不會復合？",
+    "gender": "女",
+    "sel": "官鬼",
+    "cat": "情"
+  },
+  {
+    "id": "QUALITY-EXCLUDE-07",
+    "q": "我不是不問媽媽的病，只問媽媽何時康復？",
+    "sel": "父母",
+    "cat": "病"
+  },
+  {
+    "id": "QUALITY-MULTI-01",
+    "q": "我能升職嗎？也想問我和她會不會復合？",
+    "gender": "男",
+    "sel": "",
+    "confirm": true
+  },
+  {
+    "id": "QUALITY-MULTI-02",
+    "q": "我能升職嗎？我和她會復合嗎？",
+    "gender": "男",
+    "sel": "",
+    "confirm": true
+  },
+  {
+    "id": "QUALITY-MULTI-03",
+    "q": "我想問工作以及感情，能幫忙看看嗎？",
+    "gender": "男",
+    "sel": "",
+    "confirm": true
+  },
+  {
+    "id": "QUALITY-MULTI-04",
+    "q": "我跟她的感情能復合，以及這次考試會不會及格？",
+    "gender": "男",
+    "sel": "",
+    "confirm": true
+  },
+  {
+    "id": "QUALITY-MULTI-05",
+    "q": "這筆貨款會入帳嗎？另外我這次考試會及格嗎？",
+    "sel": "",
+    "confirm": true
+  },
+  {
+    "id": "QUALITY-MULTI-06",
+    "q": "我能升職嗎？\n順便問前任會不會回頭？",
+    "gender": "女",
+    "sel": "",
+    "confirm": true
+  },
+  {
+    "id": "QUALITY-MULTI-07",
+    "q": "媽媽會康復嗎？還有我的面試能成功嗎？",
+    "sel": "",
+    "confirm": true
+  },
+  {
+    "id": "QUALITY-MULTI-08",
+    "q": "以父母為用，我能升職嗎？也問感情能復合嗎？",
+    "gender": "男",
+    "sel": "父母"
+  },
+  {
+    "id": "QUALITY-PRONOUN-01",
+    "q": "媽媽和朋友都會去，她能否平安？",
+    "sel": "",
+    "confirm": true
+  },
+  {
+    "id": "QUALITY-PRONOUN-02",
+    "q": "媽媽說朋友生病了，她會好嗎？",
+    "sel": "",
+    "confirm": true
+  },
+  {
+    "id": "QUALITY-PRONOUN-03",
+    "q": "媽媽和朋友都會去，我只問她能否平安？",
+    "sel": "",
+    "confirm": true
+  },
+  {
+    "id": "QUALITY-PRONOUN-04",
+    "q": "她的工作能不能升職？",
+    "sel": "",
+    "confirm": true
+  },
+  {
+    "id": "QUALITY-PRONOUN-05",
+    "q": "媽媽和朋友都會去，媽媽能否平安？",
+    "sel": "父母"
+  },
+  {
+    "id": "QUALITY-PRONOUN-06",
+    "q": "媽媽說朋友生病了，朋友會好嗎？",
+    "sel": "兄弟",
+    "cat": "病"
+  },
+  {
+    "id": "QUALITY-PRONOUN-07",
+    "q": "媽媽出門了，她能否平安？",
+    "sel": "父母"
+  },
+  {
+    "id": "QUALITY-CTRL-01",
+    "q": "爸爸最近生病，我這次面試能成功嗎？",
+    "sel": "官鬼",
+    "cat": "名"
+  },
+  {
+    "id": "QUALITY-CTRL-02",
+    "q": "我媽媽能不能升職？",
+    "sel": "父母",
+    "cat": "名"
+  },
+  {
+    "id": "QUALITY-CTRL-03",
+    "q": "我幫媽媽問，她這次面試能不能成功？",
+    "sel": "父母",
+    "cat": "名"
+  },
+  {
+    "id": "QUALITY-CTRL-04",
+    "q": "媽媽幫我問，我這次面試能不能成功？",
+    "sel": "官鬼",
+    "cat": "名"
+  },
+  {
+    "id": "QUALITY-CTRL-05",
+    "q": "媽媽生病了，我想問我的合約能否通過？",
+    "sel": "父母",
+    "cat": ""
+  },
+  {
+    "id": "QUALITY-CTRL-06",
+    "q": "這筆貨款以及退款會入帳嗎？",
+    "sel": "妻財",
+    "cat": "財"
+  },
+  {
+    "id": "QUALITY-CTRL-07",
+    "q": "我能升職以及轉正嗎？",
+    "sel": "官鬼",
+    "cat": "名"
+  },
+  {
+    "id": "QUALITY-CTRL-08",
+    "q": "我會升職或調薪嗎？",
+    "sel": "妻財",
+    "cat": "名"
+  },
+  {
+    "id": "QUALITY-CTRL-09",
+    "q": "她愛我嗎？",
+    "gender": "男",
+    "sel": "妻財",
+    "cat": "情"
+  },
+  {
+    "id": "QUALITY-CTRL-10",
+    "q": "他會跟我復合嗎？",
+    "gender": "女",
+    "sel": "官鬼",
+    "cat": "情"
+  },
+  {
+    "id": "QUALITY-CTRL-11",
+    "q": "媽媽住院，我只問這筆退款何時入帳？",
+    "sel": "妻財",
+    "cat": "財"
+  },
+  {
+    "id": "QUALITY-TAIL-01",
+    "q": "我只問我能升職嗎，媽媽還在住院。",
+    "sel": "官鬼",
+    "cat": "名"
+  },
+  {
+    "id": "QUALITY-TAIL-02",
+    "q": "我只問我能升職嗎？媽媽還在住院。",
+    "sel": "官鬼",
+    "cat": "名"
+  },
+  {
+    "id": "QUALITY-TAIL-03",
+    "q": "女占，只問他是否還愛我，媽媽還在生病。",
+    "sel": "官鬼",
+    "cat": "情"
+  },
+  {
+    "id": "QUALITY-TAIL-04",
+    "q": "我只想知道媽媽何時康復，媽媽在醫院工作。",
+    "sel": "父母",
+    "cat": "病"
+  },
+  {
+    "id": "QUALITY-TAIL-05",
+    "q": "我只想知道今年能否升職，感情的事不是這次要問的。",
+    "sel": "官鬼",
+    "cat": "名"
+  },
+  {
+    "id": "QUALITY-TAIL-06",
+    "q": "我只問自己的工作，能不能升職？",
+    "sel": "官鬼",
+    "cat": "名"
+  },
+  {
+    "id": "QUALITY-TAIL-07",
+    "q": "我只問我和她的感情，以及能否復合？",
+    "gender": "男",
+    "sel": "妻財",
+    "cat": "情"
+  },
+  {
+    "id": "QUALITY-SELF-01",
+    "q": "媽媽和朋友都會去，我能否平安？",
+    "sel": "世",
+    "cat": ""
+  },
+  {
+    "id": "QUALITY-SELF-02",
+    "q": "這次面試官是我媽媽的朋友，我能成功嗎？",
+    "sel": "官鬼",
+    "cat": "名"
+  },
+  {
+    "id": "QUALITY-LIST-01",
+    "q": "我的工作和感情好嗎？",
+    "gender": "男",
+    "sel": "",
+    "confirm": true
+  },
+  {
+    "id": "QUALITY-LIST-02",
+    "q": "媽媽工作順利嗎？另外朋友會不會康復？",
+    "sel": "",
+    "confirm": true
+  },
+  {
+    "id": "QUALITY-LIST-03",
+    "q": "我能升職嗎？另外我會轉正嗎？",
+    "sel": "官鬼",
+    "cat": "名"
+  },
+  {
+    "id": "QUALITY-LIST-04",
+    "q": "我想問能否考上大學，以及能不能拿到錄取通知？",
+    "sel": "父母",
+    "cat": "考"
+  },
+  {
+    "id": "QUALITY-REF-01",
+    "q": "媽媽的朋友生病了，他會好嗎？",
+    "sel": "兄弟",
+    "cat": "病"
+  },
+  {
+    "id": "QUALITY-REF-02",
+    "q": "媽媽和朋友都會去，她明天開車能否平安？",
+    "sel": "",
+    "confirm": true
+  },
+  {
+    "id": "QUALITY-REF-03",
+    "q": "我只問媽媽和朋友，她能否平安？",
+    "sel": "",
+    "confirm": true
+  },
+  {
+    "id": "QUALITY-REVIEW-01",
+    "q": "媽媽住院了，我的工作順利嗎？謝謝",
+    "sel": "官鬼",
+    "cat": "名"
+  },
+  {
+    "id": "QUALITY-REVIEW-02",
+    "q": "媽媽住院了，我的工作順利嗎？謝謝～",
+    "sel": "官鬼",
+    "cat": "名"
+  },
+  {
+    "id": "QUALITY-REVIEW-03",
+    "q": "老公最近很冷淡，我只想知道我們會不會離婚？",
+    "sel": "官鬼",
+    "cat": "情"
+  },
+  {
+    "id": "QUALITY-REVIEW-04",
+    "q": "我喜歡一個女生，我只問她會不會喜歡我？",
+    "sel": "妻財",
+    "cat": "情"
+  },
+  {
+    "id": "QUALITY-REVIEW-05",
+    "q": "我明天面試，薪水能談到五萬嗎？",
+    "sel": "妻財",
+    "cat": "財"
+  },
+  {
+    "id": "QUALITY-REVIEW-06",
+    "q": "媽媽的姐姐住院了，她會好嗎？",
+    "sel": "父母",
+    "cat": "病"
+  },
+  {
+    "id": "QUALITY-REVIEW-07",
+    "q": "媽媽和朋友都會去，我想問她能否平安？",
+    "sel": "",
+    "confirm": true
+  },
+  {
+    "id": "QUALITY-REVIEW-08",
+    "q": "媽媽住院了我只問我的工作能不能升職",
+    "sel": "官鬼",
+    "cat": "名"
+  },
+  {
+    "id": "QUALITY-REVIEW-09",
+    "q": "我只問我的工作能不能升職，媽媽住院只是背景。",
+    "sel": "官鬼",
+    "cat": "名"
+  },
+  {
+    "id": "QUALITY-REVIEW-10",
+    "q": "我問的不是感情，是工作能不能升職？",
+    "gender": "男",
+    "sel": "官鬼",
+    "cat": "名"
+  },
+  {
+    "id": "QUALITY-REVIEW-11",
+    "q": "我不需要問感情，我想問工作能不能升職？",
+    "gender": "男",
+    "sel": "官鬼",
+    "cat": "名"
+  },
+  {
+    "id": "QUALITY-REVIEW-12",
+    "q": "我不是問感情是問工作",
+    "gender": "男",
+    "sel": "官鬼",
+    "cat": "名"
+  },
+  {
+    "id": "QUALITY-REVIEW-13",
+    "q": "我想問工作、感情",
+    "gender": "男",
+    "sel": "",
+    "confirm": true
+  },
+  {
+    "id": "QUALITY-REVIEW-14",
+    "q": "我想問升職和復合",
+    "gender": "男",
+    "sel": "",
+    "confirm": true
+  },
+  {
+    "id": "QUALITY-REVIEW-15",
+    "q": "我想問感情跟工作",
+    "gender": "女",
+    "sel": "",
+    "confirm": true
+  },
+  {
+    "id": "QUALITY-REVIEW-16",
+    "q": "股票會漲嗎？另外我的感情會不會好？",
+    "gender": "男",
+    "sel": "",
+    "confirm": true
+  },
+  {
+    "id": "QUALITY-REVIEW-17",
+    "q": "我的汽車能修好嗎？另外感情會不會好？",
+    "gender": "男",
+    "sel": "",
+    "confirm": true
+  },
+  {
+    "id": "QUALITY-REVIEW-18",
+    "q": "我想問考上之後，工作會不會順利？",
+    "sel": "官鬼",
+    "cat": "名"
+  },
+  {
+    "id": "QUALITY-REVIEW-19",
+    "q": "我想問懷孕的事，寶寶健康嗎？",
+    "sel": "子孫",
+    "cat": "胎"
+  },
+  {
+    "id": "QUALITY-REVIEW-20",
+    "q": "媽媽的姐姐工作順利嗎？",
+    "sel": "父母",
+    "cat": "名"
+  },
+  {
+    "id": "QUALITY-REVIEW-21",
+    "q": "我只問女兒的老公工作順利嗎？",
+    "sel": "子孫",
+    "cat": "名"
+  },
+  {
+    "id": "QUALITY-FIX-TAIL-01",
+    "q": "我只問自己的工作，媽媽在住院",
+    "sel": "官鬼",
+    "cat": "名"
+  },
+  {
+    "id": "QUALITY-FIX-TAIL-02",
+    "q": "媽媽只問我何時回家，我想問我的工作能不能升職？",
+    "sel": "官鬼",
+    "cat": "名"
+  },
+  {
+    "id": "QUALITY-FIX-TAIL-03",
+    "q": "我只問工作能否升職，感情順利嗎？",
+    "sel": "官鬼",
+    "cat": "名"
+  },
+  {
+    "id": "QUALITY-FIX-TAIL-04",
+    "q": "我只問媽媽的病，我的工作不問",
+    "sel": "父母",
+    "cat": "病"
+  },
+  {
+    "id": "QUALITY-FIX-TAIL-05",
+    "q": "我只問我的工作能不能升職，謝謝",
+    "sel": "官鬼",
+    "cat": "名"
+  },
+  {
+    "id": "QUALITY-FIX-TAIL-06",
+    "q": "我的工作順利嗎？謝謝老師",
+    "sel": "官鬼",
+    "cat": "名"
+  },
+  {
+    "id": "QUALITY-FIX-TAIL-07",
+    "q": "我只想知道媽媽何時康復？謝謝您",
+    "sel": "父母",
+    "cat": "病"
+  },
+  {
+    "id": "QUALITY-FIX-TAIL-08",
+    "q": "媽媽住院，我只問我能不能升職，媽媽的病我明天再問",
+    "sel": "官鬼",
+    "cat": "名"
+  },
+  {
+    "id": "QUALITY-FIX-TAIL-09",
+    "q": "我只問工作，不問感情",
+    "sel": "官鬼",
+    "cat": "名"
+  },
+  {
+    "id": "QUALITY-FIX-TAIL-10",
+    "q": "我只問媽媽，她能不能平安？",
+    "sel": "父母",
+    "cat": ""
+  },
+  {
+    "id": "QUALITY-FIX-TAIL-11",
+    "q": "媽媽住院，我只問自己能否平安",
+    "sel": "世",
+    "cat": ""
+  },
+  {
+    "id": "QUALITY-FIX-GENDER-01",
+    "q": "女占，媽媽生病了，只問我的感情會不會復合？",
+    "sel": "官鬼",
+    "cat": "情"
+  },
+  {
+    "id": "QUALITY-FIX-GENDER-02",
+    "q": "我是男生，爸爸生病了，只想知道我和她會不會復合",
+    "sel": "妻財",
+    "cat": "情"
+  },
+  {
+    "id": "QUALITY-FIX-GENDER-03",
+    "q": "我是女生，媽媽住院，只問我和他會不會復合",
+    "sel": "官鬼",
+    "cat": "情"
+  },
+  {
+    "id": "QUALITY-FIX-GENDER-04",
+    "q": "我喜歡一個男生，我只問他會不會喜歡我",
+    "sel": "官鬼",
+    "cat": "情"
+  },
+  {
+    "id": "QUALITY-FIX-GENDER-05",
+    "q": "我只問她會不會喜歡我，媽媽住院了",
+    "gender": "男",
+    "sel": "妻財",
+    "cat": "情"
+  },
+  {
+    "id": "QUALITY-FIX-PEOPLE-01",
+    "q": "媽媽的朋友生病了，她會好嗎？",
+    "sel": "兄弟",
+    "cat": "病"
+  },
+  {
+    "id": "QUALITY-FIX-PEOPLE-02",
+    "q": "我女兒的老公住院了，他會好嗎？",
+    "sel": "子孫",
+    "cat": "病"
+  },
+  {
+    "id": "QUALITY-FIX-PEOPLE-03",
+    "q": "爸爸和媽媽都去了，她能平安嗎？",
+    "sel": "父母",
+    "cat": ""
+  },
+  {
+    "id": "QUALITY-FIX-PEOPLE-04",
+    "q": "老公和兒子都生病了，他會好嗎？",
+    "sel": "",
+    "confirm": true
+  },
+  {
+    "id": "QUALITY-FIX-PEOPLE-05",
+    "q": "我女朋友和她媽媽出門了，她會平安嗎？",
+    "sel": "",
+    "confirm": true
+  },
+  {
+    "id": "QUALITY-FIX-PEOPLE-06",
+    "q": "我想知道她能否平安，媽媽和朋友都會去",
+    "sel": "",
+    "confirm": true
+  },
+  {
+    "id": "QUALITY-FIX-PEOPLE-07",
+    "q": "媽媽和朋友都會去，請問她能否平安？",
+    "sel": "",
+    "confirm": true
+  },
+  {
+    "id": "QUALITY-FIX-PEOPLE-08",
+    "q": "我女兒的老公和媽媽都去了，她能平安嗎？",
+    "sel": "",
+    "confirm": true
+  },
+  {
+    "id": "QUALITY-FIX-JOB-01",
+    "q": "我下週面試，薪水大概能談多少？",
+    "sel": "妻財",
+    "cat": "財"
+  },
+  {
+    "id": "QUALITY-FIX-JOB-02",
+    "q": "媽媽住院，我面試能成功嗎？",
+    "sel": "官鬼",
+    "cat": "名"
+  },
+  {
+    "id": "QUALITY-FIX-JOB-03",
+    "q": "我明天面試，能不能被錄取？",
+    "sel": "官鬼",
+    "cat": "名"
+  },
+  {
+    "id": "QUALITY-FIX-JOB-04",
+    "q": "我面試完了，薪水會不會比現職高？",
+    "sel": "妻財",
+    "cat": "財"
+  },
+  {
+    "id": "QUALITY-FIX-JOB-05",
+    "q": "我想問考上研究所之後工作順利嗎？",
+    "sel": "官鬼",
+    "cat": "名"
+  },
+  {
+    "id": "QUALITY-FIX-JOB-06",
+    "q": "考上之後工作順利嗎？",
+    "sel": "官鬼",
+    "cat": "名"
+  },
+  {
+    "id": "QUALITY-FIX-EXCLUDE-01",
+    "q": "我不是在問感情，是想問工作能不能升職",
+    "sel": "官鬼",
+    "cat": "名"
+  },
+  {
+    "id": "QUALITY-FIX-EXCLUDE-02",
+    "q": "不是問媽媽，是問我自己會不會好",
+    "sel": "世",
+    "cat": ""
+  },
+  {
+    "id": "QUALITY-FIX-EXCLUDE-03",
+    "q": "我想問工作，不要問感情",
+    "sel": "官鬼",
+    "cat": "名"
+  },
+  {
+    "id": "QUALITY-FIX-EXCLUDE-04",
+    "q": "我不用問感情，工作會順利嗎",
+    "sel": "官鬼",
+    "cat": "名"
+  },
+  {
+    "id": "QUALITY-FIX-EXCLUDE-05",
+    "q": "我不是問你，我是問媽媽會不會康復",
+    "sel": "父母",
+    "cat": "病"
+  },
+  {
+    "id": "QUALITY-FIX-EXCLUDE-06",
+    "q": "他問的是我的工作，我只想知道我的感情會不會復合",
+    "gender": "女",
+    "sel": "官鬼",
+    "cat": "情"
+  },
+  {
+    "id": "QUALITY-FIX-MULTI-01",
+    "q": "我想問工作、感情、健康",
+    "sel": "",
+    "confirm": true
+  },
+  {
+    "id": "QUALITY-FIX-MULTI-02",
+    "q": "我想問今年工作和財運如何？",
+    "sel": "",
+    "confirm": true
+  },
+  {
+    "id": "QUALITY-FIX-MULTI-03",
+    "q": "我想問工作，也問財運",
+    "sel": "",
+    "confirm": true
+  },
+  {
+    "id": "QUALITY-FIX-MULTI-04",
+    "q": "我想問寶寶健康和我的工作",
+    "sel": "",
+    "confirm": true
+  },
+  {
+    "id": "QUALITY-FIX-MULTI-05",
+    "q": "我想問今年考試和工作",
+    "sel": "",
+    "confirm": true
+  },
+  {
+    "id": "QUALITY-FIX-MULTI-06",
+    "q": "我先問工作，再問感情",
+    "gender": "男",
+    "sel": "",
+    "confirm": true
+  },
+  {
+    "id": "QUALITY-FIX-MULTI-07",
+    "q": "我想問今年運勢，工作和感情都想知道",
+    "gender": "男",
+    "sel": "",
+    "confirm": true
+  },
+  {
+    "id": "QUALITY-FIX-SINGLE-01",
+    "q": "我想問升職加薪",
+    "sel": "妻財",
+    "cat": "名"
+  },
+  {
+    "id": "QUALITY-FIX-SINGLE-02",
+    "q": "工作和事業順利嗎",
+    "sel": "官鬼",
+    "cat": "名"
+  },
+  {
+    "id": "QUALITY-FIX-SINGLE-03",
+    "q": "我的車子和房子都能順利賣掉嗎？",
+    "sel": "父母",
+    "cat": ""
+  },
+  {
+    "id": "QUALITY-FIX-SINGLE-04",
+    "q": "股票和基金會漲嗎？",
+    "sel": "妻財",
+    "cat": "財"
+  },
+  {
+    "id": "QUALITY-FIX-SINGLE-05",
+    "q": "寶寶健康和懷孕順利嗎",
+    "sel": "子孫",
+    "cat": "胎"
+  },
+  {
+    "id": "QUALITY-FIX-SINGLE-06",
+    "q": "請問今年我的工作和升遷機會如何",
+    "sel": "官鬼",
+    "cat": "名"
+  },
+  {
+    "id": "QUALITY-FIX-NAMED-01",
+    "q": "以官鬼為用，媽媽住院，我只問我的工作",
+    "sel": "官鬼",
+    "cat": "名"
+  },
+  {
+    "id": "QUALITY-FIX-NAMED-02",
+    "q": "以父母為用，我想問工作和感情",
+    "gender": "男",
+    "sel": "父母"
+  },
+  {
+    "q": "媽媽和朋友誰會康復？",
+    "sel": "",
+    "confirm": true,
+    "id": "QUALITY-RESIDUAL-01"
+  },
+  {
+    "q": "媽媽和朋友都會康復嗎？",
+    "sel": "",
+    "confirm": true,
+    "id": "QUALITY-RESIDUAL-02"
+  },
+  {
+    "q": "媽媽的姐姐和朋友誰會康復？",
+    "sel": "",
+    "confirm": true,
+    "id": "QUALITY-RESIDUAL-03"
+  },
+  {
+    "q": "媽媽的朋友會康復嗎？",
+    "sel": "兄弟",
+    "cat": "病",
+    "id": "QUALITY-RESIDUAL-04"
+  },
+  {
+    "q": "面試官是我朋友，面試能成功嗎？",
+    "sel": "官鬼",
+    "cat": "名",
+    "id": "QUALITY-RESIDUAL-05"
+  },
+  {
+    "q": "面試官是我爸爸，面試能成功嗎？",
+    "sel": "官鬼",
+    "cat": "名",
+    "id": "QUALITY-RESIDUAL-06"
+  },
+  {
+    "q": "我的朋友面試能成功嗎？",
+    "sel": "兄弟",
+    "cat": "名",
+    "id": "QUALITY-RESIDUAL-07"
+  },
+  {
+    "q": "媽媽考上之後，工作順利嗎？",
+    "sel": "父母",
+    "cat": "名",
+    "id": "QUALITY-RESIDUAL-08"
+  },
+  {
+    "q": "我考上之後，工作順利嗎？",
+    "sel": "官鬼",
+    "cat": "名",
+    "id": "QUALITY-RESIDUAL-09"
+  },
+  {
+    "q": "媽媽考試能考上嗎？",
+    "sel": "父母",
+    "cat": "考",
+    "id": "QUALITY-RESIDUAL-10"
+  },
+  {
+    "q": "我不是不想問感情，只是現在想先問工作",
+    "sel": "官鬼",
+    "cat": "名",
+    "id": "QUALITY-RESIDUAL-11"
+  },
+  {
+    "q": "我先問工作，再問感情",
+    "sel": "",
+    "confirm": true,
+    "id": "QUALITY-RESIDUAL-12"
+  },
+  {
+    "q": "媽媽住院，我能不能請假？",
+    "sel": "官鬼",
+    "cat": "名",
+    "id": "QUALITY-RESIDUAL-13"
+  },
+  {
+    "q": "媽媽住院，我能不能請假照顧她？",
+    "sel": "官鬼",
+    "cat": "名",
+    "id": "QUALITY-RESIDUAL-14"
+  },
+  {
+    "q": "我的朋友能不能請假？",
+    "sel": "兄弟",
+    "cat": "名",
+    "id": "QUALITY-RESIDUAL-15"
+  },
+  {
+    "q": "媽媽請假休養，病情會好嗎？",
+    "sel": "父母",
+    "cat": "病",
+    "id": "QUALITY-RESIDUAL-16"
+  },
+  {
+    "id": "QUALITY-RES2-PEOPLE-01",
+    "q": "老公和兒子誰會康復？",
+    "sel": "",
+    "confirm": true
+  },
+  {
+    "id": "QUALITY-RES2-PEOPLE-02",
+    "q": "媽媽和朋友都生病了，誰會先好？",
+    "sel": "",
+    "confirm": true
+  },
+  {
+    "id": "QUALITY-RES2-PEOPLE-03",
+    "q": "我只問媽媽和朋友，誰會康復？",
+    "sel": "",
+    "confirm": true
+  },
+  {
+    "id": "QUALITY-RES2-PEOPLE-04",
+    "q": "我媽媽和我朋友誰會被錄取？",
+    "sel": "",
+    "confirm": true
+  },
+  {
+    "id": "QUALITY-RES2-PEOPLE-05",
+    "q": "爸爸和媽媽，還有朋友，誰會康復？",
+    "sel": "",
+    "confirm": true
+  },
+  {
+    "id": "QUALITY-RES2-PEOPLE-06",
+    "q": "我同學和老師都會來，誰會幫我？",
+    "sel": "",
+    "confirm": true
+  },
+  {
+    "id": "QUALITY-RES2-PEOPLE-07",
+    "q": "爸爸和媽媽都會康復嗎？",
+    "sel": "父母",
+    "cat": "病"
+  },
+  {
+    "id": "QUALITY-RES2-PEOPLE-08",
+    "q": "女兒和女婿誰會康復？",
+    "sel": "子孫",
+    "cat": "病"
+  },
+  {
+    "id": "QUALITY-RES2-PEOPLE-09",
+    "q": "哥哥與女友感情關係好嗎？",
+    "sel": "兄弟",
+    "cat": "情"
+  },
+  {
+    "id": "QUALITY-RES2-PEOPLE-10",
+    "q": "媽媽和朋友都會去，我能否平安？",
+    "sel": "世",
+    "cat": ""
+  },
+  {
+    "id": "QUALITY-RES2-ROLE-01",
+    "q": "我朋友是面試官，面試能成功嗎？",
+    "sel": "官鬼",
+    "cat": "名"
+  },
+  {
+    "id": "QUALITY-RES2-ROLE-02",
+    "q": "我爸爸是這次的主考官，考試能過嗎？",
+    "sel": "父母",
+    "cat": "考"
+  },
+  {
+    "id": "QUALITY-RES2-ROLE-03",
+    "q": "老闆是我爸爸，升職會順利嗎？",
+    "sel": "官鬼",
+    "cat": "名"
+  },
+  {
+    "id": "QUALITY-RES2-ROLE-04",
+    "q": "面試官是我朋友，朋友會幫我嗎？",
+    "sel": "兄弟",
+    "cat": "名"
+  },
+  {
+    "id": "QUALITY-RES2-PREMISE-01",
+    "q": "媽媽考上之後，我的工作順利嗎？",
+    "sel": "官鬼",
+    "cat": "名"
+  },
+  {
+    "id": "QUALITY-RES2-PREMISE-02",
+    "q": "朋友考上之後，工作順利嗎？",
+    "sel": "兄弟",
+    "cat": "名"
+  },
+  {
+    "id": "QUALITY-RES2-PREMISE-03",
+    "q": "媽媽考上之後，能順利入學嗎？",
+    "sel": "父母",
+    "cat": "考"
+  },
+  {
+    "id": "QUALITY-RES2-NOW-01",
+    "q": "我現在先問工作，再問感情",
+    "gender": "男",
+    "sel": "",
+    "confirm": true
+  },
+  {
+    "id": "QUALITY-RES2-NOW-02",
+    "q": "現在先問感情，也想問工作",
+    "gender": "男",
+    "sel": "",
+    "confirm": true
+  },
+  {
+    "id": "QUALITY-RES2-NOW-03",
+    "q": "目前先問我的工作能不能升職，媽媽住院了",
+    "sel": "官鬼",
+    "cat": "名"
+  },
+  {
+    "id": "QUALITY-RES2-NOW-04",
+    "q": "我這次先問媽媽的病，我的工作不問",
+    "sel": "父母",
+    "cat": "病"
+  },
+  {
+    "id": "QUALITY-RES2-LEAVE-01",
+    "q": "朋友生病，我可以請假嗎？",
+    "sel": "官鬼",
+    "cat": "名"
+  },
+  {
+    "id": "QUALITY-RES2-LEAVE-02",
+    "q": "同事能不能請假？",
+    "sel": "兄弟",
+    "cat": "名"
+  },
+  {
+    "id": "QUALITY-RES2-LEAVE-03",
+    "q": "她能不能請假？",
+    "sel": "",
+    "confirm": true
+  },
+  {
+    "id": "QUALITY-RES2-LEAVE-04",
+    "q": "我請假照顧媽媽，媽媽的病會好嗎？",
+    "sel": "父母",
+    "cat": "病"
+  },
+  {
+    "id": "QUALITY-RES2-LEAVE-05",
+    "q": "我請假去出國，旅途會平安嗎？",
+    "sel": "世",
+    "cat": "行"
+  },
+  {
+    "id": "QUALITY-RES2-LEAVE-06",
+    "q": "我想請假，薪水會被扣嗎？",
+    "sel": "妻財",
+    "cat": "財"
+  },
+  {
+    "id": "QUALITY-RES2-LEAVE-07",
+    "q": "我休假能不能出國？",
+    "sel": "世",
+    "cat": "行"
+  },
+  {
+    "id": "QUALITY-SELF-MULTI-01",
+    "q": "媽媽住院，朋友和我誰會先好？",
+    "sel": "",
+    "confirm": true
+  },
+  {
+    "id": "QUALITY-SELF-MULTI-02",
+    "q": "我和朋友誰會先康復？",
+    "sel": "",
+    "confirm": true
+  },
+  {
+    "id": "QUALITY-SELF-MULTI-03",
+    "q": "朋友和我都會康復嗎？",
+    "sel": "",
+    "confirm": true
+  }
+]

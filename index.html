@@ -352,6 +352,37 @@
       font-size: 0.92em;
     }
 
+    .install-actions .install-btn { margin-top: 0.7em; }
+
+    .copy-row {
+      display: flex;
+      gap: 0.4em;
+      margin-top: 0.5em;
+    }
+
+    .install-url {
+      flex: 1 1 auto;
+      min-width: 0;
+      font: inherit;
+      font-size: 0.82em;
+      color: var(--ink);
+      background: #fdfaf2;
+      border: 2px solid var(--frame);
+      border-radius: 10px;
+      padding: 0.35em 0.5em;
+      text-overflow: ellipsis;
+    }
+
+    .copy-btn {
+      flex: 0 0 auto;
+      white-space: nowrap;
+      padding: 0.45em 0.8em;
+      font-size: 0.95em;
+    }
+
+    .install-status { margin-top: 0.4em; }
+    .install-status:empty { display: none; }
+
     .share-icon {
       display: inline-block;
       width: 1em;
@@ -422,8 +453,22 @@
 
   <section class="card install" id="installCard" aria-label="加入主畫面">
     <h2>加入主畫面</h2>
-    <p id="installText">加入後會像 App 一樣從桌面圖示開啟，沒有網路也能起卦排盤。</p>
-    <button class="btn install-btn hidden" id="installBtn">加入主畫面</button>
+    <p id="installText" aria-live="polite">加入後會像 App 一樣從桌面圖示開啟，沒有網路也能起卦排盤。</p>
+    <button class="btn install-btn hidden" id="installBtn" type="button" aria-controls="androidSteps" aria-expanded="false">查看加入步驟</button>
+    <ol class="ios-steps hidden" id="androidSteps">
+      <li>請在 Chrome 瀏覽器開啟本頁，不要停在 LINE 等 App 的內建視窗（上方只有「X」關閉鈕和網址，就是內建視窗）。</li>
+      <li>在 Chrome 右上角點「⋮」選單。</li>
+      <li>選「新增至主畫面」、「加到主畫面」或「安裝應用程式」（名稱依瀏覽器版本不同）。</li>
+      <li>依畫面提示按「安裝」或「新增」，再回到手機主畫面查看圖示。</li>
+    </ol>
+    <div class="install-actions hidden" id="androidActions">
+      <a class="btn install-btn" id="openChromeLink">用 Chrome 開啟</a>
+      <div class="copy-row">
+        <input class="install-url" id="installUrl" type="text" readonly aria-label="本 App 的網址">
+        <button class="btn copy-btn" id="copyInstallUrl" type="button">複製網址</button>
+      </div>
+      <p class="install-status" id="copyInstallStatus" aria-live="polite"></p>
+    </div>
     <ol class="ios-steps hidden" id="iosSteps">
       <li>點 Safari 下方的「分享」
         <svg class="share-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="M8 7l4-4 4 4"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg>
@@ -498,7 +543,9 @@
   function renderRecent() {
     var box = document.getElementById("recent");
     var arr = readJson(HISTORY_KEY, []);
-    if (!Array.isArray(arr) || !arr.length) {
+    // 只過濾顯示，不改動本機儲存的紀錄
+    arr = Array.isArray(arr) ? arr.filter(function(h) { return h && typeof h === "object" && !Array.isArray(h); }) : [];
+    if (!arr.length) {
       box.innerHTML = '<li class="empty">尚無紀錄，起卦後會自動保存在這台裝置。</li>';
       return;
     }
@@ -521,20 +568,56 @@
   }
 
   // 加入主畫面：Chrome、Edge、Android 用系統安裝提示；iPhone、iPad 顯示 Safari 步驟
+  var APP_URL = "https://d391194084.github.io/wenwang-gua/";
+  var CHROME_INTENT = APP_URL.replace(/^https:\/\//, "intent://") + "#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=" + encodeURIComponent(APP_URL) + ";end";
   var deferredPrompt = null;
   var installBtn = document.getElementById("installBtn");
   var installText = document.getElementById("installText");
+  var androidSteps = document.getElementById("androidSteps");
+  var androidActions = document.getElementById("androidActions");
+  var openChromeLink = document.getElementById("openChromeLink");
+  var installUrl = document.getElementById("installUrl");
+  var copyStatus = document.getElementById("copyInstallStatus");
+  var installBusy = false, installDone = false, installGuideOpen = false;
   var standalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
   var ua = navigator.userAgent;
   var isIOS = /iphone|ipad|ipod/i.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  var isAndroid = /android/i.test(ua);
+  // LINE、Facebook、Instagram 等 App 的內建瀏覽器；Chrome 自訂分頁（上方只有 X）的 UA 與一般 Chrome 相同，無法在這裡分辨
+  var inApp = isAndroid && /\bLine\/|FBAN|FBAV|FB_IAB|Instagram|MicroMessenger|KAKAOTALK|Snapchat|Twitter|GSA\/|; wv\)/i.test(ua);
 
-  function setupInstall() {
+  if (isAndroid) {
+    openChromeLink.href = CHROME_INTENT;
+    installUrl.value = APP_URL;
+    installUrl.addEventListener("focus", function() { installUrl.select(); });
+  }
+
+  function canOfferInstall() {
+    return !standalone && !installDone && !isIOS && location.protocol.indexOf("http") === 0 && window.isSecureContext !== false;
+  }
+
+  function defaultInstallText() {
+    if (deferredPrompt) return "按「加入主畫面」會跳出瀏覽器的安裝視窗，加入後可從主畫面圖示開啟，也能離線起卦排盤。";
+    if (inApp) return "目前像是在 LINE 等 App 的內建瀏覽器，無法直接加入主畫面。請按「用 Chrome 開啟」；若沒反應，按「複製網址」再貼到 Chrome 的網址列。";
+    if (isAndroid) return "加入後可從主畫面圖示開啟，也能離線起卦排盤。若上方只有「X」關閉鈕、沒有 Chrome 選單（從 LINE 等 App 點進來時常見），請先按「用 Chrome 開啟」。如果之前加過，請直接點主畫面上的「文王聖卦」圖示。";
+    return "加入後可從主畫面圖示開啟，也能離線起卦排盤。若沒有安裝視窗，請點下方按鈕查看 Chrome 的加入步驟。";
+  }
+
+  function setupInstall(message) {
+    installBtn.classList.add("hidden");
+    androidSteps.classList.add("hidden");
+    androidActions.classList.add("hidden");
+    document.getElementById("iosSteps").classList.add("hidden");
     if (standalone) {
       document.getElementById("installCard").classList.add("hidden");
       return;
     }
-    if (location.protocol.indexOf("http") !== 0) {
-      installText.textContent = "目前是直接開啟本機檔案，無法加入主畫面。請用網址 https://d391194084.github.io/wenwang-gua/ 開啟。";
+    if (installDone) {
+      installText.textContent = "已加入主畫面，之後可以直接點桌面上的「文王聖卦」圖示開啟。";
+      return;
+    }
+    if (location.protocol.indexOf("http") !== 0 || window.isSecureContext === false) {
+      installText.textContent = "請用安全的 HTTPS 網址 " + APP_URL + " 開啟，才能使用加入主畫面功能。";
       return;
     }
     if (isIOS) {
@@ -545,28 +628,78 @@
       document.getElementById("iosSteps").classList.remove("hidden");
       return;
     }
-    installText.textContent = "加入後會像 App 一樣從桌面圖示開啟，沒有網路也能起卦排盤。若按鈕沒有出現，請用瀏覽器選單的「安裝應用程式」或「加到主畫面」。";
+    var nativeReady = !!deferredPrompt || installBusy;
+    // 內建瀏覽器沒有 Chrome 選單，拿到真實安裝事件前不顯示「查看加入步驟」
+    if (nativeReady || !inApp) {
+      installBtn.classList.remove("hidden");
+      installBtn.disabled = installBusy;
+      installBtn.textContent = installBusy ? "請完成瀏覽器提示" : deferredPrompt ? "加入主畫面" : "查看加入步驟";
+      installBtn.setAttribute("aria-expanded", String(installGuideOpen));
+    }
+    if (installGuideOpen) androidSteps.classList.remove("hidden");
+    if (isAndroid && !nativeReady) androidActions.classList.remove("hidden");
+    installText.textContent = message || defaultInstallText();
   }
 
+  function copyInstallUrl() {
+    function failed() {
+      installUrl.focus();
+      installUrl.select();
+      copyStatus.textContent = "這個視窗不允許自動複製，網址已選取，請長按網址選「複製」，再貼到 Chrome 的網址列。";
+    }
+    try {
+      if (!navigator.clipboard || !navigator.clipboard.writeText) { failed(); return; }
+      Promise.resolve(navigator.clipboard.writeText(APP_URL)).then(function() {
+        copyStatus.textContent = "已複製網址，請切到 Chrome，貼到網址列後前往。";
+      }, failed);
+    } catch (e) { failed(); }
+  }
+
+  document.getElementById("copyInstallUrl").addEventListener("click", copyInstallUrl);
+
   window.addEventListener("beforeinstallprompt", function(e) {
+    if (!canOfferInstall()) return;
     e.preventDefault();
     deferredPrompt = e;
-    installText.textContent = "加入後會像 App 一樣從桌面圖示開啟，沒有網路也能起卦排盤。";
-    installBtn.classList.remove("hidden");
+    setupInstall();
   });
 
   installBtn.addEventListener("click", function() {
-    if (!deferredPrompt) return;
-    deferredPrompt.prompt();
-    deferredPrompt.userChoice.then(function(choice) {
-      if (choice.outcome === "accepted") installBtn.classList.add("hidden");
-      deferredPrompt = null;
-    });
+    if (!canOfferInstall() || installBusy) return;
+    if (!deferredPrompt) {
+      installGuideOpen = true;
+      setupInstall();
+      return;
+    }
+    // Each native event is one-shot. Consume it before prompt(), retaining any later event.
+    var prompt = deferredPrompt;
+    deferredPrompt = null;
+    installBusy = true;
+    setupInstall("請在瀏覽器的安裝視窗中確認；不想安裝也可以取消。");
+    function failed() {
+      installBusy = false;
+      if (installDone) return;
+      installGuideOpen = true;
+      setupInstall("這次未能開啟安裝視窗，請依下列 Chrome 選單步驟加入主畫面。");
+    }
+    try {
+      // Invoke synchronously while this click still has user activation.
+      Promise.resolve(prompt.prompt()).then(function() { return prompt.userChoice; }).then(function(choice) {
+        installBusy = false;
+        if (installDone) return;
+        installGuideOpen = true;
+        setupInstall(choice.outcome === "accepted" ?
+          "已接受安裝，請等 Chrome 完成後查看主畫面圖示；若未完成，也可使用下列步驟。" :
+          "已取消這次安裝；想再加入時，可依下列 Chrome 選單步驟操作。");
+      }, failed);
+    } catch (e) { failed(); }
   });
 
   window.addEventListener("appinstalled", function() {
-    installBtn.classList.add("hidden");
-    installText.textContent = "已加入主畫面，之後可以直接點桌面上的「文王聖卦」圖示開啟。";
+    installDone = true;
+    installBusy = false;
+    deferredPrompt = null;
+    setupInstall();
   });
 
   renderToday();
