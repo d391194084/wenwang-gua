@@ -1,5 +1,5 @@
 // 文王聖卦離線快取：頁面先抓網路、其他檔案先回快取；更新檔案後請調高版本號
-var CACHE = "wenwang-gua-v51";
+var CACHE = "wenwang-gua-v52";
 var FILES = [
   "./",
   "./index.html",

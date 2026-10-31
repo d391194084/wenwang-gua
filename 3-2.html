@@ -737,8 +737,9 @@
     .jie-names { text-align: center; font-size: 1.1em; font-weight: bold; color: var(--red); }
     .jie-keys { text-align: center; color: var(--muted); margin-bottom: 6px; }
     .jie-card .ana-verdict { margin: 4px 0 8px; }
-    .jie-row { padding: 1px 0 1px 3.2em; text-indent: -3.2em; }
-    .jie-row b { color: var(--blue); }
+    .jie-row { padding: 1px 0; }
+    .jie-row b { display: block; color: var(--blue); }
+    .jie-row p { margin: 0.4em 0; }
     .jie-yuan { font-size: 0.9em; color: var(--muted); }
     .jie-say p { margin: 0 0 10px; line-height: 1.85; }
 
@@ -4463,7 +4464,12 @@
     });
     if (healthRisk) say("時間上：這是還沒發生的健康風險，卦象沒有辦法推算哪一天會不會生病。");
     else if (focusUseless && !illness && !quitJob && !cr.keepUseless) say("時間上：這件事目前看不到明確的好轉時機。", "bad");   // 反看及改判主體時不以一般用神無用否定應期
-    else if (dayZhis.length) say("可能有變化或結果的日子：" + dayZhis.slice(0, 4).map(nextDay).sort(function(a, b) { return a.d - b.d; }).map(function(x) { return x.text; }).join("、") + "。若是長期的事，則看相同地支的月份或年份。");
+    else if (dayZhis.length) {
+      var dateReference = /^應期卦/.test(verdict) ? "這些只是卦象推算的參考日期，不是確定的生產日期，實際仍以醫院安排為準。" :
+        cat === "訟" ? "這些是卦象推算的參考日期，可以留意官司是否有新消息或進展，不代表一定會在當天結案，也不表示當天就會轉好。" :
+        "這些是卦象推算的參考日期，可以留意事情是否有新消息或變化，不代表事情一定會在當天解決，也不表示當天就會轉好。";
+      say("可能有變化或結果的日子：" + dayZhis.slice(0, 4).map(nextDay).sort(function(a, b) { return a.d - b.d; }).map(function(x) { return x.text; }).join("、") + "。" + dateReference + "若你問的是幾個月或幾年後的結果，這次沒有推算出具體月份或年份。");
+    }
     else if (cr.timing) say("時間上：" + cr.timing.map(function(n) { return n.text; }).join(""));
     else if (quitJob) say("時間上：目前只能看出離職的難易，沒有足夠線索推算確切日期。");
     say("以上是依六爻規則推算的參考，實際還要配合你自己的狀況判斷。", "note");
@@ -5006,7 +5012,12 @@
       return hit ? hit.text.replace(re, "") : "";
     };
     var advice = pick(/^結論：/);
-    var when = pick(/^可能有變化或結果的日子：/) || pick(/^時間上：/);
+    // 解卦先給國曆日期；干支與起卦日柱標記保留在詳細分析、教學中。
+    var readableTime = function(text) {
+      return text.replace(/(\d{1,2})\/(\d{1,2})（[^（）]*[子丑寅卯辰巳午未申酉戌亥]日）/g, "$1月$2日");
+    };
+    var dateWhen = pick(/^可能有變化或結果的日子：/), timeNote = pick(/^時間上：/);
+    var when = readableTime(dateWhen || timeNote);
     var qText = document.getElementById("question").value.trim();
     var shortName = function(name) { return name.charAt(1) === "為" ? name.charAt(0) : name.slice(2); };   // 澤火革 → 革、乾為天 → 乾
     var yaoLines = moving.map(function(k) {
@@ -5015,7 +5026,9 @@
       return { k: k, pos: hit ? hit[1] : "第 " + (k + 1) + " 爻", src: hit ? src.slice(hit[0].length) : src, text: m.yao[k] };
     });
     var row = function(label, text) {
-      return '<div class="jie-row"><b>' + label + '：</b>' + escapeHtml(text) + '</div>';
+      return '<div class="jie-row"><b>' + label + '：</b>' + text.split("。").filter(Boolean).map(function(part) {
+        return '<p>' + escapeHtml(part) + '。</p>';
+      }).join("") + '</div>';
     };
     var para = function(parts) {   // 一段話：字串陣列，空字串略過；{b:文字} 為粗體
       var s = parts.filter(Boolean).map(function(p) { return typeof p === "string" ? escapeHtml(p) : '<b>' + escapeHtml(p.b) + '</b>'; }).join("");
@@ -5044,7 +5057,7 @@
       '<div class="jie-names">' + escapeHtml(gua.mainName) + (c ? ' → ' + escapeHtml(gua.chgName) : '') + '</div>' +
       '<div class="jie-keys">' + escapeHtml(m.k) + (c ? ' → ' + escapeHtml(c.k) : '') + '</div>' +
       '<div class="ana-verdict ana-' + (r.tone || "mid") + '">' + escapeHtml(r.verdict) + '</div>' +
-      (when ? row("時間", when) : '') + '</section>';
+      (when ? row(dateWhen ? "近期可留意的日期" : "時間參考", (dateWhen ? "國曆 " : "") + when) : '') + '</section>';
 
     // 二、像懂六爻的人面對面說話：先回答所問，再說依據，卦名象義與宜忌只當提醒
     var jieRoles = computeRoles(gua), jieCat = questionCategory(jieRoles ? jieRoles.sel : "");
@@ -5054,8 +5067,7 @@
     var jieCare = careAsk(effectiveQuestion(qText));
     if (medicalEffect && !jieCare && jieMedKind !== "after") intro = intro.map(function(t) { return t.replace(/^這件事我看的是「子孫」這一爻$/, jieMedKind === "effect" ? "問藥物或治療的效果，我看的是代表醫藥的「子孫」這一爻" : "問疫苗接種或用藥的事，我看的是代表醫藥的「子孫」這一爻"); });
     var jieWeather = weatherAsk(effectiveQuestion(qText));
-    var dateWhen = pick(/^可能有變化或結果的日子：/), timeNote = pick(/^時間上：/);
-    var timeSentence = dateWhen ? "時間上，可以留意" + dateWhen : timeNote ? "時間上，" + timeNote : "";
+    var timeSentence = dateWhen ? "時間上，可以留意" + readableTime(dateWhen) : timeNote ? "時間上，" + timeNote : "";
 
     html += '<section class="teach-step jie-say"><h3>解卦</h3>';
     // 1. 先回答所問；應期卦只答時間，不另判成敗

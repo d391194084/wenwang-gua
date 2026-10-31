@@ -58,7 +58,8 @@ function checkJie(x,f){
   if(/如果要我多提醒一句|用生活的畫面|事終不成|看不到明確的好轉時機|有利的地方|要留意的是|雖然也有有利/.test(say))fail('應期卦出現成敗或宜忌敘述');
   if(/整體傾向是(?:吉|偏吉|凶|偏凶|平)/.test(say))fail('應期卦另判吉凶');
   const days=((x.plain.items.find(i=>/^可能有變化或結果的日子：/.test(i.text))||{}).text||'').replace(/^可能有變化或結果的日子：/,'').split('。')[0];
-  if(days&&!say.includes(days))fail('應期卦解卦缺少與詳細分析相同的日期');
+  const displayDays=days.replace(/（[^（）]*）/g,'').replace(/(\d{1,2})\/(\d{1,2})/g,'$1月$2日');
+  if(displayDays&&!say.includes(displayDays))fail('應期卦解卦缺少與詳細分析相同的日期');
  }else if(!/如果要我多提醒一句/.test(say))fail('缺少提醒段落');
 }
 
