@@ -1,0 +1,8 @@
+// Teaching references must match the five-section UI and the existing numerical boundary rules.
+const fs=require('fs'),path=require('path'),assert=require('assert');const {load,cast,text}=require('./teaching-guide.test.cjs');
+const records=[],test=(id,fn)=>{try{fn();records.push({id,pass:true})}catch(e){records.push({id,pass:false,error:e.message})}};
+test('home learning shortcut matches the current guide rather than the retired nine-step label',()=>{const h=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8'),link=h.match(/<a[^>]*href="#learn"[^>]*>[\s\S]*?<\/a>/)?.[0]||'';assert(link);assert(!text(link).includes('九步'));assert(text(link).includes('白話教學'));});
+test('childbirth practice points to the current timing section after expansion',()=>{const x=cast(load(),{state:80,q:'我何時生產',sel:'子孫'}),t=text(x.html);assert(!/第\s*[6-9]\s*步/.test(t),'retired step number in rendered guide');assert(t.includes('看時間'));});
+test('existing exact numerical boundaries remain unchanged',()=>{const e=load().env;for(const [n,want]of [[3,'旺'],[1,'偏旺'],[-1.49,'不旺不衰'],[-1.5,'偏衰'],[-2.99,'偏衰'],[-3,'衰']])assert.equal(e.levelOf(n),want,String(n));});
+test('guide and detailed-analysis references put -1.5 in weak and -3 in weakest without ambiguous inclusive ranges',()=>{const x=cast(load());for(const h of [x.html,x.analysis]){const t=text(h).replace(/[−–]/g,'-').replace(/\s+/g,'');for(const interval of ['旺：分數≥3','偏旺：1≤分數<3','不旺不衰：-1.5<分數<1','偏衰：-3<分數≤-1.5','衰：分數≤-3'])assert(t.includes(interval),interval);}});
+const failures=records.filter(x=>!x.pass).length;console.log(JSON.stringify({tested:records.length,failures,records},null,2));process.exitCode=failures?1:0;

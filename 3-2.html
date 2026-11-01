@@ -832,6 +832,47 @@
     .teach-quiz summary { cursor: pointer; font-weight: bold; color: var(--blue); }
     .teach-quiz[open] summary { margin-bottom: 4px; }
 
+    /* 教學：一頁五段導讀。只用 .guide-* 設定，不動解卦頁共用的 .teach-step 樣式；標題沿用原本風格，內文改用易讀的正文字體與較疏的行距 */
+    .guide-text, .guide-text * {
+      font-family: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", "微軟正黑體", "Heiti TC", sans-serif;
+    }
+    .guide-text { line-height: 1.9; letter-spacing: 0.02em; max-width: 40em; }
+    .guide-text p { margin: 0 0 0.75em; }
+    .guide-text .guide-q { font-size: 1.1em; font-weight: bold; }
+    .guide-text .guide-sub { font-weight: bold; color: var(--blue); margin: 0.9em 0 0.3em; }
+    .guide-text ul { margin: 0 0 0.9em; }
+    .guide-text li { padding: 0.25em 0 0.25em 1.1em; text-indent: -1.1em; line-height: 1.8; }
+    .guide-note {
+      background: #eef3f2;
+      border-left: 3px solid var(--blue);
+      border-radius: 4px;
+      padding: 0.35em 0.7em;
+    }
+    .guide-conclusion { font-weight: bold; }
+    .guide-top {
+      border: 2px solid var(--frame);
+      border-radius: 8px;
+      padding: 8px 14px 4px;
+      background: #fcf9f2;
+      margin-top: 8px;
+    }
+    .guide-top .ana-verdict { margin: 0.3em 0 0.8em; }
+    .guide-text .guide-cards { list-style: none; display: grid; gap: 0.6em; margin: 0.4em 0 0.9em; }
+    .guide-text .guide-cards li { border: 1.5px solid var(--line); border-radius: 6px; padding: 0.45em 0.7em; background: #f7efdc; text-indent: 0; }
+    .guide-text .guide-cards li::before { content: none; }
+    .guide-tags { display: block; font-weight: bold; color: var(--red); }
+    .guide-meta { display: block; color: var(--muted); font-size: 0.92em; }
+    .guide-more {
+      margin-top: 0.8em;
+      border: 1.5px dashed var(--frame);
+      border-radius: 6px;
+      padding: 0 10px;
+      background: #f7efdc;
+    }
+    .guide-more summary { cursor: pointer; font-weight: bold; color: var(--blue); padding: 0.55em 0; }
+    .guide-more summary:focus-visible, .guide-quiz summary:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
+    .guide-more-body { padding-bottom: 0.4em; }
+
     /* 解卦 */
     .jie-names { text-align: center; font-size: 1.1em; font-weight: bold; color: var(--red); }
     .jie-keys { text-align: center; color: var(--muted); margin-bottom: 6px; }
@@ -1859,6 +1900,8 @@
     return CARE_ASK_RE.test(main) && !vaccinePlanMain(main) && !/探病|探望|看望|陪|上班|工作|面試|應徵|實習|買|費用|保險/.test(main);
   }
   var CARE_ADVICE = "這一題問的是要不要看醫生，這不是卦象能替你決定的事；是否需要就醫，要看你實際的症狀、持續多久與嚴重程度，並由醫師、藥師等醫療專業人員評估。這一卦的判詞只當參考，不能用來決定去或不去；有疑慮請直接和醫療專業人員討論，不要只憑卦象決定。";
+  // 天氣主問：程式沒有獨立的晴雨專斷，通用吉凶不等於晴雨；不臆造機率，也不把判詞說成一定下雨或放晴。分析與教學共用這一句。
+  var WEATHER_ADVICE = "這一題問的是天氣。這一卦只有通用的吉凶判斷，沒有專門的晴雨判斷，不能直接用來看晴雨或雨勢大小；要安排行程或活動，請以氣象預報為準，卦象只當參考。";
   // 主問是天氣：只看末句，婚禮、旅遊等活動只是背景；回傳 "rain" | "snow" | "clear" | ""。
   function weatherAsk(q) {
     var clauses = String(q || "").replace(/以(?:父母|兄弟|子孫|妻財|官鬼)為用/g, "").split(/[，,。；;]/).filter(function(t) { return t.trim(); });
@@ -3108,7 +3151,7 @@
         n.tone = "";
       });
     }
-    if (notes.length) notes.push({ text: "局成之後當一個整體看，不再拆開論局內各爻的生剋（第 23 集）；局的力量不另計入分數，請綜合判斷。", tone: "note" });
+    if (notes.length) notes.push({ text: "局成之後當一個整體看，不再拆開論局內各爻的生剋；局的力量不另計入分數，請綜合判斷。", tone: "note" });
     return notes;
   }
 
@@ -3338,7 +3381,7 @@
       });
       if (sel !== "應" && onGua && c.yongPick && c.yongPick.idx !== gua.ying && odd(ying) && !odd(f)) {
         var yingNote = "應爻有異（" + [ying.moving ? "發動" : ying.anDong ? "暗動" : "", ying.kong ? "旬空" : "", ying.yuePo ? "月破" : "", ying.riPo ? "日破" : "", ying.ruMu.length ? "入墓" : ""].filter(Boolean).join("、") +
-          "），用神平常：依課程以應爻（對方）判成敗，應爻「" + ying.level + "」";
+          "），用神平常：改以應爻（對方）判成敗，應爻「" + ying.level + "」";
         r.neutral.push(yingNote);
         r.replace = ying.useless ? -3.5 : ying.score;
         r.decide = { kind: "ying", texts: [yingNote] };
@@ -3498,7 +3541,7 @@
         else if (taiZ === mz || taiZ === dz) { preg = true; taiSay = "代表胚胎的「胎爻」雖然沒有在卦上出現，但剛好是這個" + (taiZ === mz ? "月的月建" : "日的日辰") + "，依規則也算有，顯示有懷孕的跡象。"; taiNote = "胎爻" + taiZ + "不上卦，但臨" + (taiZ === mz ? "月建" : "日辰") + "，也算有。"; }
         else { preg = false; taiSay = "代表胚胎的「胎爻」沒有出現在卦上，月建、日辰也不是它，顯示目前沒有懷孕的跡象。"; taiNote = "胎爻" + taiZ + "不上卦，論沒有懷孕。"; }
         note(taiNote);
-        note("問是否懷孕以胎爻為主、子孫只作參考（老師自己驗證過的方法，和古書看法不同），約可解決八成的懷孕卦。");
+        note("問是否懷孕以胎爻為主、子孫只作參考，不是照一般題目「用神旺相為吉」的通則來斷。");
         r.decide = { kind: "pregnancy", texts: [taiNote] };
         r.replace = preg ? 2.5 : -3.5;
         r.keepUseless = true;
@@ -4213,7 +4256,7 @@
       if (ELEM_GEN[yEl2] === sEl) rs.push("用神生世：事來就我，得之容易");
       else if (ELEM_KE[yEl2] === sEl) rs.push("用神剋世：事來就我（求財為「財來就我終須易」；占病災則為受其所傷）");
       else if (ELEM_GEN[sEl] === yEl2) rs.push("世生用神：我去求之，較費心力");
-      else if (ELEM_KE[sEl] === yEl2) rs.push("世剋用神：我去求之，「我去求財必是難」（《增刪卜易》原文作「我去尋財」），世爻須旺才擔得起");
+      else if (ELEM_KE[sEl] === yEl2) rs.push("世剋用神：我去求之，「我去求財必是難」，世爻須旺才擔得起");
       else rs.push("世與用神比和");
       push(sy, rs.join("；") + "。");
     }
@@ -4255,7 +4298,7 @@
       combos.forEach(function(n) { push(hj, n.text, n.tone); });
       push(hj, "三刑、六害屬附加象意，不改吉凶；六害屢試無驗，一般不論。", "note");
       if (combos.some(function(n) { return /寅巳申|丑戌未/.test(n.text); })) {
-        push(hj, "「恃勢」「無恩」的歸屬依課程講法；《三命通會》作寅巳申為無恩之刑、丑戌未為恃勢之刑，古書說法不一。", "note");
+        push(hj, "「恃勢」「無恩」兩種刑的歸屬，各家說法不一，這裡只當象意參考。", "note");
       }
     }
 
@@ -4346,7 +4389,7 @@
           "", a.fuA.verdict.text, signed(a.fuA.score) + " " + a.fuA.level]);
       }
     }
-    push(dt, "評分為月建、日辰、動爻、變爻逐項加減的參考值：3 以上旺、1 以上偏旺、−1.5 至 1 不旺不衰、−3 至 −1.5 偏衰、−3 以下衰。", "note");
+    push(dt, "評分為月建、日辰、動爻、變爻逐項加減的參考值。旺：分數 ≥ 3；偏旺：1 ≤ 分數 < 3；不旺不衰：−1.5 < 分數 < 1；偏衰：−3 < 分數 ≤ −1.5；衰：分數 ≤ −3。", "note");
 
     // ----- 白話解讀（放在最前面）、各段白話說明、名詞白話 -----
     var LEVEL_PLAIN = {
@@ -4599,7 +4642,7 @@
       "凶": "從卦象看，吃完藥後出行這件事目前不太順，行程要多留意、多留彈性" + afterNote
     }[verdict] || "從卦象看，吃完藥後出行這件事的傾向要綜合卦中的各項因素" + afterNote;
     // 天氣主問：程式沒有獨立的晴雨專斷，通用吉凶不等於晴雨；不臆造機率，也不把判詞說成一定下雨或放晴
-    if (weather) advice = "這一題問的是天氣。這一卦只有通用的吉凶判斷，沒有專門的晴雨判斷，不能直接用來看晴雨或雨勢大小；要安排行程或活動，請以氣象預報為準，卦象只當參考。";
+    if (weather) advice = WEATHER_ADVICE;
     // 要不要就醫：卦象不能決定，不依判詞變動，也不用接種、療效或病情的說法代答
     if (care) advice = CARE_ADVICE;
     cr.plain.forEach(function(p) { say(p.text, p.tone); });
@@ -4669,7 +4712,7 @@
     };
     sections.forEach(function(s) {
       if (!s.plain && SECTION_PLAIN[s.title]) s.plain = SECTION_PLAIN[s.title];
-      if (!s.plain && /專門斷法$|^補充斷法$/.test(s.title)) s.plain = "依所問的事類套用該類的取象與斷法（整理自安易芳老師《六爻中級課程》），標「象法」的只描述情境，不改吉凶。";
+      if (!s.plain && /專門斷法$|^補充斷法$/.test(s.title)) s.plain = "依所問的事類套用該類的取象與斷法，標「象法」的只描述情境，不改吉凶。";
     });
 
     // 名詞白話：只列出這次分析中有出現的名詞
@@ -4836,6 +4879,38 @@
     return r.join("；");
   }
 
+  // 醫療、用藥、就醫這幾種問法的限制說明；一般事類回傳空字串
+  function questionLimitNote(cat, q) {
+    var eq = effectiveQuestion(q);
+    if (careAsk(eq)) return "所問「" + q + "」問的是要不要看醫生。這不是卦象能替你決定的事：是否需要就醫，要看實際症狀與嚴重程度，並由醫師、藥師等專業人員評估；下面的取用神與斷法只當參考。";
+    if (medicalMatter(eq) === "after") return "所問「" + q + "」問的是吃完藥之後的出行或行程，不是在問要不要吃藥，也不推定問的人已經生病；用藥只是前提，卦象只回答出行這件事順不順，吃藥後適不適合出門、搭車或開車，要由醫師、藥師依藥品說明與個人狀況評估。";
+    if (cat === "病" && medicalMatter(eq)) return "所問「" + q + "」問的是疫苗、用藥或治療這件事本身，不推定問的人已經生病，一般取子孫（醫藥）為用神；是否接種或用藥，要由醫師、藥師依個別狀況評估。";
+    if (cat === "病" && futureHealthAsk(eq)) return "所問「" + q + "」問的是還沒發生的健康風險，不當成已經生病；問自己取世爻，問家人取該家人所屬六親。卦象只能當參考，實際的身體狀況要由醫療專業人員評估。";
+    return "";
+  }
+
+  // 明動、暗動各自對哪些爻出手；沒有就說明為靜卦，並列出被合絆、化廢而暫時不能出手的爻
+  function actionLines(gua, A) {
+    var out = [];
+    if (A.actors.length) {
+      A.actors.forEach(function(act) {
+        var effects = [];
+        A.lines.forEach(function(b, k) {
+          if (k === act.idx) return;
+          if (b.actShengIdx.indexOf(act.idx) >= 0) effects.push("生" + YAO_SHORT[k] + b.rel + b.branch);
+          else if (b.actKeIdx.indexOf(act.idx) >= 0) effects.push("剋" + YAO_SHORT[k] + b.rel + b.branch);
+        });
+        out.push(act.label + "（" + act.el + "）：" + (effects.join("、") || "對其他爻沒有直接生剋") + "。");
+      });
+    } else if (A.lines.some(function(a) { return a.moving; })) {
+      out.push("本卦" + A.lines.filter(function(a) { return a.moving; }).map(function(a) { return a.name; }).join("、") + "明動，但沒有能生剋他爻的動爻或暗動爻（見下面合絆、化廢的說明），所以不算靜卦：它們暫時生剋不到別的爻，旺衰主要仍看月建與日辰，等合絆被沖開、化廢的條件解除，才會發揮作用。");
+    } else {
+      out.push("本卦沒有能生剋他爻的動爻或暗動爻，屬靜卦：旺衰主要看月建與日辰，應期多看用神之病與逢沖之日。");
+    }
+    A.blocked.forEach(function(t) { out.push(t + "。"); });
+    return out;
+  }
+
   function teachingSteps(gua) {
     if (pendingYongRule()) return [];
     var A = assessGua(gua);
@@ -4876,9 +4951,9 @@
         "六獸依日干" + ds + "從初爻起" + spiritStart + "，往上依序排：初爻" + spirits[0] + "、二爻" + spirits[1] + "……上爻" + spirits[5] + "。"
       ],
       rule: [
-        "月份以「節」交接，不以「氣」：立春、驚蟄、清明、立夏、芒種、小暑、立秋、白露、寒露、立冬、大雪、小寒（第 09 集）。",
-        "世應歌訣：八純世在上，一世初、二世二……五世五，遊魂四、歸魂三；應爻與世爻隔兩位（第 04、05 集）。",
-        "六獸：甲乙青龍、丙丁朱雀、戊勾陳、己螣蛇、庚辛白虎、壬癸玄武，從初爻往上排（第 06、20 集）。"
+        "月份以「節」交接，不以「氣」：立春、驚蟄、清明、立夏、芒種、小暑、立秋、白露、寒露、立冬、大雪、小寒。",
+        "世應歌訣：八純世在上，一世初、二世二……五世五，遊魂四、歸魂三；應爻與世爻隔兩位。",
+        "六獸：甲乙青龍、丙丁朱雀、戊勾陳、己螣蛇、庚辛白虎、壬癸玄武，從初爻往上排。"
       ],
       pitfall: bookTeach ? [
         "書本卦例要照書上的月建、日辰原文輸入；這裡不會再用今天的日期或節氣去改它。",
@@ -4896,10 +4971,8 @@
     // 2. 取用神
     var apply2 = [];
     var q = document.getElementById("question").value.trim();
-    if (careAsk(effectiveQuestion(q))) apply2.push("所問「" + q + "」問的是要不要看醫生。這不是卦象能替你決定的事：是否需要就醫，要看實際症狀與嚴重程度，並由醫師、藥師等專業人員評估；下面的取用神與斷法只當參考。");
-    else if (medicalMatter(effectiveQuestion(q)) === "after") apply2.push("所問「" + q + "」問的是吃完藥之後的出行或行程，不是在問要不要吃藥，也不推定問的人已經生病；用藥只是前提，卦象只回答出行這件事順不順，吃藥後適不適合出門、搭車或開車，要由醫師、藥師依藥品說明與個人狀況評估。");
-    else if (cat === "病" && medicalMatter(effectiveQuestion(q))) apply2.push("所問「" + q + "」問的是疫苗、用藥或治療這件事本身，不推定問的人已經生病，一般取子孫（醫藥）為用神；是否接種或用藥，要由醫師、藥師依個別狀況評估。");
-    else if (cat === "病" && futureHealthAsk(effectiveQuestion(q))) apply2.push("所問「" + q + "」問的是還沒發生的健康風險，不當成已經生病；問自己取世爻，問家人取該家人所屬六親。卦象只能當參考，實際的身體狀況要由醫療專業人員評估。");
+    var limit2 = questionLimitNote(cat, q);
+    if (limit2) apply2.push(limit2);
     else if (cat) apply2.push("所問「" + q + "」屬於" + CAT_NAMES[cat] + "，一般" + CAT_YONG[cat] + "。");
     if (roles) {
       var yongEl = lineYongIdx(gua, roles.sel) >= 0 ? gua.lines[lineYongIdx(gua, roles.sel)].element : elementOfRelative(pEl, roles.sel);
@@ -4917,14 +4990,14 @@
       goal: "依所問之事決定用神，再由五行生剋推出原神、忌神、仇神。用神取錯，整卦都會斷錯。",
       apply: apply2,
       rule: [
-        "用神：所問的人事物；原神：生用神者；忌神：剋用神者；仇神：剋原神（也生忌神）者（第 07 集）。",
-        "用神多現：有動取動，有異取異（臨日月、空破墓；旺而空不算），再取持世持應、近世爻（安易芳課程第 29、77、79、95 集）。古書「捨閑爻而用持世，捨安靜而用動爻，捨不空而用旬空」大意相同，只是持世排得較前。",
-        "用神不上卦：到本宮首卦找同類六親為伏神；若月建或日辰就是用神，也可直接以日月為用神（第 17、32 集）。"
+        "用神：所問的人事物；原神：生用神者；忌神：剋用神者；仇神：剋原神（也生忌神）者。",
+        "用神多現：有動取動，有異取異（臨日月、空破墓；旺而空不算），再取持世持應、近世爻。",
+        "用神不上卦：到本宮首卦找同類六親為伏神；若月建或日辰就是用神，也可直接以日月為用神。"
       ],
       pitfall: [
-        "問題含糊會取錯用神，「不驗多因問者沒說出真正想問的事」（第 41 集）。一事一問，寫具體。",
-        "同一物看用途：家用車看父母、營業貨車看妻財；寵物看子孫、養來賣的牲畜看妻財（第 07 集）。",
-        "占流年最忌官鬼持世，占功名卻最喜官鬼持世：同一個象，所問不同，吉凶相反（第 41 集）。"
+        "問題含糊會取錯用神，多半是沒有說出真正想問的事。一事一問，寫具體。",
+        "同一物看用途：家用車看父母、營業貨車看妻財；寵物看子孫、養來賣的牲畜看妻財。",
+        "占流年最忌官鬼持世，占功名卻最喜官鬼持世：同一個象，所問不同，吉凶相反。"
       ],
       quiz: [
         { q: "問「父親的病何時好」，用神取什麼？原神、忌神是哪一類？", a: "用神取父母（父親）。原神是生父母的官鬼，忌神是剋父母的妻財。注意不是取官鬼：官鬼雖代表疾病，但問的主角是父親。" },
@@ -4942,12 +5015,12 @@
         (focus === A.lines[gua.shi] ? "" : "世爻" + A.lines[gua.shi].name + "：" + monthReason(A.lines[gua.shi].branch) + "。")
       ].filter(Boolean),
       rule: [
-        "同我為旺、生我為相、我生為休、我剋為囚、剋我為死（第 07 集）。",
-        "月建與爻相沖為月破；月建與爻相合，論合不論剋，一律以旺論（第 10、11 集）。"
+        "同我為旺、生我為相、我生為休、我剋為囚、剋我為死。",
+        "月建與爻相沖為月破；月建與爻相合，論合不論剋，一律以旺論。"
       ],
       pitfall: [
-        "「休」和「囚」都算弱，但不是沒用；最後還要看日辰和動爻（第 11 集的十六組範例）。",
-        "月破先分真破、假破：動爻、日生合、臨日辰或得動爻生是假破（基本解破）；只有日生、日扶不算解破；月破又日剋是特殊衰敗（安易芳課程第 5、8 集）。"
+        "「休」和「囚」都算弱，但不是沒用；最後還要看日辰和動爻。",
+        "月破先分真破、假破：動爻、日生合、臨日辰或得動爻生是假破（基本解破）；只有日生、日扶不算解破；月破又日剋是特殊衰敗。"
       ],
       quiz: [{ q: other3.name + "在月建" + mz + "之下是旺、相、休、囚、死哪一個？", a: monthReason(other3.branch) + "。" }]
     });
@@ -4964,37 +5037,21 @@
         "月建與日辰合起來，" + focusLabel + "判為「" + levelOf(focus.mdScore) + "」。" +
         (focus.level !== levelOf(focus.mdScore) ? "再加上動爻的生剋、發動和變爻自化（見第 5 步與詳細分析），最後算成「" + focus.level + "」。" : "")],
       rule: [
-        "值日最旺；日生、日扶為旺；日剋為衰（第 11 集）。",
-        "日合靜爻：生合為合旺，平合只合住不加分，剋合仍以剋論；日合動爻為合絆，動不了，但月建沖它則合中帶沖、絆不住（第 11 集；安易芳課程第 3、5、60 集）。",
-        "日沖靜爻：月令有氣、得未化廢的動爻生、或旬空成暗動，否則成日破；日沖動爻：旺相越沖越動，衰弱被沖散（第 10、11 集；安易芳課程第 6、7 集）。動爻不入日墓，日辰只墓靜爻、伏爻（安易芳課程第 80 集）。",
-        "十二長生最常用生、旺、墓、絕：木長生亥、火長生寅、金長生巳、水土長生申；三合局首字長生、中字帝旺、末字為墓（第 08 集）。",
-        "同一地支既生又絕（例：巳對土）或既剋又長生（例：巳對金）：旺相論生不論絕，休囚論絕不論生（第 08、19 集）。"
+        "值日最旺；日生、日扶為旺；日剋為衰。",
+        "日合靜爻：生合為合旺，平合只合住不加分，剋合仍以剋論；日合動爻為合絆，動不了，但月建沖它則合中帶沖、絆不住。",
+        "日沖靜爻：月令有氣、得未化廢的動爻生、或旬空成暗動，否則成日破；日沖動爻：旺相越沖越動，衰弱被沖散。動爻不入日墓，日辰只墓靜爻、伏爻。",
+        "十二長生最常用生、旺、墓、絕：木長生亥、火長生寅、金長生巳、水土長生申；三合局首字長生、中字帝旺、末字為墓。",
+        "同一地支既生又絕（例：巳對土）或既剋又長生（例：巳對金）：旺相論生不論絕，休囚論絕不論生。"
       ],
       pitfall: [
-        "月令休囚時，日辰雖是帝旺之地也不論帝旺（第 11 集：辰土在子月子日仍衰）。",
+        "月令休囚時，日辰雖是帝旺之地也不論帝旺（例：辰土在子月子日仍衰）。",
         "暗動要先看條件（月令有氣、得動爻生、旬空），不是被沖就一定動；暗動爻沒有變爻。"
       ],
       quiz: [quiz4]
     });
 
     // 5. 動爻變爻
-    var apply5 = [];
-    if (A.actors.length) {
-      A.actors.forEach(function(act) {
-        var effects = [];
-        A.lines.forEach(function(b, k) {
-          if (k === act.idx) return;
-          if (b.actShengIdx.indexOf(act.idx) >= 0) effects.push("生" + YAO_SHORT[k] + b.rel + b.branch);
-          else if (b.actKeIdx.indexOf(act.idx) >= 0) effects.push("剋" + YAO_SHORT[k] + b.rel + b.branch);
-        });
-        apply5.push(act.label + "（" + act.el + "）：" + (effects.join("、") || "對其他爻沒有直接生剋") + "。");
-      });
-    } else if (A.lines.some(function(a) { return a.moving; })) {
-      apply5.push("本卦" + A.lines.filter(function(a) { return a.moving; }).map(function(a) { return a.name; }).join("、") + "明動，但沒有能生剋他爻的動爻或暗動爻（見下面合絆、化廢的說明），所以不算靜卦：它們暫時生剋不到別的爻，旺衰主要仍看月建與日辰，等合絆被沖開、化廢的條件解除，才會發揮作用。");
-    } else {
-      apply5.push("本卦沒有能生剋他爻的動爻或暗動爻，屬靜卦：旺衰主要看月建與日辰，應期多看用神之病與逢沖之日。");
-    }
-    A.blocked.forEach(function(t) { apply5.push(t + "。"); });
+    var apply5 = actionLines(gua, A);
     A.lines.forEach(function(a) {
       if (!a.moving) return;
       var tags = a.chgTags.filter(function(t) { return /回頭|進神|退神/.test(t); });
@@ -5015,19 +5072,19 @@
       goal: "動爻（含暗動）有生剋其他爻的能力；靜爻不能生剋動爻；變爻只回頭作用在本爻。",
       apply: apply5,
       rule: [
-        "回頭剋：土化木、木化金、金化火、火化水、水化土。原用二神遇之則凶，忌仇二神遇之則吉（第 25 集）。",
-        "化進神：" + JIN_SHEN_TEXT + "；吉神宜化進，忌神宜化退（第 14、33 集）。",
-        "貪生忘剋：忌神與原神同動，忌神去生原神、原神再生用神，接續相生，反而吉（第 24、26 集）。",
-        "暗動和動爻一樣能生剋：生用神是貴人暗助（福來不知），剋用神是有人暗害（禍來不覺）（第 10 集）。",
-        "入墓的靜爻、被日辰合絆的動爻，暫時沒有生剋的能力（第 11、22 集）；動爻不入日墓（安易芳課程第 80 集）。",
-        "化廢：動爻化回頭剋、化退神、化破（變爻月破或日破）、化絕、化墓，就失去作用，不能再生剋他爻；化空不算化廢。變爻空破時回頭剋暫時剋不到，旺相不化退（安易芳課程第 24、25、27、77 集）。",
-        "作用方向唯一：一個動爻只取一個方向，先作用其他動爻（動動相連，只論相生），再作用用神，再作用世爻；有生則生，無生則剋。動爻之間相合（含剋合）以合論（安易芳課程第 24、26、80 集）。"
+        "回頭剋：土化木、木化金、金化火、火化水、水化土。原用二神遇之則凶，忌仇二神遇之則吉。",
+        "化進神：" + JIN_SHEN_TEXT + "；吉神宜化進，忌神宜化退。",
+        "貪生忘剋：忌神與原神同動，忌神去生原神、原神再生用神，接續相生，反而吉。",
+        "暗動和動爻一樣能生剋：生用神是貴人暗助（福來不知），剋用神是有人暗害（禍來不覺）。",
+        "入墓的靜爻、被日辰合絆的動爻，暫時沒有生剋的能力；動爻不入日墓。",
+        "化廢：動爻化回頭剋、化退神、化破（變爻月破或日破）、化絕、化墓，就失去作用，不能再生剋他爻；化空不算化廢。變爻空破時回頭剋暫時剋不到，旺相不化退。",
+        "作用方向唯一：一個動爻只取一個方向，先作用其他動爻（動動相連，只論相生），再作用用神，再作用世爻；有生則生，無生則剋。動爻之間相合（含剋合）以合論。"
       ],
       pitfall: [
         "不要把變爻拿去生剋別的爻，變爻只管本爻。",
         "看到一個動爻能剋用神，先確認它有沒有化廢、作用方向是不是被別的動爻先拿走了。",
         "忌神發動不一定凶：先看原神有沒有同動、忌神本身有沒有空破墓絕或化退。",
-        "一生一剋叫匹敵，平手；還要看用神本身旺衰，太衰的「生之不起」（第 24 集）。"
+        "一生一剋叫匹敵，平手；還要看用神本身旺衰，太衰的「生之不起」。"
       ],
       quiz: [quiz5]
     });
@@ -5051,15 +5108,15 @@
       goal: "有病的爻要分真假。假的只是暫時，時機一到就有用；真的才是無用之爻。",
       apply: apply6,
       rule: [
-        "假空：旺不為空、動不為空、動而化空、日辰沖空（沖空則起）、有日辰或動爻生扶。真空：靜爻休囚被剋又空，或月破又空（第 13、30 集）。",
-        "假破：動爻，或得日生合、臨日辰、動爻生（基本解破），可出破、實破（同支之日）、合破（合日）；只有日生、日扶不算解破。真破：靜而受剋又無解，月破又日剋為特殊衰敗（第 10、31 集；安易芳課程第 5、8 集）。",
-        "旺相、平相入墓是入庫（假墓），沖墓或沖爻即出；休囚入墓才是真入墓。入墓期間不能生剋，也不受生剋（第 22 集；安易芳課程第 96 集）。",
-        "逢絕要有日月動爻生扶，叫絕處逢生；忌神絕處逢生反為大凶（第 19 集）。"
+        "假空：旺不為空、動不為空、動而化空、日辰沖空（沖空則起）、有日辰或動爻生扶。真空：靜爻休囚被剋又空，或月破又空。",
+        "假破：動爻，或得日生合、臨日辰、動爻生（基本解破），可出破、實破（同支之日）、合破（合日）；只有日生、日扶不算解破。真破：靜而受剋又無解，月破又日剋為特殊衰敗。",
+        "旺相、平相入墓是入庫（假墓），沖墓或沖爻即出；休囚入墓才是真入墓。入墓期間不能生剋，也不受生剋。",
+        "逢絕要有日月動爻生扶，叫絕處逢生；忌神絕處逢生反為大凶。"
       ],
       pitfall: [
-        "空亡不必怕，它是短暫蟄伏、蓄積能量（第 13 集）。",
+        "空亡不必怕，它是短暫蟄伏、蓄積能量。",
         "旬空的靜爻在旬內「避空」，不受其他爻生剋，也不能生剋別人。",
-        "卦最凶是用神空亡，最善是忌神旬空（第 30 集）。"
+        "卦最凶是用神空亡，最善是忌神旬空。"
       ],
       quiz: [kongLine ?
         { q: kongLine.name + "旬空，是真空還是假空？", a: kongLine.kongType + "。判斷依據：" + monthReason(kongLine.branch) + "；" + dayReason(kongLine) + "；" + (kongLine.moving ? "而且是動爻。" : "是靜爻。") } :
@@ -5076,7 +5133,7 @@
     } else if (dec && dec.kind === "birth") {
       apply7.push("本題是特別斷法，只看產期、不判成敗吉凶：" + dec.texts[0], "下面是用神（子孫）的現況，只當背景；產期看的是時間（見第 8 步），不拿這些有利、不利來斷好壞。");
       special7 = "本題是特別斷法：問產期只看時間、不論吉凶，不照下面「用神旺相為吉、休囚為凶」的通則下結論。";
-      quiz7 = { q: "問產期時，這一步還要不要斷吉凶？", a: "不用。產期題只看時間，不論吉凶；用神的旺衰、生剋只用來決定哪些日子可以當候選日（第 8 步）。" };
+      quiz7 = { q: "問產期時，這一步還要不要斷吉凶？", a: "不用。產期題只看時間，不論吉凶；用神的旺衰、生剋只用來決定哪些日子可以當候選日（見「看時間」段落）。" };
     } else if (dec && dec.kind === "ying") {
       apply7.push("本題是特別斷法，應爻有異而用神平常，改看應爻（對方）判成敗：" + dec.texts[0] + "。");
       special7 = "本題是特別斷法：感情題應爻有異、而用神平常時，改以應爻（對方）的旺衰判成敗，不單看用神。";
@@ -5098,15 +5155,15 @@
       goal: "把前面幾步合起來：用神旺不旺？有沒有原神生、忌神剋？空破墓絕是真是假？世爻擔不擔得起？",
       apply: apply7.concat(secItems("總斷").filter(function(t) { return /^(有利|不利|現況)/.test(t); })),
       rule: (special7 ? [special7] : []).concat([
-        "欲問吉凶，研究用神生剋；要知禍福，須詳用忌（第 15 集）。",
-        "用神旺相、有原神生、忌神不動或受制為吉；用神休囚、忌神旺動、原神受傷為凶（第 07、26 集）。",
-        "財來就我終須易，我去求財必是難（《增刪卜易》原文作「我去尋財必是難」）：用神生剋沖世是事來就我，世去生剋用神是我去求（第 12 集）。",
-        "重內輕外：自身變化（回頭生剋、化進退、化廢）最重，其次是卦中動爻的生剋，日月最外層；日月雖旺但被動爻剋，以被剋論（安易芳課程第 28 集）。",
-        "靜卦而問自己的事：看用神與世爻的關係分五型（用神持世、忌神持世、用神生世、用神剋世、世生用神），各有成立條件（安易芳課程第 40–44 集）。"
+        "欲問吉凶，研究用神生剋；要知禍福，須詳用忌。",
+        "用神旺相、有原神生、忌神不動或受制為吉；用神休囚、忌神旺動、原神受傷為凶。",
+        "財來就我終須易，我去求財必是難：用神生剋沖世是事來就我，世去生剋用神是我去求。",
+        "重內輕外：自身變化（回頭生剋、化進退、化廢）最重，其次是卦中動爻的生剋，日月最外層；日月雖旺但被動爻剋，以被剋論。",
+        "靜卦而問自己的事：看用神與世爻的關係分五型（用神持世、忌神持世、用神生世、用神剋世、世生用神），各有成立條件。"
       ]),
       pitfall: [
         "分數只是幫你整理，重點是能說出每一項為什麼加、為什麼減。",
-        "六獸、神煞、遊魂歸魂、反伏吟、三刑都是象法，不能拿來決定吉凶（第 20、21、37 集）。"
+        "六獸、神煞、遊魂歸魂、反伏吟、三刑都是象法，不能拿來決定吉凶。"
       ],
       quiz: [quiz7]
     });
@@ -5116,15 +5173,15 @@
     if (dec && dec.kind === "birth" && dec.weak) quiz8 = { q: "本卦子孫" + focus.branch + "太衰，問產期時還取沖它的" + dec.weak.clash + "日嗎？", a: "不取。子孫太衰，沖它的日子沖不起，改取生旺子孫的日子（" + dec.weak.days.join("、") + "日）。「旺相逢沖才有力」是通則，本卦子孫偏衰，所以沒有把" + dec.weak.clash + "日當應期。" };
     steps.push({
       title: "斷應期：找病，病解之時就是應期",
-      goal: "「天機盡洩於有病之間，斷法總在於藥醫之處」（《卜筮正宗》原文；課程講者念作「醫藥之處」）：用神的病（空、破、合、墓、絕）就是線索，解病的日子就是應期。",
+      goal: "「天機盡洩於有病之間，斷法總在於藥醫之處」：用神的病（空、破、合、墓、絕）就是線索，解病的日子就是應期。",
       apply: secItems("應期參考"),
       rule: [
-        "空待填實或沖空；破待實破、合破或出破；合待沖；沖待合；墓待沖；絕待生（第 12、27 集）。",
-        "動爻應期：逢值、逢合；靜爻應期：逢沖、逢值（第 22、24 集）。",
-        "獨發、獨靜之爻常是應期線索（第 38 集）。近事斷日時，遠事斷月年（第 40 集）。"
+        "空待填實或沖空；破待實破、合破或出破；合待沖；沖待合；墓待沖；絕待生。",
+        "動爻應期：逢值、逢合；靜爻應期：逢沖、逢值。",
+        "獨發、獨靜之爻常是應期線索。近事斷日時，遠事斷月年。"
       ],
       pitfall: [
-        "沖空只有一半力道，出空填實才是完整的力道（第 39 集還錢例：卯日還一半，酉日才還清）。",
+        "沖空只有一半力道，出空填實才是完整的力道（例：卯日還一半，酉日才還清）。",
         "吉事看病解之日應吉，凶事看病發（忌神最旺、用神被沖）之日應凶。"
       ],
       quiz: [quiz8]
@@ -5136,13 +5193,13 @@
       goal: "六沖六合、反吟伏吟、遊魂歸魂、六獸、神煞、三刑，是用來補充細節與心態，不能取代用神生剋。",
       apply: secItems("卦象總覽").slice(1).concat(secItems("六獸與神煞（象法，只作參考）").slice(0, 2)),
       rule: [
-        "人之所惡者宜沖，所好者宜合；近病逢沖即癒，久病逢沖則凶（第 18、36 集）。",
-        "反吟：用神不化沖剋，雖反覆終成；伏吟：憂鬱呻吟、動如不動（第 15、28、29 集）。",
-        "六獸是附和之神：附吉則吉，附凶則凶；「吉凶神煞之多端，何如生剋制化之一理」（第 20、21 集）。"
+        "人之所惡者宜沖，所好者宜合；近病逢沖即癒，久病逢沖則凶。",
+        "反吟：用神不化沖剋，雖反覆終成；伏吟：憂鬱呻吟、動如不動。",
+        "六獸是附和之神：附吉則吉，附凶則凶；「吉凶神煞之多端，何如生剋制化之一理」。"
       ],
       pitfall: [
         "一見白虎、螣蛇就斷凶，一見青龍就斷吉，是本末倒置。",
-        "三刑只有在用神或世爻衰弱又受剋時才作凶論；六害屢試無驗，一般不論（第 23、37 集）。"
+        "三刑只有在用神或世爻衰弱又受剋時才作凶論；六害屢試無驗，一般不論。"
       ],
       quiz: [{ q: "問近病得六合卦，好不好？", a: "不好。近病逢合，病被合住，拖延難好；要等沖開之日。反過來，久病逢合反而能撐住。" }]
     });
@@ -5150,32 +5207,300 @@
     return steps;
   }
 
+  /* ---------- 教學模式：一頁五段白話導讀 ----------
+     完整九步教材仍由 teachingSteps 提供（內部資料與既有測試依據）；這裡只取與本卦有關的部分，
+     分成五段呈現，一般規則、名詞與選做練習收進「想多了解」。判詞、用神、分數、候選時間一律沿用分析結果，不另算。 */
+
+  var GUIDE_TITLES = ["① 看哪一爻", "② 看力量", "③ 看幫助與阻礙", "④ 對照整體判斷", "⑤ 看時間"];
+
+  function guideSectionItems(full, title) {
+    for (var k = 0; k < full.sections.length; k++) if (full.sections[k].title === title) return full.sections[k].items;
+    return [];
+  }
+
+  // 月建、日辰各自的加減項：第一項固定是月建，提到日辰、日墓、日破的歸日辰，其餘是動爻、變爻的影響
+  function guideSplitParts(a) {
+    var m = [], d = [], o = [];
+    a.parts.forEach(function(p, i) {
+      if (i === 0) m.push(p);
+      else if (/日辰|日墓|日破|值日|於日/.test(p.text)) d.push(p);
+      else o.push(p);
+    });
+    return { month: m, day: d, other: o };
+  }
+
+  function guidePartText(p) { return p.text + "（" + signed(p.delta) + "）"; }
+
+  // 旬空、月破、入墓、合絆等會影響這一爻的狀態，用白話交代；只重述分析已判定的類型，不追加判斷
+  function guideConditionNotes(a) {
+    var out = [];
+    if (a.kongType) {
+      if (a.kongType.indexOf("真空") === 0) out.push("旬空，程式判為「" + a.kongType + "」：這一爻目前落空，在本次判斷中視為無法發揮作用。");
+      else if (a.kongType.indexOf("假空") === 0) out.push("旬空，程式判為「" + a.kongType + "」：暫時落空，不是完全沒有；出空只是時間上的線索，不保證一定實現。");
+      else out.push("旬空，程式判為「" + a.kongType + "」：要等出空填實才看得到作用。");
+    }
+    if (a.poType) out.push("月破：" + a.poType + "。");
+    if (a.muType) out.push("入墓：" + a.ruMu.join("、") + "，" + a.muType + "。");
+    if (a.heBan) out.push("動爻被日辰合絆：暫時動不了，要等被沖開。");
+    return out;
+  }
+
+  var GUIDE_DECISION_SHORT = {
+    pregnancy: "問是否懷孕要改看胎爻，不是看子孫旺衰；實際情況以醫院檢查與醫師的意見為準。",
+    birth: "問產期只看時間、不論吉凶；列出的日子只是參考，實際以醫院安排為準。",
+    ying: "感情題應爻有異、而用神平常時，改以應爻（對方）的旺衰判成敗。",
+    quit: "問離職要反著看：工作（官鬼）越旺越難離開，越衰或被子孫剋越容易離開。",
+    illness: "自占疾病而官鬼持世：官鬼就是病，要反著看，病越旺越不好、越衰越好。"
+  };
+
+  function teachingGuide(gua) {
+    if (pendingYongRule()) return null;
+    var A = assessGua(gua), roles = computeRoles(gua), full = buildDetailedAnalysis(gua), steps = teachingSteps(gua);
+    var q = document.getElementById("question").value.trim(), book = isBookMode();
+    var cat = questionCategory(roles ? roles.sel : "");
+    var mz = timeInfo.monthZhi, dz = timeInfo.dayZhi;
+    var dec = full.sections.decision || null;
+    var pick = pickYong(gua, roles, A);
+    var shiA = A.lines[gua.shi];
+    var fly = null, focus;
+    if (pick) focus = A.lines[pick.idx];
+    else if (roles && roles.fuYong.length) { fly = A.lines[roles.fuYong[0]]; focus = fly.fuA; }
+    else focus = shiA;
+    var selName = roles ? roles.names["用"] : "";
+    var focusIsShi = !fly && focus === shiA;
+    var isIllness = !!dec && dec.kind === "illness", isQuit = !!dec && dec.kind === "quit";
+
+    var esc = escapeHtml;
+    var glossed = {};
+    var GLOSS = {
+      "用神": "代表你所問這件事的那一爻",
+      "世爻": "代表你自己",
+      "應爻": "代表對方或你要面對的環境",
+      "飛神": "壓在伏神上面的那一爻",
+      "伏神": "沒有出現在卦面上、藏在別的爻下面的爻",
+      "月建": book ? "書本卦例所標月份的地支，決定這個月誰當令" : "起卦當月的地支，決定這個月誰當令",
+      "日辰": book ? "書本卦例所標日子的干支" : "起卦當天的干支",
+      "十二長生": "一個地支在某一天所處的位置，例如長生、帝旺、墓、絕",
+      "原神": isIllness ? "生用神的力量，在這題會助長病情" : isQuit ? "生用神的力量，在這題會支持這份工作" : "生用神、幫助這件事的力量",
+      "忌神": isIllness ? "剋用神的力量，在這題是壓制病情的醫藥" : isQuit ? "剋用神的力量，在這題會削弱這份工作" : "剋用神、妨礙這件事的力量",
+      "仇神": "剋原神、生忌神的力量，作用是間接的",
+      "暗動": "表面安靜，被日辰沖動而暗中起作用"
+    };
+    function G(t) {
+      if (glossed[t] || !GLOSS[t]) return t;
+      glossed[t] = true;
+      return t + "（" + GLOSS[t] + "）";
+    }
+    function hasClashedStatic() { return A.lines.some(function(a) { return !a.moving && isClash(a.branch, dz); }); }
+    function P(t, cls) { return '<p' + (cls ? ' class="' + cls + '"' : '') + '>' + esc(t) + '</p>'; }
+    function UL(list, cls) {
+      list = list.filter(Boolean);
+      return list.length ? '<ul' + (cls ? ' class="' + cls + '"' : '') + '>' + list.map(function(t) { return '<li>' + esc(t) + '</li>'; }).join("") + '</ul>' : "";
+    }
+    function MORE(summary, inner) { return inner ? '<details class="guide-more"><summary>' + esc(summary) + '</summary><div class="guide-more-body">' + inner + '</div></details>' : ""; }
+    function QUIZ(list) {
+      return list.map(function(qz) { return '<details class="teach-quiz guide-quiz"><summary>選做練習：' + esc(qz.q) + '</summary><div>' + esc(qz.a) + '</div></details>'; }).join("");
+    }
+    function RULES(idxs) {
+      var rule = [], pit = [];
+      idxs.forEach(function(i) { rule = rule.concat(steps[i].rule); pit = pit.concat(steps[i].pitfall); });
+      return (rule.length ? P("一般規則", "guide-sub") + UL(rule) : "") + (pit.length ? P("常見錯誤", "guide-sub") + UL(pit) : "");
+    }
+    function SEC(n, inner) { return '<section class="teach-step guide-sec"><h3>' + GUIDE_TITLES[n] + '</h3><div class="guide-text">' + inner + '</div></section>'; }
+
+    var plainItems = guideSectionItems(full, "白話解讀");
+    var conclusion = plainItems.filter(function(it) { return /^結論：/.test(it.text); }).map(function(it) { return it.text.replace(/^結論：/, ""); })[0] || "";
+
+    /* ----- 頂端：主問、現有判詞、用神標記、必要特例 ----- */
+    var yongMark;
+    if (!roles) yongMark = "你還沒選用神，下面先以" + G("世爻") + "當參考；想看某一件事，請在「所問」旁選擇用神。";
+    else {
+      var named = /以(父母|兄弟|子孫|妻財|官鬼)為用/.exec(q);
+      if (yongManual) yongMark = G("用神") + "是「" + selName + "」，你已手動指定。";
+      else if (named && named[1] === roles.sel) yongMark = G("用神") + "是「" + selName + "」，所問已寫明以它為用神。";
+      else if (document.getElementById("yongShen").classList.contains("auto-picked")) yongMark = G("用神") + "是「" + selName + "」，由系統依所問自動判斷；可在「所問」旁自行更改。";
+      else yongMark = G("用神") + "是「" + selName + "」。";
+    }
+    var notes = [];
+    if (book) notes.push("書本卦例：月建" + mz + "、日辰" + timeInfo.dayGZ + "。未提供國曆日期，時間只列地支日。");
+    if (multiAskNote()) notes.push(multiAskNote());
+    if (careAsk(effectiveQuestion(q))) notes.push(CARE_ADVICE);
+    else if (weatherAsk(effectiveQuestion(q))) notes.push(WEATHER_ADVICE);
+    else if (questionLimitNote(cat, q)) notes.push(questionLimitNote(cat, q));
+    if (dec && GUIDE_DECISION_SHORT[dec.kind]) notes.push(GUIDE_DECISION_SHORT[dec.kind]);
+    var top = '<div class="guide-top guide-text">' +
+      (q ? '<p class="guide-q">你問的是「' + esc(q) + '」</p>' : P("這次沒有填寫所問。", "guide-q")) +
+      '<div class="ana-verdict ana-' + (full.tone || "mid") + '">整體傾向：' + esc(full.verdict) + '</div>' +
+      P(yongMark) +
+      (notes.length ? P("本例提醒", "guide-sub") + UL(notes, "guide-notes") : "") +
+      P("依照下列五段，對照這一卦；補充內容可按「想多了解」展開。", "guide-howto") + '</div>';
+
+    /* ----- 一、看哪一爻 ----- */
+    var lead1;
+    if (!roles) lead1 = "先找出代表的爻。你還沒選用神，所以先看" + shiA.name + "，也就是代表你自己的世爻。";
+    else if (fly) lead1 = "先找出代表這件事的爻。卦面上找不到「" + selName + "」，所以改看" + G("伏神") + "：" + focus.name + "，它藏在" + fly.name + "下面，" + fly.name + "叫" + G("飛神") + "。這次看的是藏在下面的伏神，不是" + YAO_SHORT[fly.idx] + "表面上的爻。";
+    else if (roles.yongLines.length > 1) {
+      var reasonMap = { "發動": "它是動爻", "暗動": "它是暗動爻", "持世": "它持世（在世爻上）", "持應": "它持應（在應爻上；應爻一般看對方或要面對的環境）" };
+      var why1 = pick.reasons.length ? pick.reasons.map(function(r) { return r.indexOf("有異（") === 0 ? "它有特殊狀態" + r.slice(2) : (reasonMap[r] || r); }).join("、") : "兩處都沒有特別之處，所以取離世爻最近的";
+      lead1 = "先找出代表這件事的爻。" + G("用神") + "「" + selName + "」在卦上出現" + ["", "", "兩", "三", "四", "五", "六"][roles.yongLines.length] + "處：" + roles.yongLines.map(function(i) { return A.lines[i].name; }).join("、") + "。這次主要看" + focus.name + "，因為" + why1 + "。其他同類的爻也列在下面，方便對照。";
+    }
+    else lead1 = "先找出代表這件事的爻。" + G("用神") + "「" + selName + "」在卦上只出現一處，就是" + focus.name + "，這次就看它。";
+
+    var cardMap = [];
+    function addCard(idx, label) {
+      var c = cardMap.filter(function(x) { return x.idx === idx; })[0];
+      if (!c) { c = { idx: idx, labels: [] }; cardMap.push(c); }
+      if (c.labels.indexOf(label) < 0) c.labels.push(label);
+    }
+    if (fly) addCard(fly.idx, "本次焦點藏在這一爻下面：伏神" + focus.name.slice(1) + "，這一爻本身是飛神");
+    else addCard(focus.idx, "本次焦點");
+    if (roles) roles.yongLines.forEach(function(i) { if (!pick || i !== pick.idx) addCard(i, "另一個同類爻（對照用）"); });
+    addCard(gua.shi, "世爻（代表你自己）");
+    addCard(gua.ying, "應爻（代表對方或要面對的環境）");
+    cardMap.sort(function(x, y) { return y.idx - x.idx; });
+    var roleLabel = { "用": "用神", "原": "原神（幫助）", "忌": "忌神（阻礙）", "仇": "仇神（間接阻礙）" };
+    var cards = '<ul class="guide-cards">' + cardMap.map(function(c) {
+      var a = A.lines[c.idx], r = roleOfLine(roles, c.idx);
+      var meta = [a.moving ? "發動" : a.anDong ? "暗動" : "安靜", r ? "是" + roleLabel[r] : ""].filter(Boolean).join("，");
+      return '<li class="guide-card"><b>' + esc(a.name) + '</b>　<span class="guide-tags">' + c.labels.map(function(l) { return "【" + esc(l) + "】"; }).join("") + '</span><span class="guide-meta">' + esc(meta) + '</span></li>';
+    }).join("") + '</ul>';
+    var cardLead = "下面把幾個關鍵位置標出來：" + G("世爻") + "、" + G("應爻") + "和這次的焦點。";
+
+    var more1 = [];
+    var gl1 = ["用神：代表你所問這件事的那一爻。", "世爻：代表你自己。", "應爻：代表對方或你要面對的環境。"];
+    if (fly) gl1.push("伏神與飛神：用神不上卦時，到本宮首卦找同類六親，它藏在某一爻下面，那一爻叫飛神；看的是藏著的伏神。");
+    more1.push(UL(gl1));
+    if (cat && !questionLimitNote(cat, q) && !multiAskNote()) more1.push(P("這類題目一般怎麼取用神：所問「" + q + "」屬於" + CAT_NAMES[cat] + "，一般" + CAT_YONG[cat] + "。", "guide-sub"));
+    if (roles && roles.yongLines.length > 1) more1.push(P("用神出現兩次以上時，程式依序看：有動取動、有異取異（臨月建或日辰、空破墓等）、其次持世或持應、最後取離世爻近的。", "guide-sub"));
+    var quiz1 = [];
+    if (roles && roles.yongLines.length > 1) quiz1.push({ q: "這一卦的「" + selName + "」出現在哪幾爻？程式主要看哪一爻？", a: roles.yongLines.map(function(i) { return A.lines[i].name; }).join("、") + "。主要看" + focus.name + "，因為" + why1 + "。" });
+    if (fly) quiz1.push({ q: "這一卦的「" + selName + "」為什麼要看伏神？", a: "因為卦面上沒有「" + selName + "」，所以到本宮首卦找到同類六親，伏在" + fly.name + "之下；取伏神是依這個規則，不是硬取表面上的爻。" });
+    var relGloss = "";
+    if (roles && cat && CAT_YONG[cat] && !questionLimitNote(cat, q)) {
+      var relHit = new RegExp(roles.sel + "（([^）]+)）").exec(CAT_YONG[cat]);
+      if (relHit) relGloss = "在這類題目裡，一般用" + roles.sel + "代表" + relHit[1] + "。";
+    }
+    var sec1 = SEC(0, P(lead1) + (relGloss ? P(relGloss) : "") + P(cardLead) + cards + MORE("想多了解：名詞與用神怎麼取", more1.join("")) + QUIZ(quiz1));
+
+    /* ----- 二、看力量 ----- */
+    var sp = guideSplitParts(focus);
+    var timeLine = book ?
+      "本卦的月建是" + mz + "（" + FIVE_ELEMENTS[mz] + "）、日辰是" + timeInfo.dayGZ + "（旬空" + timeInfo.xunKong + "），都是書本卦例輸入的。" :
+      "本卦的月建是" + mz + "（" + FIVE_ELEMENTS[mz] + "）、日辰是" + timeInfo.dayGZ + "（旬空" + timeInfo.xunKong + "），依起卦時間 " + timeInfo.solarText + " 換算。";
+    var focusLabel2 = (fly ? "伏神" : focusIsShi && !roles ? "世爻" : "用神") + focus.name.replace(/^伏/, "");
+    var power = [
+      "月建" + mz + "：" + sp.month.map(guidePartText).join("；"),
+      "日辰" + timeInfo.dayGZ + "：" + (sp.day.length ? sp.day.map(guidePartText).join("；") : "對它沒有加分或扣分"),
+      G("十二長生") + "：" + focus.branch + focus.el + "在" + dz + "日的位置是「" + focus.stage + "」"
+    ].concat(sp.other.length ? sp.other.map(function(p) { return "動爻或變爻：" + guidePartText(p); }) : ["動爻或變爻：沒有動爻或暗動爻對它加減分，它自己也沒有發動"],
+      ["合計 " + signed(focus.score) + "，判為「" + focus.level + "」"]);
+    var contrast = [];
+    if (roles) roles.yongLines.forEach(function(i) { if (!pick || i !== pick.idx) contrast.push(A.lines[i].name + "（另一個同類爻）：" + signed(A.lines[i].score) + "，" + A.lines[i].level); });
+    if (fly) contrast.push(fly.name + "（飛神）：" + signed(fly.score) + "，" + fly.level);
+    if (!focusIsShi && !fly) contrast.push(shiA.name + "（世爻）：" + signed(shiA.score) + "，" + shiA.level);
+    var layer = "力量「" + focus.level + "」只說這一爻自己的強弱，不能直接當成這件事順不順利、吉不吉；吉凶要到第④段，把幫助、阻礙、世應和這類題目的專門斷法合起來看。";
+    var verdictDiffers = (isStrongLv(focus.level) && full.tone === "bad") || (isWeakLv(focus.level) && full.tone === "good");
+    var sec2 = SEC(1,
+      P("力量由" + G("月建") + "、" + G("日辰") + "和動爻、變爻的影響加減而成，分數越高越有力。" + timeLine) +
+      P(focusLabel2 + "：", "guide-sub") + UL(power) +
+      P(layer, "guide-note") +
+      (verdictDiffers ? P("本卦就是這種情形：這一爻力量「" + focus.level + "」，整體傾向卻是「" + full.verdict + "」。兩者看的是不同層次，原因要看第④段列出的依據。", "guide-note") : "") +
+      UL(guideConditionNotes(focus)) +
+      (contrast.length ? P("對照：", "guide-sub") + UL(contrast) : "") +
+      MORE("想多了解：旺衰、日辰與空破的規則", P("分數對照（月建、日辰、動爻、變爻逐項加減的參考值）。旺：分數 ≥ 3；偏旺：1 ≤ 分數 < 3；不旺不衰：−1.5 < 分數 < 1；偏衰：−3 < 分數 ≤ −1.5；衰：分數 ≤ −3。") + P("月建與日辰怎麼來", "guide-sub") + UL(steps[0].apply.slice(0, 2)) + RULES([2, 3, 5])) +
+      QUIZ(steps[2].quiz.concat(hasClashedStatic() ? steps[3].quiz : [], A.lines.some(function(a) { return a.kong; }) ? steps[5].quiz : [])));
+
+    /* ----- 三、看幫助與阻礙 ----- */
+    var roleItems = guideSectionItems(full, "原神・忌神・仇神").map(function(it) { return it.text; });
+    var helpL = roleItems.filter(function(t) { return /^原神/.test(t); });
+    var blockL = roleItems.filter(function(t) { return /^(忌神|子孫（醫藥）)/.test(t); });
+    var indirectL = roleItems.filter(function(t) { return /^仇神/.test(t); });
+    var otherRoleL = roleItems.filter(function(t) { return helpL.indexOf(t) < 0 && blockL.indexOf(t) < 0 && indirectL.indexOf(t) < 0; });
+    var lead3;
+    if (!roles) lead3 = "還沒選用神，所以分不出幫助與阻礙；選好用神後，這裡會列出生它和剋它的力量。";
+    else lead3 = (isIllness ? "這題官鬼代表病，方向要反過來看：" : isQuit ? "這題問離職，方向要反過來看：" : "看有誰在幫這一爻、誰在妨礙它：") +
+      G("原神") + "是" + roles.names["原"] + "，" + G("忌神") + "是" + roles.names["忌"] + "，" + G("仇神") + "是" + roles.names["仇"] + "。";
+    var helpTitle = isIllness ? "助長病情的力量：" : isQuit ? "支持這份工作的力量：" : "幫助：";
+    var blockTitle = isIllness ? "壓制病情的力量（醫藥）：" : isQuit ? "削弱這份工作的力量：" : "阻礙：";
+    var fuHelp = [], fuBlock = [];
+    if (fly) {
+      var fv = focus.verdict;
+      fuHelp = fv.good.map(function(t) { return "利於出伏：" + t; });
+      fuBlock = fv.bad.map(function(t) { return "不利出伏：" + t; });
+    }
+    var actLines = actionLines(gua, A);
+    var staticNote = (!gua.hasMoving && !A.actors.length) ?
+      P("六爻安靜不等於一定沒有暗動。" + G("暗動") + "要看被日辰沖到的靜爻：月令有氣、得動爻生或旬空才成立。程式已經檢查過，本卦沒有確認有效的暗動（被沖但月令休囚的靜爻成日破，不算暗動）。", "guide-note") : "";
+    var sec3 = SEC(2,
+      P(lead3) +
+      (helpL.length || fuHelp.length ? P(helpTitle, "guide-sub") + UL(helpL.concat(fuHelp)) : "") +
+      (blockL.length || fuBlock.length ? P(blockTitle, "guide-sub") + UL(blockL.concat(fuBlock)) : "") +
+      (indirectL.length ? P("間接影響：", "guide-sub") + UL(indirectL) : "") +
+      UL(otherRoleL) +
+      P("誰在出手（動爻與暗動）：", "guide-sub") + UL(actLines) + staticNote +
+      P("這裡只是把看到的幫助與阻礙一項項列出，不是比條數；整體怎麼判，見第④段。", "guide-note") +
+      MORE("想多了解：動爻、變爻與原忌仇的規則", RULES([4])) +
+      QUIZ(A.lines.some(function(a) { return a.moving; }) ? steps[4].quiz : []));
+
+    /* ----- 四、對照整體判斷 ----- */
+    var totalItems = guideSectionItems(full, "總斷");
+    var basis = totalItems.filter(function(it) { return /^(現況|有利|不利)：/.test(it.text); }).map(function(it) { return it.text; });
+    var specialSec = full.sections.filter(function(s) { return /專門斷法$|^補充斷法$/.test(s.title); })[0];
+    var specialItems = specialSec ? specialSec.items.map(function(it) { return it.text; }) : [];
+    var timingItems = guideSectionItems(full, "應期參考").filter(function(it) { return !/^近事以日、時論/.test(it.text); }).map(function(it) { return it.text; });
+    var decTexts = dec ? dec.texts : [];
+    var specialShown = specialItems.filter(function(t) { return !/象法/.test(t) && decTexts.indexOf(t) < 0 && timingItems.indexOf(t) < 0; });
+    var specialImage = specialItems.filter(function(t) { return /象法/.test(t); });
+    basis = basis.filter(function(t) { return !decTexts.some(function(d) { return t === "現況：" + d; }); });
+    var decLines = [];
+    if (dec && dec.kind === "pregnancy") decLines.push("本題是特別斷法，結論由胎爻決定：" + dec.texts[0], "子孫（用神）自己的旺衰只當背景，不改變這個結論。");
+    else if (dec && dec.kind === "birth") decLines.push("本題是特別斷法，只看產期、不判成敗吉凶：" + dec.texts[0], "子孫（用神）的現況只當背景；產期看的是時間，見第⑤段。");
+    else if (dec && dec.kind === "ying") decLines.push("本題是特別斷法：" + dec.texts[0] + "。");
+    else if (dec && dec.kind === "quit") {
+      var zsKe = focus.actKeIdx.filter(function(i) { return A.lines[i].rel === "子孫"; }).map(function(i) { return YAO_SHORT[i] + A.lines[i].rel + A.lines[i].branch + (A.lines[i].moving ? "動" : "暗動"); });
+      decLines.push("離職題要反著斷：工作（官鬼）越旺越難離開，越衰或被子孫剋越容易離開。本卦" + focus.name + "在月日動變之下判為「" + focus.level + "」，" +
+        (isStrongLv(focus.level) ? "這份工作本身偏強，本來較難離開" : isWeakLv(focus.level) ? "這份工作本身偏弱，本來較容易離開" : "這份工作本身力量普通") +
+        (zsKe.length ? (isStrongLv(focus.level) ? "；但有" : "；而且有") + zsKe.join("、") + "來剋它（子孫剋官鬼，是離職較容易的直接依據）" : "") + "。");
+    }
+    else if (dec && dec.kind === "illness") decLines.push("本題是特別斷法：自占疾病而官鬼持世，官鬼就是病；下面的有利、不利已改從病人的角度排列。");
+    var conclusionShown = conclusion && notes.indexOf(conclusion) < 0;
+    var imageLines = specialImage.concat(guideSectionItems(full, "卦象總覽").slice(1).map(function(it) { return it.text; }));
+    var sec4 = SEC(3,
+      P("把前面幾段、世爻與應爻的關係，加上這類題目的專門斷法，依既定規則合在一起，得出整體傾向「" + full.verdict + "」。") +
+      UL(decLines, "guide-notes") +
+      (basis.length ? P(dec && (dec.kind === "birth" || dec.kind === "pregnancy") ? "用神的現況（只當背景，不拿來斷吉凶）：" : "判斷依據：", "guide-sub") + UL(basis) : "") +
+      (specialShown.length ? P("這類題目另有的斷法：", "guide-sub") + UL(specialShown) : "") +
+      P("這些條件要合起來看，不能只比有利或不利的項目數。", "guide-note") +
+      (conclusionShown ? P("白話結論：" + conclusion, "guide-conclusion") : "") +
+      MORE("想多了解：怎麼合起來斷吉凶，與只描述情境的象意", RULES([6]) + (imageLines.length ? P("只描述情境、不改吉凶的象意", "guide-sub") + UL(imageLines) : "")) +
+      QUIZ(steps[6].quiz));
+
+    /* ----- 五、看時間 ----- */
+    var plainTime = plainItems.filter(function(it) { return /^(時間上：|可能有變化或結果的日子：)/.test(it.text); }).map(function(it) { return it.text; })
+      .filter(function(t) { return timingItems.indexOf(t.replace(/^時間上：/, "")) < 0; });
+    var timingOnly = !!dec && (dec.kind === "birth" || dec.kind === "pregnancy");
+    var illNote = timingOnly ? [] : totalItems.filter(function(it) { return /^卦中之病：/.test(it.text); }).map(function(it) { return it.text.replace(/（見下方應期參考）/, ""); });
+    var dayWords = uniq((timingItems.join("") + plainTime.join("")).match(/[子丑寅卯辰巳午未申酉戌亥]日/g) || []).slice(0, 2);
+    var timeCaveat = [];
+    if (dec && dec.kind === "birth") timeCaveat.push("問產期只看時間、不論吉凶；實際以醫院安排為準。");
+    if (focus.kongType) timeCaveat.push("旬空的「出空」只是時間線索，不保證那一天一定實現。");
+    if (book && !plainTime.some(function(t) { return /未提供國曆/.test(t); })) timeCaveat.push("書本卦例未提供國曆年月日，所以只列地支日，不換算成幾月幾日。");
+    var sec5 = SEC(4,
+      P("時間只是線索：用神遇到的卡關（空、破、合、墓、絕），解開的日子，常被當作可能有變化的時候。") +
+      (timingItems.length ? P("卦中列出的候選時間：", "guide-sub") + UL(timingItems) : "") +
+      (plainTime.length ? P("白話說明：", "guide-sub") + UL(plainTime) : "") +
+      (illNote.length ? P("卦中卡住的地方：", "guide-sub") + UL(illNote) : "") + UL(timeCaveat, "guide-notes") +
+      (dayWords.length ? P("「" + dayWords.join("」「") + "」這類是依地支推算的日子，不是保證當天一定有結果。", "guide-note") : "") +
+      MORE("想多了解：應期的一般規則", P("近事以日、時論，遠事以月、年論；吉事解病之時應吉，凶事病發之時應凶。") + RULES([7])) +
+      QUIZ(steps[7].quiz));
+
+    return top + sec1 + sec2 + sec3 + sec4 + sec5;
+  }
+
   function teachingHtml(gua) {
     var pending = pendingYongRule();
     if (pending) return pendingYongHtml(pending);
-    var steps = teachingSteps(gua);
-    var html = '<div class="teach-intro">建議先自己照下面的步驟想一遍，再點開「練習」看答案，最後到「詳細分析」對照。每一步都以你這一卦的實際爻位示範，括號中的集數是《六爻神卦整理》課程出處。</div>';
-    if (multiAskNote()) html += '<p class="setting-note">' + escapeHtml(multiAskNote()) + '</p>';
-    steps.forEach(function(s, n) {
-      html += '<section class="teach-step"><h3>第 ' + (n + 1) + ' 步｜' + escapeHtml(s.title) + '</h3>' +
-        '<p class="teach-goal">' + escapeHtml(s.goal) + '</p>';
-      [["本卦怎麼看", s.apply, "apply"], ["判斷規則", s.rule, "rule"], ["常見錯誤", s.pitfall, "pit"]].forEach(function(b) {
-        if (!b[1].length) return;
-        html += '<div class="teach-block teach-' + b[2] + '"><div class="teach-label">' + b[0] + '</div><ul>' +
-          b[1].map(function(t) { return '<li>' + escapeHtml(t) + '</li>'; }).join("") + '</ul></div>';
-      });
-      s.quiz.forEach(function(qz) {
-        html += '<details class="teach-quiz"><summary>練習：' + escapeHtml(qz.q) + '</summary><div>' + escapeHtml(qz.a) + '</div></details>';
-      });
-      html += '</section>';
-    });
-    html += '<section class="teach-step"><h3>練習建議</h3><ul>' +
-      ["每次起卦後，先在紙上照這九步自己斷一次，寫下用神、旺衰、吉凶傾向和預估應期。",
-        "再打開「詳細分析」對照，找出自己漏看的地方（最常漏的是暗動、合絆、真假空）。",
-        "事情應驗後回頭檢討：應期和吉凶有沒有對上？斷錯就找出是哪一步疏忽（第 28 集的學習建議）。",
-        "一事一問，同一件事不要反覆重卜。"].map(function(t) { return '<li>' + escapeHtml(t) + '</li>'; }).join("") +
-      '</ul></section>';
-    return html;
+    return teachingGuide(gua);
   }
 
   /* ---------- 解卦：用白話說明卦辭、爻辭的意思，吉凶沿用詳細分析 ---------- */
