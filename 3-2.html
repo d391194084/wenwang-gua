@@ -5169,7 +5169,7 @@
     });
 
     // 8. 應期；產期題子孫太衰時，沖它的日子本卦並未採用，練習不拿它當肯定應期
-    var quiz8 = { q: "用神" + focus.branch + "如果旬空又旺相，可能哪兩天應事？", a: "出空填實的" + focus.branch + "日，或沖空的" + clashOf(focus.branch) + "日。旺相是假空，所以會應。" };
+    var quiz8 = { q: "用神" + focus.branch + "如果旬空又旺相，可能哪兩天應事？", a: "出空填實的" + focus.branch + "日，或沖空的" + clashOf(focus.branch) + "日。這兩天是時間上的線索：旺相而旬空多半是假空，只是暫時落空，但出空只是線索，不保證那一天一定實現。" };
     if (dec && dec.kind === "birth" && dec.weak) quiz8 = { q: "本卦子孫" + focus.branch + "太衰，問產期時還取沖它的" + dec.weak.clash + "日嗎？", a: "不取。子孫太衰，沖它的日子沖不起，改取生旺子孫的日子（" + dec.weak.days.join("、") + "日）。「旺相逢沖才有力」是通則，本卦子孫偏衰，所以沒有把" + dec.weak.clash + "日當應期。" };
     steps.push({
       title: "斷應期：找病，病解之時就是應期",
@@ -5209,7 +5209,7 @@
 
   /* ---------- 教學模式：一頁五段白話導讀 ----------
      完整九步教材仍由 teachingSteps 提供（內部資料與既有測試依據）；這裡只取與本卦有關的部分，
-     分成五段呈現，一般規則、名詞與選做練習收進「想多了解」。判詞、用神、分數、候選時間一律沿用分析結果，不另算。 */
+     分成五段呈現，一般規則、名詞收進「想多了解」，各段另有依本例資料產生的對錯題。判詞、用神、分數、候選時間一律沿用分析結果，不另算。 */
 
   var GUIDE_TITLES = ["① 看哪一爻", "② 看力量", "③ 看幫助與阻礙", "④ 對照整體判斷", "⑤ 看時間"];
 
@@ -5237,7 +5237,7 @@
     if (a.kongType) {
       if (a.kongType.indexOf("真空") === 0) out.push("旬空，程式判為「" + a.kongType + "」：這一爻目前落空，在本次判斷中視為無法發揮作用。");
       else if (a.kongType.indexOf("假空") === 0) out.push("旬空，程式判為「" + a.kongType + "」：暫時落空，不是完全沒有；出空只是時間上的線索，不保證一定實現。");
-      else out.push("旬空，程式判為「" + a.kongType + "」：要等出空填實才看得到作用。");
+      else out.push("旬空，程式判為「" + a.kongType + "」：不是真空，也沒有被判為無用，月建、日辰等因素仍照原規則評估，只是力量不足；括號裡的「出空填實才見作用」是時間上的線索，不保證一定實現。");
     }
     if (a.poType) out.push("月破：" + a.poType + "。");
     if (a.muType) out.push("入墓：" + a.ruMu.join("、") + "，" + a.muType + "。");
@@ -5291,7 +5291,6 @@
       glossed[t] = true;
       return t + "（" + GLOSS[t] + "）";
     }
-    function hasClashedStatic() { return A.lines.some(function(a) { return !a.moving && isClash(a.branch, dz); }); }
     function P(t, cls) { return '<p' + (cls ? ' class="' + cls + '"' : '') + '>' + esc(t) + '</p>'; }
     function UL(list, cls) {
       list = list.filter(Boolean);
@@ -5299,7 +5298,7 @@
     }
     function MORE(summary, inner) { return inner ? '<details class="guide-more"><summary>' + esc(summary) + '</summary><div class="guide-more-body">' + inner + '</div></details>' : ""; }
     function QUIZ(list) {
-      return list.map(function(qz) { return '<details class="teach-quiz guide-quiz"><summary>選做練習：' + esc(qz.q) + '</summary><div>' + esc(qz.a) + '</div></details>'; }).join("");
+      return list.map(function(qz) { return '<details class="teach-quiz guide-quiz"><summary>對錯題：' + esc(qz.s) + '</summary><div>答案：' + (qz.ok ? "對" : "錯") + '。' + esc(qz.why) + '</div></details>'; }).join("");
     }
     function RULES(idxs) {
       var rule = [], pit = [];
@@ -5333,7 +5332,7 @@
       '<div class="ana-verdict ana-' + (full.tone || "mid") + '">整體傾向：' + esc(full.verdict) + '</div>' +
       P(yongMark) +
       (notes.length ? P("本例提醒", "guide-sub") + UL(notes, "guide-notes") : "") +
-      P("依照下列五段，對照這一卦；補充內容可按「想多了解」展開。", "guide-howto") + '</div>';
+      P("依照下列五段，對照這一卦；補充內容可按「想多了解」展開；遇到「對錯題」，可以先自己判斷，再展開看答案。", "guide-howto") + '</div>';
 
     /* ----- 一、看哪一爻 ----- */
     var lead1;
@@ -5372,15 +5371,20 @@
     more1.push(UL(gl1));
     if (cat && !questionLimitNote(cat, q) && !multiAskNote()) more1.push(P("這類題目一般怎麼取用神：所問「" + q + "」屬於" + CAT_NAMES[cat] + "，一般" + CAT_YONG[cat] + "。", "guide-sub"));
     if (roles && roles.yongLines.length > 1) more1.push(P("用神出現兩次以上時，程式依序看：有動取動、有異取異（臨月建或日辰、空破墓等）、其次持世或持應、最後取離世爻近的。", "guide-sub"));
-    var quiz1 = [];
-    if (roles && roles.yongLines.length > 1) quiz1.push({ q: "這一卦的「" + selName + "」出現在哪幾爻？程式主要看哪一爻？", a: roles.yongLines.map(function(i) { return A.lines[i].name; }).join("、") + "。主要看" + focus.name + "，因為" + why1 + "。" });
-    if (fly) quiz1.push({ q: "這一卦的「" + selName + "」為什麼要看伏神？", a: "因為卦面上沒有「" + selName + "」，所以到本宮首卦找到同類六親，伏在" + fly.name + "之下；取伏神是依這個規則，不是硬取表面上的爻。" });
+    var NUM = ["一", "二", "三", "四", "五", "六"];
+    var focusRel = fly ? gua.lines[fly.idx].fu.relative : focus.rel;
+    var decode1 = [
+      fly ? "位置：「伏」表示它沒有出現在卦面上，藏在" + fly.name + "（飛神）下面，自己沒有爻位；位置要借飛神所在的" + YAO_SHORT[fly.idx] + "（爻位由下往上數，第" + NUM[fly.idx] + "條）來指，不是卦面上另外多出一條爻。" :
+        "位置：爻位由下往上數，初爻在最下面，最上面是上爻；「" + YAO_SHORT[focus.idx] + "」就是由下往上第" + NUM[focus.idx] + "條。",
+      "六親：「" + focusRel + "」是本例的關係分類名稱，用來對應你問的人或事情；實際指什麼，要配合所問來看。",
+      "地支與五行：「" + focus.branch + "」是它的地支，「" + focus.el + "」是它的五行；第②段看力量，就是拿它們和月建、日辰比較。"
+    ];
     var relGloss = "";
     if (roles && cat && CAT_YONG[cat] && !questionLimitNote(cat, q)) {
       var relHit = new RegExp(roles.sel + "（([^）]+)）").exec(CAT_YONG[cat]);
       if (relHit) relGloss = "在這類題目裡，一般用" + roles.sel + "代表" + relHit[1] + "。";
     }
-    var sec1 = SEC(0, P(lead1) + (relGloss ? P(relGloss) : "") + P(cardLead) + cards + MORE("想多了解：名詞與用神怎麼取", more1.join("")) + QUIZ(quiz1));
+    var body1 = P(lead1) + P("怎麼讀「" + focus.name + "」這個名稱：", "guide-sub") + UL(decode1) + (relGloss ? P(relGloss) : "") + P(cardLead) + cards + MORE("想多了解：名詞與用神怎麼取", more1.join(""));
 
     /* ----- 二、看力量 ----- */
     var sp = guideSplitParts(focus);
@@ -5400,15 +5404,14 @@
     if (!focusIsShi && !fly) contrast.push(shiA.name + "（世爻）：" + signed(shiA.score) + "，" + shiA.level);
     var layer = "力量「" + focus.level + "」只說這一爻自己的強弱，不能直接當成這件事順不順利、吉不吉；吉凶要到第④段，把幫助、阻礙、世應和這類題目的專門斷法合起來看。";
     var verdictDiffers = (isStrongLv(focus.level) && full.tone === "bad") || (isWeakLv(focus.level) && full.tone === "good");
-    var sec2 = SEC(1,
+    var body2 = (
       P("力量由" + G("月建") + "、" + G("日辰") + "和動爻、變爻的影響加減而成，分數越高越有力。" + timeLine) +
       P(focusLabel2 + "：", "guide-sub") + UL(power) +
       P(layer, "guide-note") +
       (verdictDiffers ? P("本卦就是這種情形：這一爻力量「" + focus.level + "」，整體傾向卻是「" + full.verdict + "」。兩者看的是不同層次，原因要看第④段列出的依據。", "guide-note") : "") +
       UL(guideConditionNotes(focus)) +
       (contrast.length ? P("對照：", "guide-sub") + UL(contrast) : "") +
-      MORE("想多了解：旺衰、日辰與空破的規則", P("分數對照（月建、日辰、動爻、變爻逐項加減的參考值）。旺：分數 ≥ 3；偏旺：1 ≤ 分數 < 3；不旺不衰：−1.5 < 分數 < 1；偏衰：−3 < 分數 ≤ −1.5；衰：分數 ≤ −3。") + P("月建與日辰怎麼來", "guide-sub") + UL(steps[0].apply.slice(0, 2)) + RULES([2, 3, 5])) +
-      QUIZ(steps[2].quiz.concat(hasClashedStatic() ? steps[3].quiz : [], A.lines.some(function(a) { return a.kong; }) ? steps[5].quiz : [])));
+      MORE("想多了解：旺衰、日辰與空破的規則", P("分數對照（月建、日辰、動爻、變爻逐項加減的參考值）。旺：分數 ≥ 3；偏旺：1 ≤ 分數 < 3；不旺不衰：−1.5 < 分數 < 1；偏衰：−3 < 分數 ≤ −1.5；衰：分數 ≤ −3。") + P("月建與日辰怎麼來", "guide-sub") + UL(steps[0].apply.slice(0, 2)) + RULES([2, 3, 5])));
 
     /* ----- 三、看幫助與阻礙 ----- */
     var roleItems = guideSectionItems(full, "原神・忌神・仇神").map(function(it) { return it.text; });
@@ -5431,7 +5434,7 @@
     var actLines = actionLines(gua, A);
     var staticNote = (!gua.hasMoving && !A.actors.length) ?
       P("六爻安靜不等於一定沒有暗動。" + G("暗動") + "要看被日辰沖到的靜爻：月令有氣、得動爻生或旬空才成立。程式已經檢查過，本卦沒有確認有效的暗動（被沖但月令休囚的靜爻成日破，不算暗動）。", "guide-note") : "";
-    var sec3 = SEC(2,
+    var body3 = (
       P(lead3) +
       (helpL.length || fuHelp.length ? P(helpTitle, "guide-sub") + UL(helpL.concat(fuHelp)) : "") +
       (blockL.length || fuBlock.length ? P(blockTitle, "guide-sub") + UL(blockL.concat(fuBlock)) : "") +
@@ -5439,8 +5442,7 @@
       UL(otherRoleL) +
       P("誰在出手（動爻與暗動）：", "guide-sub") + UL(actLines) + staticNote +
       P("這裡只是把看到的幫助與阻礙一項項列出，不是比條數；整體怎麼判，見第④段。", "guide-note") +
-      MORE("想多了解：動爻、變爻與原忌仇的規則", RULES([4])) +
-      QUIZ(A.lines.some(function(a) { return a.moving; }) ? steps[4].quiz : []));
+      MORE("想多了解：動爻、變爻與原忌仇的規則", RULES([4])));
 
     /* ----- 四、對照整體判斷 ----- */
     var totalItems = guideSectionItems(full, "總斷");
@@ -5465,15 +5467,14 @@
     else if (dec && dec.kind === "illness") decLines.push("本題是特別斷法：自占疾病而官鬼持世，官鬼就是病；下面的有利、不利已改從病人的角度排列。");
     var conclusionShown = conclusion && notes.indexOf(conclusion) < 0;
     var imageLines = specialImage.concat(guideSectionItems(full, "卦象總覽").slice(1).map(function(it) { return it.text; }));
-    var sec4 = SEC(3,
+    var body4 = (
       P("把前面幾段、世爻與應爻的關係，加上這類題目的專門斷法，依既定規則合在一起，得出整體傾向「" + full.verdict + "」。") +
       UL(decLines, "guide-notes") +
       (basis.length ? P(dec && (dec.kind === "birth" || dec.kind === "pregnancy") ? "用神的現況（只當背景，不拿來斷吉凶）：" : "判斷依據：", "guide-sub") + UL(basis) : "") +
       (specialShown.length ? P("這類題目另有的斷法：", "guide-sub") + UL(specialShown) : "") +
       P("這些條件要合起來看，不能只比有利或不利的項目數。", "guide-note") +
       (conclusionShown ? P("白話結論：" + conclusion, "guide-conclusion") : "") +
-      MORE("想多了解：怎麼合起來斷吉凶，與只描述情境的象意", RULES([6]) + (imageLines.length ? P("只描述情境、不改吉凶的象意", "guide-sub") + UL(imageLines) : "")) +
-      QUIZ(steps[6].quiz));
+      MORE("想多了解：怎麼合起來斷吉凶，與只描述情境的象意", RULES([6]) + (imageLines.length ? P("只描述情境、不改吉凶的象意", "guide-sub") + UL(imageLines) : "")));
 
     /* ----- 五、看時間 ----- */
     var plainTime = plainItems.filter(function(it) { return /^(時間上：|可能有變化或結果的日子：)/.test(it.text); }).map(function(it) { return it.text; })
@@ -5485,16 +5486,37 @@
     if (dec && dec.kind === "birth") timeCaveat.push("問產期只看時間、不論吉凶；實際以醫院安排為準。");
     if (focus.kongType) timeCaveat.push("旬空的「出空」只是時間線索，不保證那一天一定實現。");
     if (book && !plainTime.some(function(t) { return /未提供國曆/.test(t); })) timeCaveat.push("書本卦例未提供國曆年月日，所以只列地支日，不換算成幾月幾日。");
-    var sec5 = SEC(4,
+    var body5 = (
       P("時間只是線索：用神遇到的卡關（空、破、合、墓、絕），解開的日子，常被當作可能有變化的時候。") +
       (timingItems.length ? P("卦中列出的候選時間：", "guide-sub") + UL(timingItems) : "") +
       (plainTime.length ? P("白話說明：", "guide-sub") + UL(plainTime) : "") +
       (illNote.length ? P("卦中卡住的地方：", "guide-sub") + UL(illNote) : "") + UL(timeCaveat, "guide-notes") +
       (dayWords.length ? P("「" + dayWords.join("」「") + "」這類是依地支推算的日子，不是保證當天一定有結果。", "guide-note") : "") +
-      MORE("想多了解：應期的一般規則", P("近事以日、時論，遠事以月、年論；吉事解病之時應吉，凶事病發之時應凶。") + RULES([7])) +
-      QUIZ(steps[7].quiz));
+      MORE("想多了解：應期的一般規則", P("近事以日、時論，遠事以月、年論；吉事解病之時應吉，凶事病發之時應凶。") + RULES([7])));
 
-    return top + sec1 + sec2 + sec3 + sec4 + sec5;
+    /* ----- 對錯題：一題只問一個陳述；前提與答案理由都取自本例已判定的資料，依優先順序最多 3 題 ----- */
+    var cand = [];
+    function addQ(sec, s, ok, why) { cand.push({ sec: sec, s: s, ok: ok, why: why }); }
+    var kt = focus.kongType, kongTrue = kt.indexOf("真空") === 0, kongFalse = kt.indexOf("假空") === 0;
+    if (dec && dec.kind === "pregnancy") addQ(3, "問是否懷孕時，單看子孫旺衰就能判斷有沒有懷孕。", false, "這題改看胎爻，不看子孫旺衰。本卦：" + dec.texts[0] + "子孫（用神）自己的旺衰只當背景，不改變這個結論。");
+    else if (dec && dec.kind === "birth") addQ(3, "問產期時，要先斷這一胎吉不吉，再找候選日子。", false, "問產期是特別斷法，只看時間、不論吉凶。子孫（用神）的現況只當背景；第⑤段列出的日子只是參考，實際以醫院安排為準。");
+    else if (dec && dec.kind === "quit") addQ(3, "問離職時，工作（官鬼）越旺，就越容易離開。", false, decLines[0]);
+    else if (dec && dec.kind === "illness") addQ(3, "官鬼持世的自占疾病題，官鬼力量越強，代表病況越輕。", false, "官鬼就是病，要反著看：病越旺越不好、越衰越好。本例" + focus.name + "判為「" + focus.level + "」。");
+    else if (dec && dec.kind === "ying") addQ(3, "感情題的結論，只看用神旺不旺，不必看應爻。", false, "感情題若應爻有異、而用神平常，改以應爻（對方）的旺衰判成敗。本例：" + dec.texts[0] + "。");
+    if (roles && kt && !timingOnly) addQ(1, "本例將「" + focus.name + "」的旬空狀態判為「真空」。", kongTrue,
+      "本例實際判為「" + kt + "」，" + (kongTrue ? "是真空：到底空，在本次判斷中視為無法發揮作用，出空之後也無用。" : kongFalse ? "是假空：暫時落空，不是完全沒有作用；出空只是時間上的線索，不保證一定實現。" : "是介於真空與假空之間的第三類：它沒有被判為無用，月建、日辰等因素仍照原規則評估，只是力量不足；出空只是時間上的線索，不保證一定實現。") +
+      "旬空依狀況分成假空、真空與「空而力弱」三類，不能只看到旬空就下結論。這一爻合計" + signed(focus.score) + "，判為「" + focus.level + "」。");
+    if (!roles) addQ(0, "這一卦的世爻是「" + shiA.name + "」，它代表你自己。", true, "世爻代表問卦的人自己；這一卦世爻在" + YAO_SHORT[gua.shi] + "，應爻在" + YAO_SHORT[gua.ying] + "，應爻代表對方或要面對的環境。");
+    else if (fly) addQ(0, "這次看的「" + focus.name + "」，是卦面上另外多出來的一條爻，有自己的爻位。", false, "伏神沒有自己的爻位，它藏在" + fly.name + "（飛神）下面，位置要借飛神的" + YAO_SHORT[fly.idx] + "來指。表面上的爻是飛神" + fly.name + "，這次看的是藏在下面的" + focus.name + "。");
+    else addQ(0, "「" + focus.name + "」的「" + YAO_SHORT[focus.idx] + "」，是由下往上數的第" + NUM[focus.idx] + "條爻。", true, "爻位由下往上數，初爻在最下面，最上面是上爻；" + YAO_SHORT[focus.idx] + "就是由下往上第" + NUM[focus.idx] + "條。名稱其餘的部分：" + focusRel + "是六親分類，" + focus.branch + "是地支，" + focus.el + "是五行。");
+    if (roles && !timingOnly && kt && timingItems.some(function(t) { return t.indexOf(focus.name + "旬空：出空填實之" + focus.branch + "日") >= 0; })) addQ(4, "「" + focus.name + "」出空填實的" + focus.branch + "日，到了那天事情就一定會實現。", false,
+      "出空填實只是時間上的線索，用來知道先留意哪一天，不保證那一天一定實現。本例這一爻判為「" + kt + "」，" + (kongFalse ? "只是暫時落空，不是完全沒有作用" : "只是力量不足") + "；有沒有結果，還要和整體判斷一起看（本例整體傾向「" + full.verdict + "」）。");
+    if (roles && !dec && verdictDiffers) addQ(1, "這一爻的力量是「" + focus.level + "」，所以整體傾向一定" + (isStrongLv(focus.level) ? "偏吉。" : "偏凶。"), false, "力量只說這一爻自己的強弱，不能直接當成吉凶。本例整體傾向是「" + full.verdict + "」，原因要看第④段合起來的依據。");
+    if (roles && !dec) addQ(2, "這一例的忌神是「" + roles.names["原"] + "」，它會剋用神、妨礙這件事。", false, "生用神、幫助這件事的是原神，本例是「" + roles.names["原"] + "」；剋用神、妨礙這件事的才是忌神，本例是「" + roles.names["忌"] + "」。");
+    var picked = cand.slice(0, 3);
+    function QZ(n) { return QUIZ(picked.filter(function(c) { return c.sec === n; })); }
+
+    return top + SEC(0, body1 + QZ(0)) + SEC(1, body2 + QZ(1)) + SEC(2, body3 + QZ(2)) + SEC(3, body4 + QZ(3)) + SEC(4, body5 + QZ(4));
   }
 
   function teachingHtml(gua) {
