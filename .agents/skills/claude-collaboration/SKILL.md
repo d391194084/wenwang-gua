@@ -18,7 +18,11 @@ description: 在文王聖卦專案中由 Codex 獨立檢查、交給真正的 Cl
    python .agents/skills/claude-collaboration/scripts/collaborate.py handoff --findings tmp/本輪/findings.txt --out tmp/本輪/claude-01
    ```
 
-   `--session <回執中的 session_id>` 可續接；`--model` 可指定已可用模型。目前本機已驗證的預設為 `claude-sonnet-5-5`，不是自動挑選最新模型。不修改全域設定或自動升級 CLI。`--ack` 僅讀取報告並回覆，不允許修改或執行 shell。
+   `--session <回執中的 session_id>` 可續接；`--ack` 僅讀取報告並回覆，不允許修改或執行 shell。不修改全域設定或自動升級 CLI。
+
+   **模型與等級由 Claude 依工作決定**：交接前先由 Claude 以不帶工具的短呼叫讀過工作內容與未提交 diff，選擇模型（`claude-sonnet-5-5`／`claude-opus-5-5`）和等級（low～max），再套用品質下限：只讀審查至少 Sonnet＋high，修程式至少 Opus＋high；判斷失敗時用 Opus＋xhigh。本機 CLI 不支援所需模型時，改用可用的最強模型，並每少一級模型就把等級調高一級補償，`handoff.json` 會標示 `degraded: true`，報告須如實寫出。`--model`／`--effort` 可人工指定，但仍會被拉到下限。實際選擇、理由與實際使用的模型寫在 `invocation.json` 與 `handoff.json`（`model`、`effort`、`selectionReason`、`modelsUsed`）。
+
+   **逐項核對**：Claude 回覆最後必須有「逐項核對」段，逐條列出交辦的每一項及狀態與證據；缺少此段時 `coverageReported: false`，工具以失敗結束，須再次回交，不能當作完成。
 
 5. Claude 完成後，Codex 審查實際 diff、重新跑原失敗案例及鄰近反例，確認沒有寫死問句、削弱測試、改答案、改壞主問或語氣。若仍有問題，以新證據目錄再次回交第 3 步；保留上一輪失敗，不覆寫。
 6. 快速複驗只跑相關測試；候選修正穩定後執行一次完整固定驗收：
