@@ -20,7 +20,7 @@ description: 在文王聖卦專案中由 Codex 獨立檢查、交給真正的 Cl
 
    `--session <回執中的 session_id>` 可續接；`--ack` 僅讀取報告並回覆，不允許修改或執行 shell。不修改全域設定或自動升級 CLI。
 
-   **模型與等級由 Claude 依工作決定**：交接前先由 Claude 以不帶工具的短呼叫讀過工作內容與未提交 diff，選擇模型（`claude-sonnet-5-5`／`claude-opus-5-5`）和等級（low～max），再套用品質下限：只讀審查至少 Sonnet＋high，修程式至少 Opus＋high；判斷失敗時用 Opus＋xhigh。本機 CLI 不支援所需模型時，改用可用的最強模型，並每少一級模型就把等級調高一級補償，`handoff.json` 會標示 `degraded: true`，報告須如實寫出。`--model`／`--effort` 可人工指定，但仍會被拉到下限。實際選擇、理由與實際使用的模型寫在 `invocation.json` 與 `handoff.json`（`model`、`effort`、`selectionReason`、`modelsUsed`）。
+   **模型與等級由 Claude 依工作決定**：交接前先由 Claude 以不帶工具的短呼叫讀過工作內容與未提交 diff，選擇模型（`claude-sonnet-5-5`／`claude-opus-5-5`）和等級（low～max），再套用品質下限：只讀審查至少 Sonnet＋high，修程式至少 Opus＋high；判斷失敗時用 Opus＋xhigh。本機 CLI 不支援所需模型時，改用可用的最強模型，並每少一級模型就把等級調高一級補償，`handoff.json` 會標示 `degraded: true`，報告須如實寫出。`--model`／`--effort` 可人工指定，但仍會被拉到下限。實際選擇、理由與實際使用的模型寫在 `invocation.json` 與 `handoff.json`（`model`、`effort`、`selectionReason`、`modelsUsed`）。CLI 會另用 `claude-haiku-5-5` 處理少量內部工作（約數十個輸出 token），`modelsUsed` 出現 Haiku 屬正常；核對時看主要輸出是否來自所選模型。本機 CLI 已於 2026-11-07 升級至 2.1.319，Opus 5.5 可用。
 
    **逐項核對**：Claude 回覆最後必須有「逐項核對」段，逐條列出交辦的每一項及狀態與證據；缺少此段時 `coverageReported: false`，工具以失敗結束，須再次回交，不能當作完成。
 
